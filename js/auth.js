@@ -1,10 +1,12 @@
 // js/auth.js
 const Auth = (() => {
     const USER_KEY = 'climapro_user';
+    // Se define la URL de Render aquí para que login y registro no busquen tu PC local
+    const BASE_URL = 'https://servi-a-c-pro.onrender.com';
 
     const login = async (email, password) => {
         try {
-            const response = await fetch('http://localhost:8080/auth/login', {
+            const response = await fetch(`${BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -37,7 +39,7 @@ const Auth = (() => {
                 rol: 'CLIENTE',
                 activo: true
             };
-            const response = await fetch('http://localhost:8080/usuarios', {
+            const response = await fetch(`${BASE_URL}/usuarios`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -74,5 +76,12 @@ const Auth = (() => {
         return true;
     };
 
-    return { login, register, logout, getUser, isAuthenticated, requireAuth };
+    return {
+        login,
+        register,
+        logout,
+        getUser,
+        isAuthenticated,
+        requireAuth
+    };
 })();

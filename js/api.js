@@ -1,5 +1,4 @@
 // js/api.js
-// CAMBIA ESTO: apunta a tu backend, NO a tu frontend
 const API_URL = 'https://servi-a-c-pro.onrender.com'; 
 
 const API = {
@@ -10,7 +9,6 @@ const API = {
         };
         const config = { ...options, headers };
         try {
-            // Ahora la petición irá a https://servi-a-c-pro.onrender.com/productos
             const response = await fetch(`${API_URL}${endpoint}`, config);
             
             if (!response.ok) {
@@ -64,7 +62,6 @@ const API = {
         resetPassword: (token, password) => API.request('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) })
     },
 
-    // RESEÑAS - ENVÍA AMBOS PARÁMETROS (productoId y usuarioId)
     Resenas: {
         listarPorProducto: (productoId) => API.request(`/api/resenas/producto/${productoId}`),
         obtenerEstadisticas: (productoId) => API.request(`/api/resenas/producto/${productoId}/estadisticas`),
