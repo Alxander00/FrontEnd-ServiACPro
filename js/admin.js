@@ -5,7 +5,7 @@ let bsModal = null;
 let categoriasCargadas = false;
 
 const formatearFecha = (fechaString) => {
-    const opciones = { day: 'numeric', month: 'long', year: 'numeric' };
+    const opciones = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
     return new Date(fechaString).toLocaleDateString('es-ES', opciones);
 };
 
@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bsModal = new bootstrap.Modal(document.getElementById('productoModal'));
     document.getElementById('productoForm').addEventListener('submit', guardarProducto);
     loadPage('dashboard');
+    actualizarContadoresAdmin();
 
     document.querySelectorAll('.nav-link[data-page]').forEach(item => {
         item.addEventListener('click', (e) => {
@@ -26,12 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function loadPage(page) {
     const titles = {
-        dashboard: ['Dashboard', 'Resumen general del sistema'],
-        productos: ['Gestión de Productos', 'Administra el catálogo de equipos'],
-        pedidos: ['Gestión de Pedidos', 'Visualiza y actualiza el estado de los pedidos'],
-        categorias: ['Gestión de Categorías', 'Organiza el catálogo'],
-        usuarios: ['Gestión de Usuarios', 'Administra clientes y roles'],
-        solicitudes: ['Solicitudes de Servicio', 'Gestiona peticiones de los clientes']
+        dashboard: ['Dashboard', 'Visión general de métricas en tiempo real'],
+        productos: ['Gestión de Productos', 'Administra el inventario, precios y detalles'],
+        pedidos: ['Control de Pedidos', 'Seguimiento financiero y estados de venta'],
+        categorias: ['Clasificación', 'Organiza el catálogo de productos'],
+        usuarios: ['Directorio de Usuarios', 'Administración de accesos y roles'],
+        solicitudes: ['Centro de Operaciones', 'Visitas técnicas y asignaciones']
     };
     document.getElementById('sectionTitle').textContent = titles[page][0];
     document.getElementById('sectionSubtitle').textContent = titles[page][1];
@@ -44,130 +45,61 @@ function loadPage(page) {
     if(page === 'solicitudes') renderSolicitudes();
 }
 
+// ========== DASHBOARD ==========
 async function renderDashboard() {
-    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p>Cargando estadísticas...</p></div>';
+    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" style="width: 3rem; height: 3rem;"></div><h5 class="mt-3 text-muted">Analizando datos...</h5></div>';
     try {
         const stats = await API.Estadisticas.obtenerDashboard();
-        
         contentDiv.innerHTML = `
-            <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm rounded-3 h-100">
-                        <div class="card-body py-3 px-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div><h6 class="text-muted mb-1 small">Ventas Totales</h6><h3 class="fw-bold mb-0 fs-2">$${stats.ventasTotales.toFixed(2)}</h3></div>
-                                <div class="bg-primary bg-opacity-10 rounded-circle p-2"><i class="fas fa-dollar-sign text-primary fs-5"></i></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm rounded-3 h-100">
-                        <div class="card-body py-3 px-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div><h6 class="text-muted mb-1 small">Pedidos</h6><h3 class="fw-bold mb-0 fs-2">${stats.totalPedidos}</h3></div>
-                                <div class="bg-success bg-opacity-10 rounded-circle p-2"><i class="fas fa-shopping-cart text-success fs-5"></i></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm rounded-3 h-100">
-                        <div class="card-body py-3 px-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div><h6 class="text-muted mb-1 small">Productos</h6><h3 class="fw-bold mb-0 fs-2">${stats.totalProductos}</h3></div>
-                                <div class="bg-info bg-opacity-10 rounded-circle p-2"><i class="fas fa-boxes text-info fs-5"></i></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm rounded-3 h-100">
-                        <div class="card-body py-3 px-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div><h6 class="text-muted mb-1 small">Clientes</h6><h3 class="fw-bold mb-0 fs-2">${stats.totalClientes}</h3></div>
-                                <div class="bg-warning bg-opacity-10 rounded-circle p-2"><i class="fas fa-users text-warning fs-5"></i></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="row g-4 mb-4">
+                <div class="col-xl-3 col-md-6"><div class="card h-100"><div class="card-body p-4 d-flex justify-content-between align-items-center"><div><h6 class="text-muted fw-bold mb-2 text-uppercase">Ingresos Totales</h6><h2 class="fw-bold mb-0 text-dark">$${stats.ventasTotales.toFixed(2)}</h2></div><div class="stat-icon bg-gradient-primary text-white"><i class="fas fa-wallet"></i></div></div></div></div>
+                <div class="col-xl-3 col-md-6"><div class="card h-100"><div class="card-body p-4 d-flex justify-content-between align-items-center"><div><h6 class="text-muted fw-bold mb-2 text-uppercase">Pedidos Exitosos</h6><h2 class="fw-bold mb-0 text-dark">${stats.totalPedidos}</h2></div><div class="stat-icon bg-gradient-success text-white"><i class="fas fa-shopping-bag"></i></div></div></div></div>
+                <div class="col-xl-3 col-md-6"><div class="card h-100"><div class="card-body p-4 d-flex justify-content-between align-items-center"><div><h6 class="text-muted fw-bold mb-2 text-uppercase">En Inventario</h6><h2 class="fw-bold mb-0 text-dark">${stats.totalProductos}</h2></div><div class="stat-icon bg-gradient-info text-white"><i class="fas fa-box-open"></i></div></div></div></div>
+                <div class="col-xl-3 col-md-6"><div class="card h-100"><div class="card-body p-4 d-flex justify-content-between align-items-center"><div><h6 class="text-muted fw-bold mb-2 text-uppercase">Clientes Activos</h6><h2 class="fw-bold mb-0 text-dark">${stats.totalClientes}</h2></div><div class="stat-icon bg-gradient-warning text-white"><i class="fas fa-users"></i></div></div></div></div>
             </div>
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <div class="card border-0 shadow-sm rounded-3 h-100">
-                        <div class="card-header bg-transparent border-0 pt-3 pb-0 px-3"><h6 class="fw-bold mb-0"><i class="fas fa-chart-line me-2 text-primary"></i>Ventas por Mes</h6></div>
-                        <div class="card-body p-3"><canvas id="ventasChart" height="200" style="max-height: 200px;"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card border-0 shadow-sm rounded-3 h-100">
-                        <div class="card-header bg-transparent border-0 pt-3 pb-0 px-3"><h6 class="fw-bold mb-0"><i class="fas fa-chart-bar me-2 text-success"></i>Productos Más Vendidos</h6></div>
-                        <div class="card-body p-3"><canvas id="productosChart" height="200" style="max-height: 200px;"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-6 offset-md-3">
-                    <div class="card border-0 shadow-sm rounded-3">
-                        <div class="card-header bg-transparent border-0 pt-3 pb-0 px-3"><h6 class="fw-bold mb-0"><i class="fas fa-chart-pie me-2 text-info"></i>Pedidos por Estado</h6></div>
-                        <div class="card-body p-3"><canvas id="estadosChart" height="200" style="max-height: 200px;"></canvas></div>
-                    </div>
-                </div>
+            <div class="row g-4">
+                <div class="col-lg-7"><div class="card h-100"><div class="card-header bg-white pt-4 px-4"><h5 class="fw-bold mb-0 text-dark"><i class="fas fa-chart-line text-primary me-2"></i>Fluctuación de Ingresos</h5></div><div class="card-body p-4"><canvas id="ventasChart" height="220"></canvas></div></div></div>
+                <div class="col-lg-5"><div class="card h-100"><div class="card-header bg-white pt-4 px-4"><h5 class="fw-bold mb-0 text-dark"><i class="fas fa-fire text-danger me-2"></i>Equipos Más Vendidos</h5></div><div class="card-body p-4"><canvas id="productosChart" height="260"></canvas></div></div></div>
             </div>
         `;
-
         const ctxVentas = document.getElementById('ventasChart').getContext('2d');
-        new Chart(ctxVentas, {
-            type: 'line',
-            data: { labels: stats.ventasPorMes.map(v => v.mes), datasets: [{ label: 'Ventas ($)', data: stats.ventasPorMes.map(v => v.total), borderColor: '#0d6efd', tension: 0.2, fill: false, pointRadius: 3 }] },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } } }
-        });
-
+        new Chart(ctxVentas, { type: 'line', data: { labels: stats.ventasPorMes.map(v => v.mes), datasets: [{ label: 'Ventas ($)', data: stats.ventasPorMes.map(v => v.total), borderColor: '#0d6efd', backgroundColor: 'rgba(13,110,253,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#0d6efd', pointRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
         const ctxProductos = document.getElementById('productosChart').getContext('2d');
-        new Chart(ctxProductos, {
-            type: 'bar',
-            data: { labels: stats.productosMasVendidos.map(p => p.nombre.length > 15 ? p.nombre.substring(0,12)+'…' : p.nombre), datasets: [{ label: 'Unidades vendidas', data: stats.productosMasVendidos.map(p => p.vendidos), backgroundColor: '#20c997', borderRadius: 6 }] },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } } }
-        });
-
-        const ctxEstados = document.getElementById('estadosChart').getContext('2d');
-        new Chart(ctxEstados, {
-            type: 'doughnut',
-            data: { labels: Object.keys(stats.pedidosPorEstado), datasets: [{ data: Object.values(stats.pedidosPorEstado), backgroundColor: ['#ffc107', '#0dcaf0', '#198754', '#dc3545'], borderWidth: 0 }] },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } } } }
-        });
+        new Chart(ctxProductos, { type: 'bar', data: { labels: stats.productosMasVendidos.map(p => p.nombre.substring(0,12)+'…'), datasets: [{ label: 'Unidades', data: stats.productosMasVendidos.map(p => p.vendidos), backgroundColor: ['#0d6efd', '#20c997', '#ffc107', '#dc3545', '#0dcaf0'], borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
     } catch (error) {
-        contentDiv.innerHTML = `<div class="alert alert-danger m-3">Error al cargar estadísticas: ${error.message}</div>`;
+        contentDiv.innerHTML = `<div class="alert alert-danger shadow-sm m-3 rounded-4"><i class="fas fa-exclamation-triangle me-2"></i> Error al cargar estadísticas: ${error.message}</div>`;
     }
 }
 
 // ========== PRODUCTOS ==========
 async function renderProductos() {
-    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p>Cargando productos...</p></div>';
+    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
         const productosData = await API.Productos.listarActivos();
         contentDiv.innerHTML = `
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h5 class="fw-bold mb-0">Catálogo de Equipos</h5>
-                        <button class="btn btn-primary fw-bold" onclick="openProductoModal()"><i class="fas fa-plus me-2"></i>Nuevo Producto</button>
-                    </div>
+            <div class="card border-0">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-box text-primary me-2"></i>Inventario de Equipos</h5>
+                    <button class="btn btn-primary fw-bold shadow-sm" onclick="openProductoModal()"><i class="fas fa-plus me-2"></i>Nuevo Equipo</button>
+                </div>
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light"><tr><th>ID</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light"><tr><th class="ps-4">Equipo y Detalles</th><th>Categoría</th><th>Precio Base</th><th>Disponibilidad</th><th class="text-end pe-4">Acciones</th></tr></thead>
                             <tbody>
                                 ${productosData.map(p => `
                                     <tr>
-                                        <td>${p.idProducto}</td>
-                                        <td class="fw-semibold text-dark">${p.nombre}</td>
-                                        <td><span class="badge bg-info text-dark">${p.nombreCategoria}</span></td>
-                                        <td class="fw-bold text-primary">$${p.precio.toFixed(2)}</td>
-                                        <td>${p.stock}</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-primary" onclick="editarProducto(${p.idProducto})"><i class="fas fa-edit"></i></button>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarProducto(${p.idProducto})"><i class="fas fa-trash"></i></button>
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle bg-light text-primary border me-3"><i class="fas fa-fan"></i></div>
+                                                <div><h6 class="mb-0 fw-bold text-dark">${p.nombre}</h6><small class="text-muted fw-semibold">ID: #${p.idProducto} | ${p.capacidadBTU} BTU</small></div>
+                                            </div>
                                         </td>
-                                    </tr>
-                                `).join('')}
+                                        <td><span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2">${p.nombreCategoria}</span></td>
+                                        <td class="fw-bold text-dark fs-5">$${p.precio.toFixed(2)}</td>
+                                        <td><span class="badge ${p.stock > 5 ? 'bg-success' : (p.stock > 0 ? 'bg-warning' : 'bg-danger')} bg-opacity-10 text-${p.stock > 5 ? 'success' : (p.stock > 0 ? 'warning text-dark' : 'danger')} border-0 px-3 py-2"><i class="fas ${p.stock > 5 ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-1"></i> ${p.stock} unid.</span></td>
+                                        <td class="text-end pe-4"><button class="btn btn-sm btn-light text-primary me-2 shadow-sm" onclick="editarProducto(${p.idProducto})" title="Editar"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-light text-danger shadow-sm" onclick="eliminarProducto(${p.idProducto})" title="Eliminar"><i class="fas fa-trash"></i></button></td>
+                                    </tr>`).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -182,21 +114,28 @@ async function renderProductos() {
 async function openProductoModal(id = null) {
     document.getElementById('productoForm').reset();
     document.getElementById('productoId').value = '';
-    document.getElementById('modalTitle').textContent = 'Agregar Producto';
+    document.getElementById('modalTitle').textContent = 'Agregar Equipo';
     if (!categoriasCargadas) await cargarCategoriasEnSelect();
+    
     if (id) {
         try {
             const prod = await API.Productos.obtenerPorId(id);
             document.getElementById('prodNombre').value = prod.nombre;
-            document.getElementById('prodDescripcion').value = prod.descripcion;
             document.getElementById('prodPrecio').value = prod.precio;
             document.getElementById('prodBTU').value = prod.capacidadBTU;
             document.getElementById('prodStock').value = prod.stock;
             document.getElementById('prodCategoria').value = prod.idCategoria;
-            const marcaMatch = prod.descripcion?.match(/Marca: ([^-]+)/);
-            if (marcaMatch) document.getElementById('prodMarca').value = marcaMatch[1].trim();
+            const desc = prod.descripcion || '';
+            const marcaMatch = desc.match(/Marca: ([^-]+)-(.*)/);
+            if (marcaMatch) {
+                document.getElementById('prodMarca').value = marcaMatch[1].trim();
+                document.getElementById('prodDescripcion').value = marcaMatch[2].trim();
+            } else {
+                document.getElementById('prodMarca').value = prod.marca || '';
+                document.getElementById('prodDescripcion').value = desc;
+            }
             document.getElementById('productoId').value = prod.idProducto;
-            document.getElementById('modalTitle').textContent = 'Editar Producto';
+            document.getElementById('modalTitle').textContent = 'Modificar Equipo';
         } catch (error) {
             Swal.fire('Error', 'No se pudo cargar el producto', 'error');
             return;
@@ -223,24 +162,30 @@ async function guardarProducto(event) {
     const submitBtn = event.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Procesando...';
 
     const idProducto = document.getElementById('productoId').value;
+    const marca = document.getElementById('prodMarca').value;
+    const descPura = document.getElementById('prodDescripcion').value;
     const payloadTexto = {
         nombre: document.getElementById('prodNombre').value,
-        descripcion: document.getElementById('prodDescripcion').value,
+        descripcion: `Marca: ${marca} - ${descPura}`,
         precio: parseFloat(document.getElementById('prodPrecio').value),
         capacidadBtu: parseInt(document.getElementById('prodBTU').value) || 0,
         stock: parseInt(document.getElementById('prodStock').value) || 0,
         idCategoria: parseInt(document.getElementById('prodCategoria').value)
     };
-    const marca = document.getElementById('prodMarca').value;
-    payloadTexto.descripcion = `Marca: ${marca} - ${payloadTexto.descripcion}`;
 
     try {
         if (idProducto) {
             await API.Productos.actualizar(idProducto, payloadTexto);
-            Swal.fire('Éxito', 'Producto actualizado correctamente.', 'success');
+            const fileInput = document.getElementById('prodImagenes');
+            if (fileInput.files.length > 0) {
+                const formData = new FormData();
+                for (let i = 0; i < fileInput.files.length; i++) formData.append('imagenes', fileInput.files[i]);
+                // (Opcional) enviar imágenes al backend para actualización; por ahora solo actualiza texto
+            }
+            Swal.fire('Éxito', 'Equipo actualizado correctamente.', 'success');
         } else {
             const formData = new FormData();
             const productoBlob = new Blob([JSON.stringify(payloadTexto)], { type: 'application/json' });
@@ -250,13 +195,11 @@ async function guardarProducto(event) {
                 for (let i = 0; i < fileInput.files.length; i++) formData.append('imagenes', fileInput.files[i]);
             }
             const resp = await fetch('http://localhost:8080/productos', { method: 'POST', body: formData });
-            if (!resp.ok) throw new Error((await resp.json()).message || 'Error');
-            Swal.fire('Éxito', 'Producto creado correctamente.', 'success');
+            if (!resp.ok) throw new Error((await resp.json()).message || 'Error al crear');
+            Swal.fire('Éxito', 'Equipo registrado con éxito.', 'success');
         }
         bsModal.hide();
         renderProductos();
-        document.getElementById('productoForm').reset();
-        document.getElementById('productoId').value = '';
     } catch (error) {
         Swal.fire('Error', error.message, 'error');
     } finally {
@@ -268,12 +211,12 @@ async function guardarProducto(event) {
 async function editarProducto(id) { openProductoModal(id); }
 
 async function eliminarProducto(id) {
-    const result = await Swal.fire({ title: '¿Eliminar producto?', text: "Esta acción no se puede deshacer", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, eliminar' });
+    const result = await Swal.fire({ title: '¿Eliminar equipo?', text: "Esta acción lo borrará del catálogo permanentemente.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, eliminar' });
     if (result.isConfirmed) {
         try {
             await API.Productos.eliminar(id);
             renderProductos();
-            Swal.fire('Eliminado', 'Producto eliminado correctamente', 'success');
+            Swal.fire('Eliminado', 'Equipo retirado del catálogo.', 'success');
         } catch (error) {
             Swal.fire('Error', error.message, 'error');
         }
@@ -282,29 +225,35 @@ async function eliminarProducto(id) {
 
 // ========== CATEGORÍAS ==========
 async function renderCategorias() {
-    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p>Cargando categorías...</p></div>';
+    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
         const categorias = await API.request('/categorias');
         contentDiv.innerHTML = `
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold border-bottom pb-3 mb-4 text-primary">Añadir Nueva Categoría</h5>
-                    <form id="formNuevaCategoria" class="d-flex gap-3 align-items-center" onsubmit="guardarCategoria(event)">
-                        <div class="flex-grow-1"><input type="text" id="nombreCategoria" class="form-control bg-light border-0 py-2" placeholder="Ej. Minisplit Inverter" required></div>
-                        <button type="submit" class="btn btn-primary fw-bold px-4 py-2 text-nowrap"><i class="fas fa-plus me-2"></i>Guardar</button>
-                    </form>
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="card border-0 bg-gradient-primary text-white h-100 shadow-sm">
+                        <div class="card-body p-4 p-xl-5 d-flex flex-column justify-content-center">
+                            <h4 class="fw-bold mb-4 text-white"><i class="fas fa-folder-plus me-2"></i>Nueva Categoría</h4>
+                            <form id="formNuevaCategoria" onsubmit="guardarCategoria(event)">
+                                <div class="mb-4"><label class="form-label small text-white-50 fw-bold text-uppercase">Nombre</label><input type="text" id="nombreCategoria" class="form-control border-0 py-3 shadow-sm text-dark fw-bold" placeholder="Ej. Minisplit Inverter" required></div>
+                                <button type="submit" class="btn btn-light text-primary fw-bold w-100 py-3 mt-2 shadow-sm fs-6">Crear Categoría</button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-4">Categorías Registradas</h5>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light"><tr><th class="ps-3">ID</th><th>Nombre</th><th class="text-end pe-3">Acciones</th></tr></thead>
-                            <tbody>
-                                ${categorias.map(c => `<tr><td class="ps-3 fw-bold text-muted">#${c.idCategoria}</td><td class="fw-semibold text-dark">${c.nombre}</td><td class="text-end pe-3"><button class="btn btn-sm btn-outline-danger" onclick="eliminarCategoria(${c.idCategoria})"><i class="fas fa-trash"></i></button></td></tr>`).join('')}
-                            </tbody>
-                        </table>
+                <div class="col-lg-8">
+                    <div class="card border-0 h-100 shadow-sm">
+                        <div class="card-header bg-white pt-4 px-4"><h5 class="fw-bold mb-0 text-dark"><i class="fas fa-tags text-primary me-2"></i>Clasificaciones Registradas</h5></div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-light"><tr><th class="ps-4">ID</th><th>Nombre</th><th class="text-end pe-4">Acción</th></tr></thead>
+                                    <tbody>
+                                        ${categorias.map(c => `<tr><td class="ps-4 fw-bold text-muted">#${c.idCategoria}</td><td class="fw-bold text-dark fs-6">${c.nombre}</td><td class="text-end pe-4"><button class="btn btn-sm btn-light text-danger rounded-circle shadow-sm" onclick="eliminarCategoria(${c.idCategoria})" title="Eliminar"><i class="fas fa-trash"></i></button></td></tr>`).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -321,19 +270,19 @@ async function guardarCategoria(event) {
         await API.request('/categorias', { method: 'POST', body: JSON.stringify({ nombre }) });
         categoriasCargadas = false;
         renderCategorias();
-        Swal.fire('Éxito', 'Categoría creada correctamente', 'success');
+        Swal.fire({ icon: 'success', title: 'Agregada', text: 'Clasificación guardada con éxito.', toast: true, position: 'top-end', timer: 3000 });
     } catch (error) {
         Swal.fire('Error', error.message, 'error');
     }
 }
 
 async function eliminarCategoria(id) {
-    const result = await Swal.fire({ title: '¿Eliminar categoría?', text: "Los productos asociados quedarán sin categoría", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, eliminar' });
+    const result = await Swal.fire({ title: '¿Borrar categoría?', text: "Los equipos dentro de esta categoría quedarán huérfanos.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, borrar' });
     if (result.isConfirmed) {
         try {
             await API.request(`/categorias/${id}`, { method: 'DELETE' });
             renderCategorias();
-            Swal.fire('Eliminada', 'Categoría eliminada', 'success');
+            Swal.fire('Eliminada', 'La categoría ha sido removida.', 'success');
         } catch (error) {
             Swal.fire('Error', error.message, 'error');
         }
@@ -342,33 +291,32 @@ async function eliminarCategoria(id) {
 
 // ========== PEDIDOS ==========
 async function renderPedidos() {
-    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p>Cargando pedidos...</p></div>';
+    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        const pedidos = await API.Pedidos.listar();
+        const [pedidos, usuarios] = await Promise.all([API.Pedidos.listar(), API.Usuarios.listar()]);
+        const mapUsuarios = {};
+        usuarios.forEach(u => { mapUsuarios[u.idUsuario] = `${u.nombre} ${u.apellido || ''}`.trim(); });
         contentDiv.innerHTML = `
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4"><h5 class="fw-bold mb-0">Gestión de Pedidos</h5><button class="btn btn-outline-secondary btn-sm" onclick="exportarPedidos()"><i class="fas fa-download me-2"></i>Exportar Reporte</button></div>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center pt-4 px-4">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-file-invoice-dollar text-success me-2"></i>Historial de Transacciones</h5>
+                    <button class="btn btn-outline-success fw-bold bg-success bg-opacity-10 border-0" onclick="exportarPedidos()"><i class="fas fa-file-excel me-2"></i>Exportar Excel</button>
+                </div>
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light"><tr><th>ID</th><th>Cliente ID</th><th>Fecha</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead>
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light"><tr><th class="ps-4">Factura</th><th>Comprador</th><th>Fechas</th><th>Monto Total</th><th>Estado Actual</th><th class="text-end pe-4">Limpiar</th></tr></thead>
                             <tbody>
-                                ${pedidos.map(p => `
-                                    <tr>
-                                        <td class="fw-bold">#${p.idPedido}</td>
-                                        <td>${p.idUsuario}</td>
-                                        <td>${formatearFecha(p.fechaPedido)}</td>
-                                        <td>$${p.total.toFixed(2)}</td>
-                                        <td><select class="form-select form-select-sm" onchange="cambiarEstadoPedido(${p.idPedido}, this.value)">
-                                                <option value="Pendiente" ${p.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
-                                                <option value="En Proceso" ${p.estado === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
-                                                <option value="Completado" ${p.estado === 'Completado' ? 'selected' : ''}>Completado</option>
-                                                <option value="Cancelado" ${p.estado === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
-                                            </select>
-                                        </td>
-                                        <td><button class="btn btn-sm btn-outline-danger" onclick="eliminarPedido(${p.idPedido})"><i class="fas fa-trash"></i></button></td>
-                                    </tr>
-                                `).join('')}
+                                ${pedidos.map(p => {
+                                    const selectClass = p.estado === 'Completado' ? 'text-success border-success bg-success bg-opacity-10' : (p.estado === 'Cancelado' ? 'text-danger border-danger bg-danger bg-opacity-10' : 'text-warning border-warning bg-warning bg-opacity-10');
+                                    const nombreCliente = mapUsuarios[p.idUsuario] || 'Cliente Desconocido';
+                                    return `<tr><td class="ps-4 fw-bold text-primary">#${p.idPedido}</td>
+                                    <td><div class="d-flex align-items-center"><div class="avatar-circle bg-primary bg-opacity-10 text-primary me-3 border border-primary border-opacity-25" style="width: 38px; height: 38px; font-size: 0.9rem;"><i class="fas fa-user"></i></div><div><span class="fw-bold text-dark d-block">${nombreCliente}</span><small class="text-muted fw-semibold">ID: #${p.idUsuario}</small></div></div></td>
+                                    <td class="text-muted fw-semibold small"><i class="far fa-calendar-check text-primary me-1"></i> ${formatearFecha(p.fechaPedido)}</td>
+                                    <td class="fw-bold text-success fs-5">$${p.total.toFixed(2)}</td>
+                                    <td><select class="form-select form-select-sm fw-bold shadow-sm ${selectClass}" style="width: 150px;" onchange="cambiarEstadoPedido(${p.idPedido}, this.value)"><option value="Pendiente" ${p.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option><option value="En Proceso" ${p.estado === 'En Proceso' ? 'selected' : ''}>En Proceso</option><option value="Completado" ${p.estado === 'Completado' ? 'selected' : ''}>Completado</option><option value="Cancelado" ${p.estado === 'Cancelado' ? 'selected' : ''}>Cancelado</option></select></td>
+                                    <td class="text-end pe-4"><button class="btn btn-sm btn-light text-danger shadow-sm rounded-circle" onclick="eliminarPedido(${p.idPedido})"><i class="fas fa-trash"></i></button></td></tr>`;
+                                }).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -376,7 +324,7 @@ async function renderPedidos() {
             </div>
         `;
     } catch (error) {
-        contentDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error: ${error.message}</div>`;
     }
 }
 
@@ -384,19 +332,20 @@ window.cambiarEstadoPedido = async function(id, nuevoEstado) {
     try {
         await API.Pedidos.cambiarEstado(id, nuevoEstado);
         renderPedidos();
-        Swal.fire('Actualizado', `Pedido #${id} cambiado a ${nuevoEstado}`, 'success');
+        Swal.fire({ icon: 'success', title: 'Actualizado', text: `Factura #${id} movida a ${nuevoEstado}`, toast: true, position: 'top-end', timer: 2000 });
+        actualizarContadoresAdmin();
     } catch (error) {
         Swal.fire('Error', error.message, 'error');
     }
 };
 
 async function eliminarPedido(id) {
-    const result = await Swal.fire({ title: '¿Eliminar pedido?', text: "Esta acción no se puede deshacer", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, eliminar' });
+    const result = await Swal.fire({ title: '¿Anular registro de pedido?', text: "La factura y detalles desaparecerán del sistema.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, anular' });
     if (result.isConfirmed) {
         try {
             await API.request(`/api/pedidos/${id}`, { method: 'DELETE' });
             renderPedidos();
-            Swal.fire('Eliminado', 'Pedido eliminado', 'success');
+            Swal.fire('Eliminado', 'Registro anulado correctamente.', 'success');
         } catch (error) {
             Swal.fire('Error', error.message, 'error');
         }
@@ -405,14 +354,15 @@ async function eliminarPedido(id) {
 
 async function exportarPedidos() {
     try {
+        Swal.fire({ title: 'Generando archivo...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
         const response = await fetch('http://localhost:8080/api/pedidos/exportar/excel');
         if (!response.ok) throw new Error('Error al exportar');
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'pedidos.xlsx';
+        const a = document.createElement('a'); a.href = url; a.download = 'Reporte_Ventas_ClimaPro.xlsx';
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        Swal.fire('Éxito', 'Pedidos exportados correctamente.', 'success');
+        Swal.fire('Completado', 'Tu descarga ha iniciado.', 'success');
     } catch (error) {
         Swal.fire('Error', error.message, 'error');
     }
@@ -420,18 +370,27 @@ async function exportarPedidos() {
 
 // ========== USUARIOS ==========
 async function renderUsuarios() {
-    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p>Cargando usuarios...</p></div>';
+    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
         const usuarios = await API.Usuarios.listar();
         contentDiv.innerHTML = `
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold mb-4">Usuarios del Sistema</h5>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white pt-4 px-4"><h5 class="fw-bold mb-0 text-dark"><i class="fas fa-users-cog text-primary me-2"></i>Directorio de Accesos</h5></div>
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light"><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light"><tr><th class="ps-4">Perfil</th><th>Contacto</th><th>Permisos</th><th>Estado Cuenta</th><th class="text-end pe-4">Bloqueo</th></tr></thead>
                             <tbody>
-                                ${usuarios.map(u => `<tr><td>${u.idUsuario}</td><td>${u.nombre} ${u.apellido || ''}</td><td>${u.email}</td><td>${u.rol}</td><td>${u.activo ? 'Activo' : 'Inactivo'}</td><td><button class="btn btn-sm btn-outline-warning" onclick="toggleUsuarioEstado(${u.idUsuario}, ${!u.activo})">${u.activo ? 'Desactivar' : 'Activar'}</button></td></tr>`).join('')}
+                                ${usuarios.map(u => {
+                                    const rolBadge = u.rol === 'ADMIN' ? 'bg-danger' : (u.rol === 'TECNICO' ? 'bg-info' : 'bg-secondary');
+                                    const statusBadge = u.activo ? 'bg-success text-success' : 'bg-secondary text-secondary';
+                                    const initial = u.nombre ? u.nombre.charAt(0).toUpperCase() : 'U';
+                                    return `<tr><td class="ps-4"><div class="d-flex align-items-center"><div class="avatar-circle ${rolBadge} bg-opacity-10 text-dark me-3 fw-bold border border-2 border-opacity-25">${initial}</div><div><h6 class="mb-0 fw-bold text-dark">${u.nombre} ${u.apellido || ''}</h6><small class="text-muted fw-semibold">User ID: #${u.idUsuario}</small></div></div></td>
+                                    <td><a href="mailto:${u.email}" class="text-decoration-none text-muted fw-semibold"><i class="fas fa-envelope text-primary me-1"></i> ${u.email}</a></td>
+                                    <td><span class="badge ${rolBadge} text-white shadow-sm px-3 py-2">${u.rol}</span></td>
+                                    <td><span class="badge ${statusBadge.split(' ')[0]} bg-opacity-10 ${statusBadge.split(' ')[1]} border-0 px-3 py-2"><i class="fas fa-circle me-1" style="font-size: 8px;"></i> ${u.activo ? 'Operativo' : 'Restringido'}</span></td>
+                                    <td class="text-end pe-4"><button class="btn btn-sm ${u.activo ? 'btn-outline-danger' : 'btn-outline-success'} fw-bold px-3 shadow-sm" onclick="toggleUsuarioEstado(${u.idUsuario}, ${!u.activo})"><i class="fas ${u.activo ? 'fa-user-lock' : 'fa-user-check'} me-1"></i> ${u.activo ? 'Suspender' : 'Reactivar'}</button></td></tr>`;
+                                }).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -444,50 +403,43 @@ async function renderUsuarios() {
 }
 
 window.toggleUsuarioEstado = async (id, nuevoEstado) => {
-    const action = nuevoEstado ? 'activar' : 'desactivar';
-    const result = await Swal.fire({ title: `¿${action === 'activar' ? 'Activar' : 'Desactivar'} usuario?`, text: `El usuario quedará ${action === 'activar' ? 'activo' : 'inactivo'}`, icon: 'question', showCancelButton: true, confirmButtonText: 'Confirmar' });
+    const action = nuevoEstado ? 'Reactivar' : 'Suspender';
+    const result = await Swal.fire({ title: `¿${action} usuario?`, text: `El acceso al sistema cambiará.`, icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, proceder', confirmButtonColor: nuevoEstado ? '#198754' : '#dc3545' });
     if (result.isConfirmed) {
         try {
             await API.Usuarios.cambiarEstado(id, nuevoEstado);
             renderUsuarios();
-            Swal.fire('Actualizado', `Usuario ${action === 'activar' ? 'activado' : 'desactivado'}`, 'success');
+            Swal.fire({ icon: 'success', title: 'Actualizado', text: `Usuario ${action.toLowerCase()}do con éxito.`, toast: true, position: 'top-end', timer: 2000 });
         } catch (error) {
             Swal.fire('Error', error.message, 'error');
         }
     }
 };
 
-// ========== SOLICITUDES DE SERVICIO ==========
+// ========== SOLICITUDES ==========
 async function renderSolicitudes() {
-    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><p>Cargando solicitudes...</p></div>';
+    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
         const solicitudes = await API.request('/api/solicitudes/pendientes');
         const todos = await API.Usuarios.listar();
-        const tecnicos = todos.filter(u => u.rol === 'TECNICO');
+        const tecnicos = todos.filter(u => u.rol === 'TECNICO' && u.activo);
         if (solicitudes.length === 0) {
-            contentDiv.innerHTML = '<div class="alert alert-info">No hay solicitudes pendientes.</div>';
+            contentDiv.innerHTML = `<div class="card border-0 shadow-sm py-5 text-center"><div class="card-body"><div class="stat-icon bg-success bg-opacity-10 text-success mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2.5rem;"><i class="fas fa-check-double"></i></div><h4 class="fw-bold text-dark">Todo al día</h4><p class="text-muted">No hay solicitudes técnicas pendientes de asignación.</p></div></div>`;
             return;
         }
-        let html = `<div class="card border-0 shadow-sm rounded-4"><div class="card-body p-4"><h5 class="fw-bold mb-4">Solicitudes de Servicio</h5><div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr><th>ID</th><th>Cliente</th><th>Tipo</th><th>Fecha Preferida</th><th>Mensaje</th><th>Asignar Técnico</th><th>Acciones</th></tr></thead><tbody>`;
+        let html = `<div class="card border-0 shadow-sm"><div class="card-header bg-white pt-4 px-4"><h5 class="fw-bold mb-0 text-dark"><i class="fas fa-hard-hat text-warning me-2"></i>Centro de Asignación de Tareas</h5></div><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="bg-light"><tr><th class="ps-4">Ticket / Cliente</th><th>Labor Requerida</th><th style="min-width: 320px;">Despacho de Técnico</th><th class="text-end pe-4" style="width: 130px;">Decisión</th></tr></thead><tbody>`;
         for (const sol of solicitudes) {
             html += `<tr>
-                <td class="fw-bold">#${sol.idSolicitud}</td>
-                <td>${sol.nombreCliente}</td>
-                <td><span class="badge bg-info">${sol.tipoServicio}</span></td>
-                <td>${sol.fechaPreferida ? new Date(sol.fechaPreferida).toLocaleString() : 'No especificada'}</td>
-                <td>${sol.mensaje || ''}</td>
-                <td style="min-width: 220px;">
-                    <div class="mb-2"><label class="form-label small fw-semibold mb-0">Técnico</label><select id="tecnicoSelect_${sol.idSolicitud}" class="form-select form-select-sm"><option value="">Seleccionar técnico</option>${tecnicos.map(t => `<option value="${t.idUsuario}">${t.nombre} ${t.apellido}</option>`).join('')}</select></div>
-                    <div class="mb-2"><label class="form-label small fw-semibold mb-0">Inicio</label><input type="datetime-local" id="fechaInicio_${sol.idSolicitud}" class="form-control form-control-sm"></div>
-                    <div class="mb-2"><label class="form-label small fw-semibold mb-0">Fin</label><input type="datetime-local" id="fechaFin_${sol.idSolicitud}" class="form-control form-control-sm"></div>
-                </td>
-                <td><button class="btn btn-sm btn-success w-100 mb-1" onclick="asignarTecnico(${sol.idSolicitud})">Asignar</button><button class="btn btn-sm btn-danger w-100" onclick="rechazarSolicitud(${sol.idSolicitud})">Rechazar</button></td>
+                <td class="ps-4"><h6 class="fw-bold text-dark mb-1">Ticket #${sol.idSolicitud}</h6><span class="text-primary fw-semibold"><i class="fas fa-user-circle me-1"></i> ${sol.nombreCliente}</span><small class="text-muted fw-bold d-block mt-2 bg-light p-1 rounded"><i class="far fa-calendar-alt text-warning me-1"></i> Preferencia: ${sol.fechaPreferida ? new Date(sol.fechaPreferida).toLocaleString() : 'Abierto a sugerencias'}</small></td>
+                <td><span class="badge bg-gradient-warning shadow-sm mb-2 px-3 py-2">${sol.tipoServicio.replace('_', ' ')}</span><div class="bg-light p-2 rounded-3 border"><p class="small text-muted mb-0 fst-italic" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" title="${sol.mensaje || 'Sin detalles extra'}"><i class="fas fa-quote-left text-primary opacity-50 me-1"></i> ${sol.mensaje || 'Cliente no proporcionó detalles extras.'}</p></div></td>
+                <td><div class="bg-white p-3 rounded-4 border shadow-sm"><select id="tecnicoSelect_${sol.idSolicitud}" class="form-select mb-2 border-primary border-opacity-25 bg-light text-primary fw-bold"><option value="">👤 Asignar Profesional...</option>${tecnicos.map(t => `<option value="${t.idUsuario}">${t.nombre} ${t.apellido || ''}</option>`).join('')}</select><div class="d-flex gap-2"><div class="input-group input-group-sm w-50"><span class="input-group-text bg-success bg-opacity-10 border-0 text-success"><i class="fas fa-play"></i></span><input type="datetime-local" id="fechaInicio_${sol.idSolicitud}" class="form-control border-0 bg-light text-muted fw-semibold"></div><div class="input-group input-group-sm w-50"><span class="input-group-text bg-danger bg-opacity-10 border-0 text-danger"><i class="fas fa-stop"></i></span><input type="datetime-local" id="fechaFin_${sol.idSolicitud}" class="form-control border-0 bg-light text-muted fw-semibold"></div></div></div></td>
+                <td class="text-end pe-4"><button class="btn btn-success fw-bold shadow-sm mb-2 w-100" onclick="asignarTecnico(${sol.idSolicitud})"><i class="fas fa-check me-1"></i> Asignar</button><button class="btn btn-light text-danger fw-bold border-danger border-opacity-25 w-100" onclick="rechazarSolicitud(${sol.idSolicitud})"><i class="fas fa-times me-1"></i> Descartar</button></td>
             </tr>`;
         }
         html += `</tbody></table></div></div></div>`;
         contentDiv.innerHTML = html;
     } catch (error) {
-        contentDiv.innerHTML = `<div class="alert alert-danger">Error al cargar solicitudes: ${error.message}</div>`;
+        contentDiv.innerHTML = `<div class="alert alert-danger shadow-sm rounded-4 m-3"><i class="fas fa-exclamation-circle me-2"></i> Error de conexión: ${error.message}</div>`;
     }
 }
 
@@ -496,23 +448,46 @@ window.asignarTecnico = async function(idSolicitud) {
     const fechaInicio = document.getElementById(`fechaInicio_${idSolicitud}`).value;
     const fechaFin = document.getElementById(`fechaFin_${idSolicitud}`).value;
     if (!idTecnico || !fechaInicio || !fechaFin) {
-        Swal.fire('Error', 'Debe seleccionar técnico, fecha/hora de inicio y fin.', 'error');
+        Swal.fire('Datos Incompletos', 'Asegúrate de seleccionar al técnico y ambos rangos de hora.', 'warning');
         return;
     }
     try {
         await API.request(`/api/solicitudes/${idSolicitud}/asignar`, { method: 'POST', body: JSON.stringify({ idTecnico, fechaInicio, fechaFin }) });
-        Swal.fire('Asignada', 'Cita creada y técnico notificado.', 'success');
+        Swal.fire('¡Misión Asignada!', 'El técnico ha recibido la programación en su agenda.', 'success');
         renderSolicitudes();
+        actualizarContadoresAdmin();
     } catch (error) {
         Swal.fire('Error', error.message, 'error');
     }
 };
 
 window.rechazarSolicitud = async function(idSolicitud) {
-    const confirm = await Swal.fire({ title: '¿Rechazar solicitud?', text: 'No podrás deshacer esta acción.', icon: 'warning', showCancelButton: true });
+    const confirm = await Swal.fire({ title: '¿Archivar solicitud?', text: 'El ticket se cerrará sin asignar técnico.', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, descartar' });
     if (confirm.isConfirmed) {
         await API.request(`/api/solicitudes/${idSolicitud}/rechazar`, { method: 'POST' });
-        Swal.fire('Rechazada', 'La solicitud ha sido rechazada.', 'success');
+        Swal.fire('Descartada', 'La solicitud se removió de la cola.', 'info');
         renderSolicitudes();
+        actualizarContadoresAdmin();
     }
 };
+
+// ========== CONTADORES ==========
+async function actualizarContadoresAdmin() {
+    try {
+        const pedidosPendientes = await API.request('/api/pedidos/conteos/pendientes/admin');
+        const badgePedidos = document.getElementById('badgePedidosAdmin');
+        if (pedidosPendientes > 0) {
+            badgePedidos.textContent = pedidosPendientes;
+            badgePedidos.style.display = 'inline-block';
+        } else badgePedidos.style.display = 'none';
+        
+        const solicitudesPendientes = await API.request('/api/solicitudes/conteos/pendientes');
+        const badgeSolicitudes = document.getElementById('badgeSolicitudesAdmin');
+        if (solicitudesPendientes > 0) {
+            badgeSolicitudes.textContent = solicitudesPendientes;
+            badgeSolicitudes.style.display = 'inline-block';
+        } else badgeSolicitudes.style.display = 'none';
+    } catch (error) {
+        console.error('Error al cargar contadores admin:', error);
+    }
+}

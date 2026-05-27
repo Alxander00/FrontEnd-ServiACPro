@@ -57,7 +57,8 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold">Teléfono Celular <span class="text-danger">*</span></label>
-                                    <input type="tel" class="form-control" id="telefono" required placeholder="Ej. 7000-0000">
+                                    <input type="tel" class="form-control" id="telefono" required placeholder="7000-0000" maxlength="9">
+                                    <div class="invalid-feedback" id="telError">Formato requerido: 0000-0000 (4 dígitos, guión, 4 dígitos)</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold">Género</label>
@@ -75,6 +76,13 @@
                                 <div class="col-12">
                                     <label class="form-label fw-semibold">Dirección Completa <span class="text-danger">*</span></label>
                                     <textarea class="form-control" id="direccion" rows="2" required placeholder="Ingresa los detalles exactos de tu domicilio..."></textarea>
+                                    <div class="mt-2">
+                                        <button type="button" id="btnUbicacion" class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-location-dot"></i> Usar mi ubicación actual
+                                        </button>
+                                        <small class="text-muted ms-2">(Permite el acceso a tu ubicación para llenar la dirección automáticamente)</small>
+                                    </div>
+                                    <div id="estadoGeo" class="small text-muted mt-1"></div>
                                 </div>
                             </div>
 
@@ -116,6 +124,30 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="./js/auth.js"></script>
     <script>
+        // ========== BLOQUEAR FECHAS FUTURAS ==========
+        const fechaInput = document.getElementById('fecha_nacimiento');
+        if (fechaInput) {
+            const today = new Date().toISOString().split('T')[0];
+            fechaInput.setAttribute('max', today);
+        }
+
+        function validarFechaNacimiento() {
+            const fechaVal = fechaInput.value;
+            if (!fechaVal) return true;
+            const selectedDate = new Date(fechaVal);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (selectedDate > today) {
+                alert('La fecha de nacimiento no puede ser futura.');
+                fechaInput.classList.add('is-invalid');
+                return false;
+            } else {
+                fechaInput.classList.remove('is-invalid');
+                return true;
+            }
+        }
+
+        // ========== VALIDACIÓN DUI ==========
         const duiInput = document.getElementById('dui');
         const regexDUI = /^[0-9]{8}-[0-9]$/;
         
@@ -133,23 +165,74 @@
             }
         });
 
+        // ========== VALIDACIÓN TELÉFONO ==========
+        const telefonoInput = document.getElementById('telefono');
+        const regexTel = /^\d{4}-\d{4}$/;
+
+        telefonoInput.addEventListener('input', function (e) {
+            // Eliminar cualquier caracter que no sea número
+            let valorNumeros = e.target.value.replace(/\D/g, '');
+            // Limitar a 8 dígitos (4+4)
+            if (valorNumeros.length > 8) valorNumeros = valorNumeros.slice(0, 8);
+            
+            let formateado = valorNumeros;
+            if (valorNumeros.length > 4) {
+                formateado = valorNumeros.slice(0, 4) + '-' + valorNumeros.slice(4, 8);
+            }
+            e.target.value = formateado;
+            
+            // Validar formato exacto
+            if (regexTel.test(e.target.value)) {
+                telefonoInput.classList.remove('is-invalid');
+                telefonoInput.classList.add('is-valid');
+            } else if (e.target.value.length === 9) { // 9 caracteres: 4 dígitos + guión + 4 dígitos
+                telefonoInput.classList.remove('is-valid');
+                telefonoInput.classList.add('is-invalid');
+            } else {
+                telefonoInput.classList.remove('is-valid', 'is-invalid');
+            }
+        });
+
+        function validarTelefono() {
+            const tel = telefonoInput.value;
+            if (!regexTel.test(tel)) {
+                telefonoInput.classList.add('is-invalid');
+                return false;
+            } else {
+                telefonoInput.classList.remove('is-invalid');
+                return true;
+            }
+        }
+
+        // ========== ENVÍO DEL FORMULARIO ==========
         document.getElementById('formRegistro').addEventListener('submit', async (e) => {
             e.preventDefault();
             let esValido = true;
             
+            // Validar DUI
             if (!regexDUI.test(duiInput.value)) {
                 duiInput.classList.add('is-invalid');
                 esValido = false;
             }
             
+            // Validar teléfono
+            if (!validarTelefono()) {
+                esValido = false;
+            }
+            
+            // Validar contraseñas
             const pass1 = document.getElementById('pass1');
             const pass2 = document.getElementById('pass2');
-            
             if (pass1.value !== pass2.value) {
                 pass2.classList.add('is-invalid');
                 esValido = false;
             } else {
                 pass2.classList.remove('is-invalid');
+            }
+            
+            // Validar fecha de nacimiento
+            if (!validarFechaNacimiento()) {
+                esValido = false;
             }
             
             if (!esValido) return;
@@ -158,10 +241,11 @@
                 nombre: document.getElementById('nombres').value,
                 apellidos: document.getElementById('apellidos').value,
                 email: document.getElementById('correo').value,
-                telefono: document.getElementById('telefono').value,
+                telefono: telefonoInput.value,
                 dui: duiInput.value,
                 direccion: document.getElementById('direccion').value,
-                password: pass1.value
+                password: pass1.value,
+                fechaNacimiento: fechaInput.value || null
             };
             
             try {
@@ -171,7 +255,65 @@
                 alert('Error al registrar. Intente de nuevo.');
             }
         });
+
+        // ========== GEOLOCALIZACIÓN PARA DIRECCIÓN ==========
+const btnUbicacion = document.getElementById('btnUbicacion');
+const direccionTextarea = document.getElementById('direccion');
+const estadoGeo = document.getElementById('estadoGeo');
+
+// Función para obtener dirección desde coordenadas (reverse geocoding)
+async function obtenerDireccionDesdeCoordenadas(lat, lon) {
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1&accept-language=es`);
+        const data = await response.json();
+        if (data.display_name) {
+            return data.display_name;
+        } else {
+            throw new Error('No se pudo obtener la dirección');
+        }
+    } catch (error) {
+        console.error('Error en reverse geocoding:', error);
+        return null;
+    }
+}
+
+// Manejador del botón "Usar mi ubicación actual"
+btnUbicacion.addEventListener('click', () => {
+    estadoGeo.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Obteniendo ubicación...';
+    
+    if (!navigator.geolocation) {
+        estadoGeo.innerHTML = '<span class="text-danger">Tu navegador no soporta geolocalización.</span>';
+        return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            estadoGeo.innerHTML = `<i class="fas fa-map-marker-alt"></i> Ubicación obtenida (${lat.toFixed(4)}, ${lng.toFixed(4)}). Obteniendo dirección...`;
+            
+            const direccion = await obtenerDireccionDesdeCoordenadas(lat, lng);
+            if (direccion) {
+                direccionTextarea.value = direccion;
+                estadoGeo.innerHTML = '<span class="text-success"><i class="fas fa-check-circle"></i> Dirección cargada automáticamente. Verifica que sea correcta.</span>';
+                
+                // Si tu backend soporta coordenadas, puedes guardarlas en inputs ocultos y enviarlas
+                // Por ahora solo enviamos la dirección como texto
+            } else {
+                estadoGeo.innerHTML = '<span class="text-danger">No se pudo obtener la dirección. Intenta manualmente.</span>';
+            }
+        },
+        (error) => {
+            let mensaje = 'No se pudo acceder a tu ubicación. ';
+            if (error.code === 1) mensaje += 'Permiso denegado.';
+            else if (error.code === 2) mensaje += 'Ubicación no disponible.';
+            else if (error.code === 3) mensaje += 'Tiempo de espera agotado.';
+            estadoGeo.innerHTML = `<span class="text-danger">${mensaje}</span>`;
+        }
+    );
+});
     </script>
+    
     <script src="./js/api.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>

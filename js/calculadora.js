@@ -1,11 +1,11 @@
 // js/calculadora.js
 
 function calcularBTU() {
-    const largo = parseFloat(document.getElementById('largo').value);
-    const ancho = parseFloat(document.getElementById('ancho').value);
-    const alto = parseFloat(document.getElementById('alto').value);
-    const personas = parseInt(document.getElementById('personas').value) || 0;
-    const inmuebles = parseInt(document.getElementById('inmuebles').value) || 0;
+    const largo = Math.abs(parseFloat(document.getElementById('largo').value));
+    const ancho = Math.abs(parseFloat(document.getElementById('ancho').value));
+    const alto = Math.abs(parseFloat(document.getElementById('alto').value));
+    const personas = Math.max(1, parseInt(document.getElementById('personas').value) || 1);
+    const inmuebles = Math.abs(parseInt(document.getElementById('inmuebles').value) || 0);
 
     if (largo > 0 && ancho > 0 && alto > 0) {
         // Cálculo base: Volumen x 200 (Factor promedio de enfriamiento)

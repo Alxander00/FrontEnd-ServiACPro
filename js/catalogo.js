@@ -184,9 +184,15 @@ window.verDetalles = async function(id) {
     document.getElementById('modalDescripcion').textContent = prod.descripcion || "Sin descripción disponible.";
     document.getElementById('modalPrecio').textContent = `$${prod.precio.toFixed(2)}`;
     document.getElementById('modalBTU').textContent = `${prod.capacidadBTU} BTU`;
-    document.getElementById('modalEficiencia').textContent = "Estándar";
+    
+    // Eliminamos la línea de modalEficiencia porque lo reemplazamos por el Stock
+    
     document.getElementById('modalMarca').textContent = prod.marca || "ClimaPro";
     document.getElementById('modalGarantia').textContent = "1 año";
+    
+    // Lógica del stock añadida
+    document.getElementById('modalStock').textContent = prod.stock > 0 ? `${prod.stock} unidades` : 'Agotado';
+    document.getElementById('modalStock').className = prod.stock > 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
 
     const chk = document.getElementById('checkboxInstalacion');
     if (chk) chk.checked = false;
@@ -198,6 +204,8 @@ window.verDetalles = async function(id) {
     calificacionSeleccionada = 0;
 
     await cargarResenas(prod.idProducto);
+    
+    // Ahora sí llegará hasta aquí y mostrará el modal
     bsModalDetalle.show();
 };
 

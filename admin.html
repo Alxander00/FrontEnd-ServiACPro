@@ -23,14 +23,20 @@
                 <ul class="nav nav-pills flex-column mb-sm-auto mb-0 align-items-center align-items-sm-start w-100 mt-4" id="menu">
                     <li class="nav-item w-100"><a href="#" class="nav-link active" data-page="dashboard"><i class="fas fa-home me-2"></i> <span class="d-none d-sm-inline">Dashboard</span></a></li>
                     <li class="nav-item w-100"><a href="#" class="nav-link" data-page="productos"><i class="fas fa-box me-2"></i> <span class="d-none d-sm-inline">Productos</span></a></li>
-                    <li class="nav-item w-100"><a href="#" class="nav-link" data-page="pedidos"><i class="fas fa-shopping-cart me-2"></i> <span class="d-none d-sm-inline">Pedidos</span></a></li>
+                    <li class="nav-item w-100"><a href="#" class="nav-link" data-page="pedidos">
+                        <i class="fas fa-shopping-cart me-2"></i> <span class="d-none d-sm-inline">Pedidos</span>
+                        <span id="badgePedidosAdmin" class="badge bg-danger rounded-pill ms-2" style="display: none; font-size: 0.7rem;">0</span>
+                    </a></li>
                     <li class="nav-item w-100">
                         <a href="#" class="nav-link" data-page="categorias">
                             <i class="fas fa-tags me-2"></i> <span class="d-none d-sm-inline">Categorías</span>
                         </a>
                     </li>
                     <li class="nav-item w-100"><a href="#" class="nav-link" data-page="usuarios"><i class="fas fa-users me-2"></i> <span class="d-none d-sm-inline">Usuarios</span></a></li>
-                    <li class="nav-item w-100"><a href="#" class="nav-link" data-page="solicitudes"><i class="fas fa-inbox me-2"></i> <span class="d-none d-sm-inline">Solicitudes</span></a></li>
+                    <li class="nav-item w-100"><a href="#" class="nav-link" data-page="solicitudes">
+                        <i class="fas fa-inbox me-2"></i> <span class="d-none d-sm-inline">Solicitudes</span>
+                        <span id="badgeSolicitudesAdmin" class="badge bg-danger rounded-pill ms-2" style="display: none; font-size: 0.7rem;">0</span>
+                    </a></li>
                 </ul>
                 <hr class="w-100">
                 <div class="pb-4">
@@ -72,48 +78,19 @@
                 <form id="productoForm">
                     <input type="hidden" id="productoId">
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Nombre</label>
-                            <input type="text" class="form-control" id="prodNombre" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Marca</label>
-                            <input type="text" class="form-control" id="prodMarca" required>
-                        </div>
+                        <div class="col-md-6"><label class="form-label fw-bold">Nombre</label><input type="text" class="form-control" id="prodNombre" required></div>
+                        <div class="col-md-6"><label class="form-label fw-bold">Marca</label><input type="text" class="form-control" id="prodMarca" required></div>
                     </div>
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Categoría</label>
-                            <select class="form-select" id="prodCategoria" required>
-                                <option value="">Cargando...</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Precio ($)</label>
-                            <input type="number" class="form-control" id="prodPrecio" step="0.01" required>
-                        </div>
+                        <div class="col-md-6"><label class="form-label fw-bold">Categoría</label><select class="form-select" id="prodCategoria" required><option value="">Cargando...</option></select></div>
+                        <div class="col-md-6"><label class="form-label fw-bold">Precio ($)</label><input type="number" class="form-control" id="prodPrecio" step="0.01" required></div>
                     </div>
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">BTU</label>
-                            <input type="number" class="form-control" id="prodBTU">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Stock</label>
-                            <input type="number" class="form-control" id="prodStock" value="10">
-                        </div>
+                        <div class="col-md-6"><label class="form-label fw-bold">BTU</label><input type="number" class="form-control" id="prodBTU"></div>
+                        <div class="col-md-6"><label class="form-label fw-bold">Stock</label><input type="number" class="form-control" id="prodStock" value="10"></div>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Imagen del Producto</label>
-                        <input type="file" class="form-control" id="prodImagenes" accept="image/*" multiple>
-                        <small class="text-muted">Selecciona una imagen desde tu dispositivo (JPG, PNG, WEBP).</small>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label fw-bold">Descripción</label>
-                        <textarea class="form-control" id="prodDescripcion" rows="3"></textarea>
-                    </div>
+                    <div class="mb-3"><label class="form-label fw-bold">Imagen del Producto</label><input type="file" class="form-control" id="prodImagenes" accept="image/*" multiple><small class="text-muted">Selecciona una imagen desde tu dispositivo (JPG, PNG, WEBP).</small></div>
+                    <div class="mb-4"><label class="form-label fw-bold">Descripción</label><textarea class="form-control" id="prodDescripcion" rows="3"></textarea></div>
                     <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Guardar Producto</button>
                 </form>
             </div>
