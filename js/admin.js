@@ -353,14 +353,34 @@ async function eliminarPedido(id) {
 
 async function exportarPedidos() {
     try {
-        Swal.fire({ title: 'Generando archivo...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-        const response = await fetch('https://servi-a-c-pro.onrender.com/api/pedidos/exportar/excel');        if (!response.ok) throw new Error('Error al exportar');
+        Swal.fire({ 
+            title: 'Generando archivo...', 
+            allowOutsideClick: false, 
+            didOpen: () => { Swal.showLoading(); } 
+        });
+        
+        // Usamos API_URL para no quemar la ruta completa
+        const response = await fetch(`${API_URL}/api/pedidos/exportar/excel`);
+        
+        if (!response.ok) {
+            throw new Error('Error al exportar');
+        }
+        
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'Reporte_Ventas_ClimaPro.xlsx';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        
+        const a = document.createElement('a'); 
+        a.href = url; 
+        a.download = 'Reporte_Ventas_ClimaPro.xlsx';
+        
+        document.body.appendChild(a); 
+        a.click(); 
+        document.body.removeChild(a);
+        
         window.URL.revokeObjectURL(url);
+        
         Swal.fire('Completado', 'Tu descarga ha iniciado.', 'success');
+        
     } catch (error) {
         Swal.fire('Error', error.message, 'error');
     }
