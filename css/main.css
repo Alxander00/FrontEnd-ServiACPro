@@ -1,0 +1,351 @@
+/* Configuraciones Generales */
+body {
+    font-family: 'Montserrat', sans-serif;
+}
+
+/* Hero Section */
+.hero-section {
+    min-height: 80vh;
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                url('../img/breezeless_ambiente.png') no-repeat center center/cover;
+}
+
+/* Utilidades de Diseño */
+.cta-gradient {
+    background: linear-gradient(135deg, #0056b3 0%, #00d4ff 100%);
+}
+
+.text-info {
+    color: #00d4ff !important;
+}
+
+.bg-info {
+    background-color: #00d4ff !important;
+}
+
+.btn-info {
+    background-color: #00d4ff;
+    border-color: #00d4ff;
+}
+
+.btn-info:hover {
+    background-color: #00b8e6;
+    border-color: #00b8e6;
+}
+
+/* Animaciones y Efectos Hover */
+.product-card, .service-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-card:hover, .service-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+}
+
+.footer-link:hover {
+    color: #00d4ff !important;
+}
+
+/* Ajuste de imágenes en tarjetas */
+.product-card img {
+    height: 250px;
+    object-fit: cover;
+    border-top-left-radius: var(--bs-border-radius);
+    border-top-right-radius: var(--bs-border-radius);
+}
+
+/* Avatar con iniciales */
+.dropdown-toggle::after {
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.dropdown-menu {
+    animation: fadeInDown 0.2s ease-out;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.btn-light:hover {
+    background-color: #f8f9fa !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+}
+
+/* Estilo para el avatar clickeable */
+.bg-primary.bg-opacity-10, 
+.bg-danger.bg-opacity-10, 
+.bg-info.bg-opacity-10 {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.bg-primary.bg-opacity-10:hover,
+.bg-danger.bg-opacity-10:hover,
+.bg-info.bg-opacity-10:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Botón de salir más elegante */
+.btn-outline-danger {
+    transition: all 0.2s;
+}
+
+.btn-outline-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(220,53,69,0.3);
+}
+
+/* Ajuste para que en móviles no se vea apretado */
+@media (max-width: 768px) {
+    .d-flex.align-items-center.gap-2 {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    .rounded-pill.bg-opacity-10 {
+        padding: 4px 10px !important;
+    }
+}
+
+/* Mejora del dropdown */
+.dropdown-menu {
+    animation: fadeInDown 0.2s ease-out;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-item:active {
+    background-color: #f0f0f0;
+}
+
+.btn-light {
+    transition: all 0.2s;
+}
+
+.btn-light:hover {
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* ========== MODO OSCURO (VERSIÓN MEJORADA) ========== */
+body.dark-mode {
+    background-color: #121212 !important;
+    color: #e0e0e0 !important;
+}
+
+/* Ajuste de fondos generales */
+body.dark-mode .bg-light,
+body.dark-mode .bg-white {
+    background-color: #1e1e1e !important;
+}
+
+body.dark-mode .card,
+body.dark-mode .list-group-item,
+body.dark-mode .modal-content,
+body.dark-mode .dropdown-menu,
+body.dark-mode .navbar,
+body.dark-mode .sidebar,
+body.dark-mode .table,
+body.dark-mode .table-light,
+body.dark-mode .card-body,
+body.dark-mode .card-footer,
+body.dark-mode .card-header,
+body.dark-mode .modal-header,
+body.dark-mode .modal-footer {
+    background-color: #1e1e1e !important;
+    color: #e0e0e0 !important;
+    border-color: #333 !important;
+}
+
+/* Textos */
+body.dark-mode .text-dark,
+body.dark-mode .text-muted,
+body.dark-mode .text-secondary,
+body.dark-mode .text-body,
+body.dark-mode .h1, .h2, .h3, .h4, .h5, .h6,
+body.dark-mode h1, h2, h3, h4, h5, h6,
+body.dark-mode p, body.dark-mode span, body.dark-mode li,
+body.dark-mode .list-group-item,
+body.dark-mode .dropdown-item,
+body.dark-mode .nav-link {
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode .text-muted {
+    color: #aaa !important;
+}
+
+body.dark-mode .text-primary {
+    color: #6ea8fe !important;
+}
+
+body.dark-mode .text-info {
+    color: #6edff6 !important;
+}
+
+body.dark-mode .text-danger {
+    color: #f87171 !important;
+}
+
+body.dark-mode .text-success {
+    color: #6fcf97 !important;
+}
+
+body.dark-mode .text-warning {
+    color: #f5c542 !important;
+}
+
+/* Botones */
+body.dark-mode .btn-light {
+    background-color: #2d2d2d !important;
+    border-color: #444 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode .btn-outline-secondary {
+    border-color: #555;
+    color: #ddd;
+}
+
+body.dark-mode .btn-outline-primary,
+body.dark-mode .btn-outline-danger,
+body.dark-mode .btn-outline-success,
+body.dark-mode .btn-outline-info {
+    border-color: #555;
+    color: #ddd;
+}
+
+body.dark-mode .btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+body.dark-mode .btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+/* Inputs, selects, textareas */
+body.dark-mode .form-control,
+body.dark-mode .form-select,
+body.dark-mode .input-group-text {
+    background-color: #2a2a2a !important;
+    border-color: #444 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode .form-control:focus,
+body.dark-mode .form-select:focus {
+    background-color: #2a2a2a !important;
+    border-color: #0d6efd !important;
+    color: #e0e0e0 !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+body.dark-mode .input-group-text {
+    background-color: #2a2a2a !important;
+    color: #aaa !important;
+}
+
+/* Tablas */
+body.dark-mode .table {
+    color: #e0e0e0;
+}
+
+body.dark-mode .table-light {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+}
+
+body.dark-mode .table-hover tbody tr:hover {
+    background-color: #333;
+}
+
+/* Tarjetas de producto y servicio */
+body.dark-mode .product-card,
+body.dark-mode .service-card {
+    background-color: #1e1e1e !important;
+    border-color: #333 !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3) !important;
+}
+
+body.dark-mode .product-card .card-title,
+body.dark-mode .product-card .card-text,
+body.dark-mode .service-card h4,
+body.dark-mode .service-card p {
+    color: #e0e0e0 !important;
+}
+
+/* Modales */
+body.dark-mode .modal-content {
+    background-color: #1e1e1e !important;
+}
+
+body.dark-mode .modal-header,
+body.dark-mode .modal-footer {
+    border-color: #333 !important;
+}
+
+/* Dropdowns */
+body.dark-mode .dropdown-menu {
+    background-color: #2a2a2a !important;
+}
+
+body.dark-mode .dropdown-item {
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode .dropdown-item:hover,
+body.dark-mode .dropdown-item:focus {
+    background-color: #3a3a3a !important;
+    color: white !important;
+}
+
+/* Navbar específico (si es claro) */
+body.dark-mode .navbar {
+    background-color: #1e1e1e !important;
+    border-bottom: 1px solid #333 !important;
+}
+
+body.dark-mode .navbar-light .navbar-nav .nav-link {
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode .navbar-light .navbar-nav .nav-link:hover {
+    color: #6ea8fe !important;
+}
+
+body.dark-mode .navbar-brand {
+    color: #e0e0e0 !important;
+}
+
+/* Ajustes para la sección hero */
+body.dark-mode .hero-section {
+    background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), 
+                url('../img/breezeless_ambiente.png') no-repeat center center/cover;
+}
+
+/* Ajustes para el footer */
+body.dark-mode footer {
+    background-color: #0a0a0a !important;
+    border-top: 1px solid #333 !important;
+}

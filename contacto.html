@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contacto y Agenda | ClimaPro</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <link rel="stylesheet" href="./css/main.css">
+</head>
+<body class="d-flex flex-column min-vh-100 bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold fs-4" href="index.html">Clima<span class="text-info">Pro</span></a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mx-auto fw-semibold">
+                    <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
+                    <li class="nav-item"><a class="nav-link" href="nosotros.html">Nosotros</a></li>
+                    <li class="nav-item"><a class="nav-link" href="catalogo.html">Catálogo</a></li>
+                    <li class="nav-item"><a class="nav-link" href="calculadora.html">Asistente Inteligente</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="contacto.html">Contacto</a></li>
+                </ul>
+                <div class="d-flex align-items-center gap-3 mt-3 mt-lg-0" id="authButtons"></div>
+                <a href="carrito.html" class="position-relative ms-lg-3 mt-3 mt-lg-0 text-dark text-decoration-none fs-5">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info cart-count" style="display: none; font-size: 0.65rem;">0</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="bg-primary text-white text-center py-5">
+        <div class="container">
+            <h1 class="fw-bold">Estamos listos para ayudarte</h1>
+            <p class="lead mb-0">Solicita tu presupuesto o agenda directamente una visita técnica.</p>
+        </div>
+    </header>
+
+    <section class="py-5 flex-grow-1">
+        <div class="container">
+            <div class="row g-4">
+                
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 bg-primary text-white p-4">
+                        <div class="card-body">
+                            <h3 class="fw-bold mb-3">Información de Contacto</h3>
+                            <p class="text-white-50 mb-5">Usa nuestros canales directos para una respuesta inmediata.</p>
+                            
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-white bg-opacity-10 p-3 rounded-3 me-3 fs-4"><i class="fas fa-map-marker-alt"></i></div>
+                                <div>
+                                    <h5 class="fw-bold mb-1">Ubicación</h5>
+                                    <p class="mb-0 text-white-50">Santa Eulalia, Costa Rica</p>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="bg-white bg-opacity-10 p-3 rounded-3 me-3 fs-4"><i class="fas fa-phone-alt"></i></div>
+                                <div>
+                                    <h5 class="fw-bold mb-1">Teléfono</h5>
+                                    <p class="mb-0 text-white-50">+506 2222-0000</p>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex align-items-center">
+                                <div class="bg-white bg-opacity-10 p-3 rounded-3 me-3 fs-4"><i class="fas fa-envelope"></i></div>
+                                <div>
+                                    <h5 class="fw-bold mb-1">Correo</h5>
+                                    <p class="mb-0 text-white-50">soporte@climapro.com</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 p-4 p-md-5">
+                        <h4 class="fw-bold text-dark border-bottom pb-3 mb-4">Envíanos un mensaje</h4>
+                        <form id="formAgenda">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Nombre Completo <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="nombre_cliente" placeholder="Ej. Juan Pérez" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Correo Electrónico <span class="text-danger">*</span></label>
+                                    <input type="email" class="form-control" name="email_cliente" placeholder="juan@correo.com" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">Tipo de Servicio Requerido <span class="text-danger">*</span></label>
+                                <select class="form-select" name="tipo_servicio" id="tipoServicio" required>
+                                    <option value="VENTA">Solo Asesoría / Venta de Equipo</option>
+                                    <option value="INSTALACION">Instalación de Equipo</option>
+                                    <option value="MANTENIMIENTO_PREV">Mantenimiento Preventivo</option>
+                                    <option value="MANTENIMIENTO_CORR">Reparación / Mantenimiento Correctivo</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-4 p-3 bg-info bg-opacity-10 border border-info rounded-3" id="grupoCalendario" style="display: none;">
+                                <label class="form-label fw-semibold text-dark">Selecciona Fecha y Hora de la Visita <span class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control" name="fecha_hora_cita" id="fechaCita">
+                                <small class="text-muted d-block mt-2"><i class="fas fa-info-circle me-1"></i> El sistema bloqueará las horas ya ocupadas por otros técnicos.</small>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">Mensaje Adicional</label>
+                                <textarea class="form-control" name="mensaje" rows="4" placeholder="Cuéntanos más detalles..."></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100 py-3 fw-bold fs-5 shadow-sm">Confirmar Solicitud <i class="fas fa-paper-plane ms-2"></i></button>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-dark text-white py-4 mt-auto">
+        <div class="container text-center">
+            <small class="text-secondary">&copy; 2026 ClimaPro - Proyecto Ingeniería en Sistemas.</small>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="./js/auth.js"></script>
+    <script src="./js/carrito.js"></script>
+    <script src="./js/main.js"></script>
+    <script src="./js/contacto.js"></script>
+    <script src="./js/api.js"></script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+// js/carrito.js
+
+const Carrito = (() => {
+    const CART_KEY = 'climapro_cart';
+  
+    const getCart = () => {
+        const cart = localStorage.getItem(CART_KEY);
+        return cart ? JSON.parse(cart) : [];
+    };
+  
+    const saveCart = (cart) => {
+        localStorage.setItem(CART_KEY, JSON.stringify(cart));
+        actualizarContadorCarrito();
+    };
+  
+    const addItem = (producto) => {
+        const cart = getCart();
+        const existing = cart.find(item => item.id === producto.id && item.incluyeInstalacion === producto.incluyeInstalacion);
+        if (existing) {
+            existing.cantidad += producto.cantidad || 1;
+        } else {
+            cart.push({ ...producto, cantidad: producto.cantidad || 1 });
+        }
+        saveCart(cart);
+    };
+  
+    const removeItem = (id, incluyeInstalacion) => {
+        let cart = getCart();
+        cart = cart.filter(item => !(item.id === id && item.incluyeInstalacion === incluyeInstalacion));
+        saveCart(cart);
+    };
+  
+    const updateCantidad = (id, incluyeInstalacion, cantidad) => {
+        const cart = getCart();
+        const item = cart.find(item => item.id === id && item.incluyeInstalacion === incluyeInstalacion);
+        if (item) {
+            item.cantidad = Math.max(1, cantidad);
+            saveCart(cart);
+        }
+    };
+  
+    const clearCart = () => {
+        localStorage.removeItem(CART_KEY);
+        actualizarContadorCarrito();
+    };
+  
+    const getTotal = () => {
+        return getCart().reduce((total, item) => {
+            const precioBase = item.precio;
+            const precioInstalacion = item.incluyeInstalacion ? 80 : 0;
+            return total + ((precioBase + precioInstalacion) * item.cantidad);
+        }, 0);
+    };
+  
+    const actualizarContadorCarrito = () => {
+        const cart = getCart();
+        const totalItems = cart.reduce((acc, item) => acc + item.cantidad, 0);
+        const contadores = document.querySelectorAll('.cart-count');
+        contadores.forEach(el => {
+            el.textContent = totalItems;
+            el.style.display = totalItems > 0 ? 'inline-block' : 'none';
+        });
+    };
+  
+    return { getCart, addItem, removeItem, updateCantidad, clearCart, getTotal, actualizarContadorCarrito };
+})();
