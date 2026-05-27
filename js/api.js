@@ -1,5 +1,5 @@
 // js/api.js
-const API_URL = 'http://localhost:8080';
+const API_URL = 'https://clinquant-tulumba-124b74.netlify.app/';
 
 const API = {
     async request(endpoint, options = {}) {
