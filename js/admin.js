@@ -194,8 +194,7 @@ async function guardarProducto(event) {
             if (fileInput.files.length) {
                 for (let i = 0; i < fileInput.files.length; i++) formData.append('imagenes', fileInput.files[i]);
             }
-            const resp = await fetch('http://localhost:8080/productos', { method: 'POST', body: formData });
-            if (!resp.ok) throw new Error((await resp.json()).message || 'Error al crear');
+            const resp = await fetch('https://servi-a-c-pro.onrender.com/productos', { method: 'POST', body: formData });            if (!resp.ok) throw new Error((await resp.json()).message || 'Error al crear');
             Swal.fire('Éxito', 'Equipo registrado con éxito.', 'success');
         }
         bsModal.hide();
@@ -355,8 +354,7 @@ async function eliminarPedido(id) {
 async function exportarPedidos() {
     try {
         Swal.fire({ title: 'Generando archivo...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-        const response = await fetch('http://localhost:8080/api/pedidos/exportar/excel');
-        if (!response.ok) throw new Error('Error al exportar');
+        const response = await fetch('https://servi-a-c-pro.onrender.com/api/pedidos/exportar/excel');        if (!response.ok) throw new Error('Error al exportar');
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = 'Reporte_Ventas_ClimaPro.xlsx';
