@@ -216,6 +216,7 @@ async function guardarProducto(event) {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
     }
+    console.log("Payload a enviar:", payloadTexto);
 }
 
 async function editarProducto(id) { openProductoModal(id); }
