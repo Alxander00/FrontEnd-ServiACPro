@@ -1,5 +1,6 @@
 // js/api.js
-const API_URL = 'https://servi-a-c-pro.onrender.com'; 
+// const API_URL = 'http://localhost:8080';
+ const API_URL = 'https://servi-a-c-pro.onrender.com';
 
 const API = {
     async request(endpoint, options = {}) {

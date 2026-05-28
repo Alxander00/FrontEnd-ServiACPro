@@ -262,11 +262,18 @@ window.mostrarMapa = async function(direccion, idCliente) {
         try {
             const response = await fetch(`http://localhost:8080/clientes/${idCliente}/coordenadas`);
             if (response.ok) {
-                const data = await response.json();
-                lat = data.lat;
-                lng = data.lng;
+                // Leemos primero como texto puro
+                const text = await response.text(); 
+                // Si el backend mandó algo, entonces sí lo convertimos a JSON
+                if (text) {
+                    const data = JSON.parse(text);
+                    lat = data.lat;
+                    lng = data.lng;
+                }
             }
-        } catch (e) { console.warn(e); }
+        } catch (e) { 
+            console.warn("No se pudo obtener coordenadas directas, usando buscador de direcciones.", e); 
+        }
 
         if (!lat || !lng) {
             if (!direccion || direccion === 'Dirección no registrada') {
@@ -277,15 +284,28 @@ window.mostrarMapa = async function(direccion, idCliente) {
                 const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(direccion)}&limit=1`;
                 const geoResp = await fetch(geocodeUrl);
                 const geoData = await geoResp.json();
+                
                 if (geoData && geoData.length > 0) {
                     lat = parseFloat(geoData[0].lat);
                     lng = parseFloat(geoData[0].lon);
                 } else {
-                    mapDiv.innerHTML = '<div class="alert alert-warning m-3">No se pudo localizar la dirección.</div>';
-                    return;
+                    // Si OpenStreetMap no entiende la dirección, usamos un punto por defecto en Santa Ana
+                    lat = 13.9778; 
+                    lng = -89.5567;
+                    
+                    // Avisamos al técnico con un pequeño toast que la ubicación no es exacta
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Dirección imprecisa',
+                        text: 'Mostrando ubicación aproximada. Revisa las notas del cliente.',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 4000
+                    });
                 }
             } catch (error) {
-                mapDiv.innerHTML = '<div class="alert alert-danger m-3">Error al geocodificar la dirección.</div>';
+                mapDiv.innerHTML = '<div class="alert alert-danger m-3">Error al cargar el mapa.</div>';
                 return;
             }
         }
@@ -294,8 +314,15 @@ window.mostrarMapa = async function(direccion, idCliente) {
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(mapaActual);
+        
         L.marker([lat, lng]).addTo(mapaActual)
             .bindPopup(`<b>Cliente</b><br>${direccion}`)
             .openPopup();
+            
+        // Corrección para el bug de Leaflet dentro de Modales de Bootstrap
+        setTimeout(() => {
+            mapaActual.invalidateSize();
+        }, 300);
+        
     }, 100);
 };

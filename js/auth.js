@@ -2,8 +2,8 @@
 const Auth = (() => {
     const USER_KEY = 'climapro_user';
     // Se define la URL de Render aquí para que login y registro no busquen tu PC local
+    // const BASE_URL = 'http://localhost:8080';
     const BASE_URL = 'https://servi-a-c-pro.onrender.com';
-
     const login = async (email, password) => {
         try {
             const response = await fetch(`${BASE_URL}/auth/login`, {

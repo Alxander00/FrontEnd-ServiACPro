@@ -125,7 +125,8 @@ function renderizarProductos() {
         
         let imgUrl = "./img/breezeless_ambiente.png"; 
         if (prod.imagenesUrls && prod.imagenesUrls.length > 0) {
-            imgUrl = 'http://localhost:8080' + prod.imagenesUrls[0]; 
+            // imgUrl = 'https://localhost:8080' + prod.imagenesUrls[0]; 
+            imgUrl = 'https://servi-a-c-pro.onrender.com' + prod.imagenesUrls[0]; 
         }
 
         const badgeVendido = (prod.totalVendido && prod.totalVendido > 0) ? 
@@ -170,7 +171,7 @@ window.verDetalles = async function(id) {
             const isActive = index === 0 ? 'active' : '';
             const div = document.createElement('div');
             div.className = `carousel-item ${isActive}`;
-            div.innerHTML = `<img src="http://localhost:8080${url}" class="d-block w-100" style="height: 250px; object-fit: contain;">`;
+            div.innerHTML = `<img src="https://servi-a-c-pro.onrender.com${url}" class="d-block w-100" style="height: 250px; object-fit: contain;">`;
             carouselInner.appendChild(div);
         });
     } else {
@@ -339,7 +340,7 @@ window.agregarAlCarrito = function(id, incluyeInstalacion = false) {
     const prod = productosData.find(p => p.idProducto === id);
     if (!prod) return;
     let imgUrl = "./img/breezeless_ambiente.png";
-    if (prod.imagenesUrls && prod.imagenesUrls.length > 0) imgUrl = 'http://localhost:8080' + prod.imagenesUrls[0];
+    if (prod.imagenesUrls && prod.imagenesUrls.length > 0) imgUrl = 'https://servi-a-c-pro.onrender.com' + prod.imagenesUrls[0];
     Carrito.addItem({ id: prod.idProducto, nombre: prod.nombre, precio: prod.precio, imagen: imgUrl, incluyeInstalacion });
     Swal.fire({ icon: 'success', title: '¡Agregado!', text: `"${prod.nombre}" ${incluyeInstalacion ? 'con instalación' : 'solo equipo'} añadido.`, toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
     bsModalDetalle.hide();

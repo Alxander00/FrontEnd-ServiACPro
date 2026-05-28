@@ -29,7 +29,8 @@ async function cargarProductosInicio() {
         // Sin oferta fija
         let imgUrl = "./img/breezeless_ambiente.png";
         if (prod.imagenesUrls && prod.imagenesUrls.length > 0) {
-            imgUrl = 'http://localhost:8080' + prod.imagenesUrls[0];
+            //imgUrl = 'https://localhost:8080' + prod.imagenesUrls[0];
+            imgUrl = 'https://servi-a-c-pro.onrender.com' + prod.imagenesUrls[0];
         }
 
         const col = document.createElement('div');
