@@ -1,5 +1,6 @@
 // js/admin.js
 
+const API_BASE_URL = window.API_BASE_URL || 'https://servi-a-c-pro.onrender.com';
 const contentDiv = document.getElementById('dynamicContent');
 let bsModal = null;
 let categoriasCargadas = false;
@@ -364,7 +365,7 @@ async function eliminarPedido(id) {
 async function exportarPedidos() {
     try {
         Swal.fire({ title: 'Generando archivo...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-        const response = await fetch('https://servi-a-c-pro.onrender.com/api/pedidos/exportar/excel');
+        const response = await fetch(`${API_BASE_URL}/api/pedidos/exportar/excel`);        
         if (!response.ok) throw new Error('Error al exportar');
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
