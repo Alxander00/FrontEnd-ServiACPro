@@ -4,6 +4,7 @@ let productosData = [];
 let productosFiltrados = [];
 let bsModalDetalle = null;
 let productoActual = null;
+let calificacionSeleccionada = 0;
 
 const container = document.getElementById('productosContainer');
 const resultadosSpan = document.querySelector('#resultadosCount span');
@@ -123,10 +124,10 @@ function renderizarProductos() {
         const col = document.createElement('div');
         col.className = 'col-md-6 col-xl-4';
         
-        let imgUrl = "./img/breezeless_ambiente.png"; 
+        let imgUrl = "./img/breezeless_ambiente.png";
         if (prod.imagenesUrls && prod.imagenesUrls.length > 0) {
-            // imgUrl = 'https://localhost:8080' + prod.imagenesUrls[0]; 
-            imgUrl = 'https://servi-a-c-pro.onrender.com' + prod.imagenesUrls[0]; 
+            // Cloudinary ya devuelve URL completa, NO agregues API_BASE_URL
+            imgUrl = prod.imagenesUrls[0];
         }
 
         const badgeVendido = (prod.totalVendido && prod.totalVendido > 0) ? 
@@ -167,13 +168,14 @@ window.verDetalles = async function(id) {
     const carouselInner = document.getElementById('modalCarouselInner');
     carouselInner.innerHTML = '';
     if (prod.imagenesUrls && prod.imagenesUrls.length > 0) {
-        prod.imagenesUrls.forEach((url, index) => {
-            const isActive = index === 0 ? 'active' : '';
-            const div = document.createElement('div');
-            div.className = `carousel-item ${isActive}`;
-            div.innerHTML = `<img src="https://servi-a-c-pro.onrender.com${url}" class="d-block w-100" style="height: 250px; object-fit: contain;">`;
-            carouselInner.appendChild(div);
-        });
+    prod.imagenesUrls.forEach((url, index) => {
+        const isActive = index === 0 ? 'active' : '';
+        const div = document.createElement('div');
+        div.className = `carousel-item ${isActive}`;
+        // Cambia esta línea:
+        div.innerHTML = `<img src="${url}" class="d-block w-100" style="height: 250px; object-fit: contain;">`;
+        carouselInner.appendChild(div);
+    });
     } else {
         carouselInner.innerHTML = `<div class="carousel-item active"><img src="./img/breezeless_ambiente.png" class="d-block w-100" style="height: 250px; object-fit: contain;"></div>`;
     }
@@ -340,7 +342,7 @@ window.agregarAlCarrito = function(id, incluyeInstalacion = false) {
     const prod = productosData.find(p => p.idProducto === id);
     if (!prod) return;
     let imgUrl = "./img/breezeless_ambiente.png";
-    if (prod.imagenesUrls && prod.imagenesUrls.length > 0) imgUrl = 'https://servi-a-c-pro.onrender.com' + prod.imagenesUrls[0];
+    if (prod.imagenesUrls && prod.imagenesUrls.length > 0) imgUrl = prod.imagenesUrls[0];
     Carrito.addItem({ id: prod.idProducto, nombre: prod.nombre, precio: prod.precio, imagen: imgUrl, incluyeInstalacion });
     Swal.fire({ icon: 'success', title: '¡Agregado!', text: `"${prod.nombre}" ${incluyeInstalacion ? 'con instalación' : 'solo equipo'} añadido.`, toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
     bsModalDetalle.hide();

@@ -26,11 +26,9 @@ async function cargarProductosInicio() {
     // Dentro de cargarProductosInicio(), reemplaza el bucle seleccionados.forEach por esto:
 
     seleccionados.forEach((prod) => {
-        // Sin oferta fija
         let imgUrl = "./img/breezeless_ambiente.png";
         if (prod.imagenesUrls && prod.imagenesUrls.length > 0) {
-            //imgUrl = 'https://localhost:8080' + prod.imagenesUrls[0];
-            imgUrl = 'https://servi-a-c-pro.onrender.com' + prod.imagenesUrls[0];
+            imgUrl = prod.imagenesUrls[0];  // Sin API_BASE_URL
         }
 
         const col = document.createElement('div');
