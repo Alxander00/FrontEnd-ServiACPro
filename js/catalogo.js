@@ -188,7 +188,7 @@ window.verDetalles = async function(id) {
     
     // Eliminamos la línea de modalEficiencia porque lo reemplazamos por el Stock
     
-    document.getElementById('modalMarca').textContent = prod.marca || "ClimaPro";
+    document.getElementById('modalMarca').textContent = prod.marca || "ServiA/CPro";
     document.getElementById('modalGarantia').textContent = "1 año";
     
     // Lógica del stock añadida

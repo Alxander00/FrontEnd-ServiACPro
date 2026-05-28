@@ -49,7 +49,6 @@ const Auth = (() => {
                 throw new Error(errorData.message || 'Error en registro');
             }
             const nuevoUsuario = await response.json();
-            localStorage.setItem(USER_KEY, JSON.stringify(nuevoUsuario));
             return nuevoUsuario;
         } catch (error) {
             throw new Error('No se pudo completar el registro: ' + error.message);
