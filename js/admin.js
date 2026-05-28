@@ -168,13 +168,23 @@ async function guardarProducto(event) {
     const idProducto = document.getElementById('productoId').value;
     const marca = document.getElementById('prodMarca').value;
     const descPura = document.getElementById('prodDescripcion').value;
+    const categoriaId = parseInt(document.getElementById('prodCategoria').value);
+    
+    // Validar que la categoría sea válida
+    if (isNaN(categoriaId) || categoriaId <= 0) {
+        Swal.fire('Error', 'Selecciona una categoría válida', 'error');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        return;
+    }
+
     const payloadTexto = {
         nombre: document.getElementById('prodNombre').value,
         descripcion: `Marca: ${marca} - ${descPura}`,
         precio: parseFloat(document.getElementById('prodPrecio').value),
         capacidadBTU: parseInt(document.getElementById('prodBTU').value) || 0,
         stock: parseInt(document.getElementById('prodStock').value) || 0,
-        idCategoria: parseInt(document.getElementById('prodCategoria').value)
+        idCategoria: categoriaId
     };
 
     const fileInput = document.getElementById('prodImagenes');
@@ -188,35 +198,46 @@ async function guardarProducto(event) {
         }
     }
 
+    console.log("Payload a enviar:", JSON.stringify(payloadTexto));
+
     try {
         let response;
         if (idProducto) {
-            // Actualizar: usar PUT multipart
             response = await fetch(`${API_BASE_URL}/productos/${idProducto}`, {
                 method: 'PUT',
                 body: formData
             });
         } else {
-            // Crear: POST multipart
             response = await fetch(`${API_BASE_URL}/productos`, {
                 method: 'POST',
                 body: formData
             });
         }
+        
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Error al guardar');
+            const errorText = await response.text();
+            console.error("Error response:", errorText);
+            let errorMessage = 'Error al guardar';
+            try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.message || errorData.error || errorMessage;
+            } catch (e) {
+                errorMessage = errorText || errorMessage;
+            }
+            throw new Error(errorMessage);
         }
+        
+        const result = await response.json();
         Swal.fire('Éxito', idProducto ? 'Equipo actualizado correctamente.' : 'Equipo registrado con éxito.', 'success');
         bsModal.hide();
         renderProductos();
     } catch (error) {
+        console.error("Error en guardarProducto:", error);
         Swal.fire('Error', error.message, 'error');
     } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
     }
-    console.log("Payload a enviar:", payloadTexto);
 }
 
 async function editarProducto(id) { openProductoModal(id); }
@@ -316,7 +337,7 @@ async function renderPedidos() {
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light"><tr><th class="ps-4">Factura</th><th>Comprador</th><th>Fechas</th><th>Monto Total</th><th>Estado Actual</th><th class="text-end pe-4">Limpiar</th></tr></thead>
+                            <thead class="bg-light"><tr><th class="ps-4">Factura</th><th>Comprador</th><th>Fechas</th><th>Monto Total</th><th>Estado Actual</th><th class="text-end pe-4">Limpiar</th><tr></thead>
                             <tbody>
                                 ${pedidos.map(p => {
                                     const selectClass = p.estado === 'Completado' ? 'text-success border-success bg-success bg-opacity-10' : (p.estado === 'Cancelado' ? 'text-danger border-danger bg-danger bg-opacity-10' : 'text-warning border-warning bg-warning bg-opacity-10');
@@ -326,8 +347,8 @@ async function renderPedidos() {
                                     <td class="text-muted fw-semibold small"><i class="far fa-calendar-check text-primary me-1"></i> ${formatearFecha(p.fechaPedido)}</td>
                                     <td class="fw-bold text-success fs-5">$${p.total.toFixed(2)}</td>
                                     <td><select class="form-select form-select-sm fw-bold shadow-sm ${selectClass}" style="width: 150px;" onchange="cambiarEstadoPedido(${p.idPedido}, this.value)"><option value="Pendiente" ${p.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option><option value="En Proceso" ${p.estado === 'En Proceso' ? 'selected' : ''}>En Proceso</option><option value="Completado" ${p.estado === 'Completado' ? 'selected' : ''}>Completado</option><option value="Cancelado" ${p.estado === 'Cancelado' ? 'selected' : ''}>Cancelado</option></select></td>
-                                    <td class="text-end pe-4"><button class="btn btn-sm btn-light text-danger shadow-sm rounded-circle" onclick="eliminarPedido(${p.idPedido})"><i class="fas fa-trash"></i></button></td></tr>`;
-                                }).join('')}
+                                    <td class="text-end pe-4"><button class="btn btn-sm btn-light text-danger shadow-sm rounded-circle" onclick="eliminarPedido(${p.idPedido})"><i class="fas fa-trash"></i></button></td>
+                                </tr>`}).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -400,8 +421,8 @@ async function renderUsuarios() {
                                     <td><a href="mailto:${u.email}" class="text-decoration-none text-muted fw-semibold"><i class="fas fa-envelope text-primary me-1"></i> ${u.email}</a></td>
                                     <td><span class="badge ${rolBadge} text-white shadow-sm px-3 py-2">${u.rol}</span></td>
                                     <td><span class="badge ${statusBadge.split(' ')[0]} bg-opacity-10 ${statusBadge.split(' ')[1]} border-0 px-3 py-2"><i class="fas fa-circle me-1" style="font-size: 8px;"></i> ${u.activo ? 'Operativo' : 'Restringido'}</span></td>
-                                    <td class="text-end pe-4"><button class="btn btn-sm ${u.activo ? 'btn-outline-danger' : 'btn-outline-success'} fw-bold px-3 shadow-sm" onclick="toggleUsuarioEstado(${u.idUsuario}, ${!u.activo})"><i class="fas ${u.activo ? 'fa-user-lock' : 'fa-user-check'} me-1"></i> ${u.activo ? 'Suspender' : 'Reactivar'}</button></td></tr>`;
-                                }).join('')}
+                                    <td class="text-end pe-4"><button class="btn btn-sm ${u.activo ? 'btn-outline-danger' : 'btn-outline-success'} fw-bold px-3 shadow-sm" onclick="toggleUsuarioEstado(${u.idUsuario}, ${!u.activo})"><i class="fas ${u.activo ? 'fa-user-lock' : 'fa-user-check'} me-1"></i> ${u.activo ? 'Suspender' : 'Reactivar'}</button></td>
+                                </tr>`}).join('')}
                             </tbody>
                         </table>
                     </div>
