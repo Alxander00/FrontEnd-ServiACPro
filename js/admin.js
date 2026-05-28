@@ -182,7 +182,7 @@ async function guardarProducto(event) {
         nombre: document.getElementById('prodNombre').value,
         descripcion: `Marca: ${marca} - ${descPura}`,
         precio: parseFloat(document.getElementById('prodPrecio').value),
-        capacidadBTU: parseInt(document.getElementById('prodBTU').value) || 0,
+        capacidadBtu: parseInt(document.getElementById('prodBTU').value) || 0,
         stock: parseInt(document.getElementById('prodStock').value) || 0,
         idCategoria: categoriaId
     };
