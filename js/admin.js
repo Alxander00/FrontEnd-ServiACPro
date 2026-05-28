@@ -171,34 +171,42 @@ async function guardarProducto(event) {
         nombre: document.getElementById('prodNombre').value,
         descripcion: `Marca: ${marca} - ${descPura}`,
         precio: parseFloat(document.getElementById('prodPrecio').value),
-        capacidadBtu: parseInt(document.getElementById('prodBTU').value) || 0,
+        capacidadBTU: parseInt(document.getElementById('prodBTU').value) || 0,
         stock: parseInt(document.getElementById('prodStock').value) || 0,
         idCategoria: parseInt(document.getElementById('prodCategoria').value)
     };
 
-    try {
-        if (idProducto) {
-            await API.Productos.actualizar(idProducto, payloadTexto);
-            const fileInput = document.getElementById('prodImagenes');
-            if (fileInput.files.length > 0) {
-                const formData = new FormData();
-                for (let i = 0; i < fileInput.files.length; i++) formData.append('imagenes', fileInput.files[i]);
-                // (Opcional) enviar imágenes al backend para actualización; por ahora solo actualiza texto
-            }
-            Swal.fire('Éxito', 'Equipo actualizado correctamente.', 'success');
-        } else {
-            const formData = new FormData();
-            const productoBlob = new Blob([JSON.stringify(payloadTexto)], { type: 'application/json' });
-            formData.append('producto', productoBlob);
-            const fileInput = document.getElementById('prodImagenes');
-            if (fileInput.files.length) {
-                for (let i = 0; i < fileInput.files.length; i++) formData.append('imagenes', fileInput.files[i]);
-            }
-            // const resp = await fetch('http://localhost:8080/productos', { method: 'POST', body: formData });
-            const resp = await fetch('https://servi-a-c-pro.onrender.com/productos', { method: 'POST', body: formData });
-            if (!resp.ok) throw new Error((await resp.json()).message || 'Error al crear');
-            Swal.fire('Éxito', 'Equipo registrado con éxito.', 'success');
+    const fileInput = document.getElementById('prodImagenes');
+    const formData = new FormData();
+    const productoBlob = new Blob([JSON.stringify(payloadTexto)], { type: 'application/json' });
+    formData.append('producto', productoBlob);
+    
+    if (fileInput.files.length > 0) {
+        for (let i = 0; i < fileInput.files.length; i++) {
+            formData.append('imagenes', fileInput.files[i]);
         }
+    }
+
+    try {
+        let response;
+        if (idProducto) {
+            // Actualizar: usar PUT multipart
+            response = await fetch(`${API_BASE_URL}/productos/${idProducto}`, {
+                method: 'PUT',
+                body: formData
+            });
+        } else {
+            // Crear: POST multipart
+            response = await fetch(`${API_BASE_URL}/productos`, {
+                method: 'POST',
+                body: formData
+            });
+        }
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Error al guardar');
+        }
+        Swal.fire('Éxito', idProducto ? 'Equipo actualizado correctamente.' : 'Equipo registrado con éxito.', 'success');
         bsModal.hide();
         renderProductos();
     } catch (error) {
