@@ -6,6 +6,11 @@ let bsModalDetalle = null;
 let productoActual = null;
 let calificacionSeleccionada = 0;
 
+// NUEVO: Variables de paginación
+let currentPage = 0;
+const pageSize = 6; // Cantidad de productos a mostrar por página
+let totalPages = 1;
+
 const container = document.getElementById('productosContainer');
 const resultadosSpan = document.querySelector('#resultadosCount span');
 const busquedaInput = document.getElementById('busquedaInput');
@@ -55,11 +60,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // NUEVO: Eventos para Paginación
+    document.getElementById('btnAnterior')?.addEventListener('click', () => {
+        if (currentPage > 0) cargarProductos(currentPage - 1);
+    });
+    document.getElementById('btnSiguiente')?.addEventListener('click', () => {
+        if (currentPage < totalPages - 1) cargarProductos(currentPage + 1);
+    });
+
+    // NUEVO: Evento para el botón de WhatsApp Inteligente
+    document.getElementById('btnWhatsApp')?.addEventListener('click', () => {
+        if (!productoActual) return;
+        
+        const numeroWhatsApp = "50370000000"; // Reemplaza por tu número
+        const mensaje = `Hola Servi A/C Pro, estoy interesado en el equipo *${productoActual.nombre}* (${productoActual.capacidadBTU} BTU) que está en su catálogo a $${productoActual.precio.toFixed(2)}. ¿Me podrían dar más información?`;
+        
+        const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
+        window.open(url, '_blank');
+    });
+
     const ordenInicial = document.getElementById('ordenarSelect').value;
     if (ordenInicial === 'popularidad') {
         await cargarProductosPorPopularidad();
     } else {
-        await cargarProductos();
+        await cargarProductos(0); // Iniciamos en la página 0
     }
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -75,12 +99,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-async function cargarProductos() {
+// NUEVO: Función cargarProductos modificada para soportar paginación
+async function cargarProductos(page = 0) {
     try {
         container.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Cargando catálogo...</p></div>';
-        productosData = await API.Productos.listarActivos();
+        
+        // Hacemos la petición con los parámetros de paginación
+        const response = await API.request(`/productos?page=${page}&size=${pageSize}`);
+        
+        // Spring Boot devuelve un objeto Page. Los productos están en "content"
+        if(response && response.content) {
+            productosData = response.content; 
+            currentPage = response.number;
+            totalPages = response.totalPages;
+        } else {
+            // Fallback por si la API aún devuelve una lista plana
+            productosData = response || [];
+            currentPage = 0;
+            totalPages = 1;
+        }
+        
         productosFiltrados = [...productosData];
         renderizarProductos();
+        actualizarPaginacion();
+
     } catch (error) {
         container.innerHTML = `
             <div class="col-12 text-center py-5 bg-white rounded-4 shadow-sm">
@@ -92,15 +134,36 @@ async function cargarProductos() {
     }
 }
 
+// NUEVO: Función para actualizar los botones de paginación visualmente
+function actualizarPaginacion() {
+    const pagContainer = document.getElementById('paginacionContainer');
+    if (!pagContainer) return;
+    
+    // Mostramos el contenedor de paginación
+    pagContainer.style.display = 'flex';
+    
+    document.getElementById('paginaActual').textContent = currentPage + 1;
+    document.getElementById('totalPaginas').textContent = totalPages === 0 ? 1 : totalPages;
+    
+    // Deshabilitar botones si estamos en la primera o última página
+    document.getElementById('btnAnterior').disabled = (currentPage === 0);
+    document.getElementById('btnSiguiente').disabled = (currentPage >= totalPages - 1);
+}
+
 async function cargarProductosPorPopularidad() {
     try {
         container.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Cargando productos más vendidos...</p></div>';
         productosData = await API.Productos.listarPopulares();
         productosFiltrados = [...productosData];
         renderizarProductos();
+        
+        // Ocultar paginación en populares ya que es una query estática de top 5
+        const pagContainer = document.getElementById('paginacionContainer');
+        if (pagContainer) pagContainer.style.display = 'none';
+
     } catch (error) {
         console.error("Error al cargar populares:", error);
-        await cargarProductos();
+        await cargarProductos(0);
     }
 }
 
@@ -126,7 +189,6 @@ function renderizarProductos() {
         
         let imgUrl = "./img/breezeless_ambiente.png";
         if (prod.imagenesUrls && prod.imagenesUrls.length > 0) {
-            // Cloudinary ya devuelve URL completa, NO agregues API_BASE_URL
             imgUrl = prod.imagenesUrls[0];
         }
 
@@ -168,14 +230,13 @@ window.verDetalles = async function(id) {
     const carouselInner = document.getElementById('modalCarouselInner');
     carouselInner.innerHTML = '';
     if (prod.imagenesUrls && prod.imagenesUrls.length > 0) {
-    prod.imagenesUrls.forEach((url, index) => {
-        const isActive = index === 0 ? 'active' : '';
-        const div = document.createElement('div');
-        div.className = `carousel-item ${isActive}`;
-        // Cambia esta línea:
-        div.innerHTML = `<img src="${url}" class="d-block w-100" style="height: 250px; object-fit: contain;">`;
-        carouselInner.appendChild(div);
-    });
+        prod.imagenesUrls.forEach((url, index) => {
+            const isActive = index === 0 ? 'active' : '';
+            const div = document.createElement('div');
+            div.className = `carousel-item ${isActive}`;
+            div.innerHTML = `<img src="${url}" class="d-block w-100" style="height: 250px; object-fit: contain;">`;
+            carouselInner.appendChild(div);
+        });
     } else {
         carouselInner.innerHTML = `<div class="carousel-item active"><img src="./img/breezeless_ambiente.png" class="d-block w-100" style="height: 250px; object-fit: contain;"></div>`;
     }
@@ -188,12 +249,9 @@ window.verDetalles = async function(id) {
     document.getElementById('modalPrecio').textContent = `$${prod.precio.toFixed(2)}`;
     document.getElementById('modalBTU').textContent = `${prod.capacidadBTU} BTU`;
     
-    // Eliminamos la línea de modalEficiencia porque lo reemplazamos por el Stock
-    
     document.getElementById('modalMarca').textContent = prod.marca || "ServiA/CPro";
     document.getElementById('modalGarantia').textContent = "1 año";
     
-    // Lógica del stock añadida
     document.getElementById('modalStock').textContent = prod.stock > 0 ? `${prod.stock} unidades` : 'Agotado';
     document.getElementById('modalStock').className = prod.stock > 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
 
@@ -208,7 +266,6 @@ window.verDetalles = async function(id) {
 
     await cargarResenas(prod.idProducto);
     
-    // Ahora sí llegará hasta aquí y mostrará el modal
     bsModalDetalle.show();
 };
 

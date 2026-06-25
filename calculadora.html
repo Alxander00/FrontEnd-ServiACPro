@@ -113,6 +113,20 @@
                                     <span class="input-group-text bg-light border-start-0 text-muted"><i class="fas fa-tv"></i></span>
                                 </div>
                             </div>
+                            <div class="col-md-6 mt-3">
+                                <label class="form-label fw-bold text-secondary">Zona Climática</label>
+                                <select class="form-select bg-light" id="zonaClima">
+                                    <option value="templada">Templada / Ciudad</option>
+                                    <option value="calurosa">Calurosa / Costera</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mt-3">
+                                <label class="form-label fw-bold text-secondary">Exposición al Sol</label>
+                                <select class="form-select bg-light" id="solDirecto">
+                                    <option value="no">No pega el sol directo</option>
+                                    <option value="si">Sol directo en la tarde</option>
+                                </select>
+                            </div>
                         </div>
                         
                         <button onclick="calcularBTU()" class="btn btn-primary w-100 py-3 fw-bold fs-5 shadow-sm">
