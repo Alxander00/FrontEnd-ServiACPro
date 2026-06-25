@@ -286,7 +286,7 @@ async function guardarEstadoCita(event) {
     const btn = document.getElementById('btnGuardarReporte');
     const txtOriginal = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando Reporte...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Subiendo Evidencia... (Puede tardar)';
 
     const idCita = parseInt(document.getElementById('citaIdActual').value);
     let nuevoEstadoSelect = document.getElementById('nuevoEstado').value;
@@ -299,39 +299,54 @@ async function guardarEstadoCita(event) {
     
     const notas = document.getElementById('notasTecnico').value;
 
-    // VALIDACIÓN DE EVIDENCIA SI ESTÁ COMPLETADO
-    let firmaBase64 = null;
-    let fotoDespuesBase64 = null; // En el futuro será un File dentro de un FormData
-    
+    // Crear el paquete de datos (FormData)
+    const formData = new FormData();
+    formData.append('estado', nuevoEstado);
+    formData.append('notas', notas);
+
+    // Si está completado, empacamos las fotos y la firma
     if (nuevoEstadoSelect === 'Completado') {
-        const fotoDespues = document.getElementById('fotoDespues').files[0];
+        const inputAntes = document.getElementById('fotoAntes');
+        const inputDespues = document.getElementById('fotoDespues');
         
         if (isCanvasEmpty(canvas)) {
-            Swal.fire('Firma Requerida', 'El cliente debe firmar la pantalla para dar como completado el servicio.', 'warning');
+            Swal.fire('Firma Requerida', 'El cliente debe firmar la pantalla.', 'warning');
             btn.disabled = false; btn.innerHTML = txtOriginal; return;
         }
-        if (!fotoDespues) {
-            Swal.fire('Evidencia Incompleta', 'Por favor toma la foto de cómo quedó el trabajo (Foto Después).', 'warning');
+        if (inputDespues.files.length === 0) {
+            Swal.fire('Evidencia Incompleta', 'Por favor sube al menos una foto de cómo quedó el trabajo.', 'warning');
             btn.disabled = false; btn.innerHTML = txtOriginal; return;
         }
         
-        // Convertimos la firma a Base64
-        firmaBase64 = canvas.toDataURL('image/png');
-        console.log("Firma lista para enviar:", firmaBase64.substring(0, 50) + "...");
+        // Agregar múltiples fotos del "Antes"
+        for (let i = 0; i < inputAntes.files.length; i++) {
+            formData.append('fotosAntes', inputAntes.files[i]);
+        }
+        
+        // Agregar múltiples fotos del "Después"
+        for (let i = 0; i < inputDespues.files.length; i++) {
+            formData.append('fotosDespues', inputDespues.files[i]);
+        }
+        
+        // Transformar la firma a imagen base64 y agregarla
+        const firmaBase64 = canvas.toDataURL('image/png');
+        formData.append('firma', firmaBase64);
     }
 
     try {
-        /*
-         TODO: Cuando el Backend esté listo para recibir el FormData (con la firma y fotos),
-         cambiaremos este API.request por un fetch con FormData.
-         Por ahora, cambiamos el estado normalmente.
-        */
-        await API.Citas.cambiarEstado(idCita, nuevoEstado);
+        // Usamos fetch directamente porque enviamos archivos (FormData)
+        const BASE_URL = 'https://servi-a-c-pro.onrender.com'; // O http://localhost:8080 en local
+        const response = await fetch(`${BASE_URL}/api/citas/${idCita}/reporte`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error("Error al guardar el reporte");
         
         Swal.fire({
             icon: 'success', 
             title: '¡Reporte Enviado!', 
-            text: nuevoEstadoSelect === 'Completado' ? 'El servicio fue firmado y guardado exitosamente.' : 'El estado se ha actualizado.',
+            text: 'Las evidencias y el estado se han guardado exitosamente.',
             confirmButtonColor: '#0d6efd'
         });
         
