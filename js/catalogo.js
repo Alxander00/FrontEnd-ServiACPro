@@ -153,7 +153,8 @@ function actualizarPaginacion() {
 async function cargarProductosPorPopularidad() {
     try {
         container.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Cargando productos más vendidos...</p></div>';
-        productosData = await API.Productos.listarPopulares();
+        const response = await API.Productos.listarPopulares();
+        productosData = response || [];
         productosFiltrados = [...productosData];
         renderizarProductos();
         

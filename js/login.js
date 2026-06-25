@@ -1,5 +1,4 @@
 // js/login.js
-
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     
@@ -17,13 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await Auth.login(email, password);
+                // Redirigir según el rol (esto ya lo maneja main.js al recargar)
                 window.location.href = 'index.html';
             } catch (error) {
-                // Reemplazamos el alert() viejo por Swal.fire
                 Swal.fire({
                     icon: 'error',
                     title: 'Acceso Denegado',
-                    text: 'Error al iniciar sesión. Verifica tus credenciales.',
+                    text: error.message || 'Error al iniciar sesión. Verifica tus credenciales.',
                     confirmButtonColor: '#dc3545'
                 });
                 btn.disabled = false;

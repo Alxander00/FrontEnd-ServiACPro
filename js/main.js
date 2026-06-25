@@ -34,10 +34,8 @@ function crearBotonDarkMode() {
     btn.style.height = '36px';
     btn.addEventListener('click', toggleDarkMode);
     
-    // Buscar el enlace del carrito
     const cartLink = document.querySelector('a[href="carrito.html"]');
     if (cartLink && cartLink.parentNode) {
-        // Insertar el botón justo antes del carrito
         cartLink.parentNode.insertBefore(btn, cartLink);
     } else {
         console.warn('No se pudo encontrar el carrito para el botón de modo oscuro');
@@ -59,10 +57,16 @@ function actualizarNavAuth() {
     const authContainer = document.getElementById('authButtons');
     const cartIcon = document.querySelector('a[href="carrito.html"]');
     
+    // Si no existe el contenedor, salimos
     if (!authContainer) return;
     
+    // Verificar autenticación
     if (Auth.isAuthenticated()) {
         const user = Auth.getUser();
+        if (!user) {
+            authContainer.innerHTML = '';
+            return;
+        }
         
         if (cartIcon) {
             cartIcon.style.display = (user.rol === 'ADMIN' || user.rol === 'TECNICO') ? 'none' : 'inline-block';
@@ -108,6 +112,7 @@ function actualizarNavAuth() {
             </div>
         `;
     } else {
+        // No autenticado: mostrar botones de login/registro
         if (cartIcon) cartIcon.style.display = 'inline-block';
         authContainer.innerHTML = `
             <a href="login.html" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">Iniciar Sesión</a>

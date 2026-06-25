@@ -222,6 +222,91 @@ async function mostrarSeccion(seccion) {
             });
         });
     }
+    else if (seccion === 'equipos') {
+        try {
+            const equipos = await API.Equipos.listarPorCliente(user.idUsuario);
+            
+            if (!equipos || equipos.length === 0) {
+                content.innerHTML = `
+                    <h4 class="fw-bold text-dark border-bottom pb-3 mb-4"><i class="fas fa-snowflake text-info me-2"></i>Mis Equipos Instalados</h4>
+                    <div class="text-center py-5">
+                        <div class="bg-light rounded-circle d-inline-flex p-4 mb-3"><i class="fas fa-box-open fa-3x text-muted"></i></div>
+                        <h5 class="fw-bold text-dark">Aún no tienes equipos registrados</h5>
+                        <p class="text-muted">Cuando realices una compra con instalación, tus equipos aparecerán aquí.</p>
+                    </div>`;
+                return;
+            }
+
+            let html = `<h4 class="fw-bold text-dark border-bottom pb-3 mb-4"><i class="fas fa-snowflake text-info me-2"></i>Mis Equipos Instalados</h4><div class="row g-4">`;
+            
+            const hoy = new Date();
+            let equiposNecesitanMantenimiento = 0;
+
+            equipos.forEach(equipo => {
+                // Calcular fecha de mantenimiento
+                let fechaBase = equipo.fechaUltimoMantenimiento ? new Date(equipo.fechaUltimoMantenimiento) : new Date(equipo.fechaInstalacion);
+                
+                // Mantenimiento cada 6 meses
+                let proximaFecha = new Date(fechaBase);
+                proximaFecha.setMonth(proximaFecha.getMonth() + 6);
+                
+                // Calcular días faltantes
+                const diffTime = proximaFecha - hoy;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                let alertaHtml = '';
+                let borderClass = 'border-light';
+                let btnAgenda = '';
+
+                if (diffDays <= 0) {
+                    equiposNecesitanMantenimiento++;
+                    borderClass = 'border-danger border-2';
+                    alertaHtml = `<div class="alert alert-danger p-2 small fw-bold mb-3"><i class="fas fa-exclamation-triangle me-2"></i>¡Requiere Mantenimiento Urgente! (Venció el ${proximaFecha.toLocaleDateString()})</div>`;
+                    btnAgenda = `<a href="contacto.html" class="btn btn-danger btn-sm w-100 fw-bold mt-2"><i class="fas fa-calendar-plus me-1"></i> Agendar Servicio Ahora</a>`;
+                } else if (diffDays <= 30) {
+                    equiposNecesitanMantenimiento++;
+                    borderClass = 'border-warning border-2';
+                    alertaHtml = `<div class="alert alert-warning p-2 small fw-bold mb-3"><i class="fas fa-bell me-2"></i>Mantenimiento próximo en ${diffDays} días.</div>`;
+                    btnAgenda = `<a href="contacto.html" class="btn btn-warning btn-sm w-100 fw-bold mt-2 text-dark"><i class="fas fa-calendar-plus me-1"></i> Agendar Prevención</a>`;
+                } else {
+                    alertaHtml = `<div class="alert alert-success p-2 small fw-bold mb-3"><i class="fas fa-check-circle me-2"></i>Equipo en óptimas condiciones. Próx. servicio en ${diffDays} días.</div>`;
+                }
+
+                html += `
+                    <div class="col-md-6">
+                        <div class="card shadow-sm rounded-4 h-100 ${borderClass}">
+                            <div class="card-body p-4">
+                                ${alertaHtml}
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="fw-bold text-dark mb-0">${equipo.marca} ${equipo.modelo || ''}</h5>
+                                    <span class="badge bg-primary rounded-pill">${equipo.capacidadBtu} BTU</span>
+                                </div>
+                                <p class="text-muted small mb-3"><i class="fas fa-map-marker-alt text-info me-1"></i> Ubicación: <strong>${equipo.ubicacionEnCasa || 'No especificada'}</strong></p>
+                                
+                                <ul class="list-unstyled small text-muted mb-0">
+                                    <li class="mb-1"><i class="far fa-calendar-alt me-2"></i>Instalación: ${formatearFecha(equipo.fechaInstalacion)}</li>
+                                    <li><i class="fas fa-tools me-2"></i>Último Servicio: ${equipo.fechaUltimoMantenimiento ? formatearFecha(equipo.fechaUltimoMantenimiento) : 'Ninguno registrado'}</li>
+                                </ul>
+                                ${btnAgenda}
+                            </div>
+                        </div>
+                    </div>`;
+            });
+            html += `</div>`;
+            content.innerHTML = html;
+
+            // Actualizar badge
+            const badgeEquipos = document.getElementById('badgeEquiposCliente');
+            if (badgeEquipos && equiposNecesitanMantenimiento > 0) {
+                badgeEquipos.textContent = equiposNecesitanMantenimiento;
+                badgeEquipos.style.display = 'inline-block';
+                badgeEquipos.classList.replace('bg-info', 'bg-danger'); // Cambiar color si hay alertas
+            }
+
+        } catch (error) {
+            content.innerHTML = `<div class="alert alert-danger m-3">Error al cargar tus equipos: ${error.message}</div>`;
+        }
+    }
 }
 
 window.actualizarDatos = async function(event) {

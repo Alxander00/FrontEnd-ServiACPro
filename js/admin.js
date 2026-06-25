@@ -1,7 +1,13 @@
 // js/admin.js
-
-const API_BASE_URL = window.API_BASE_URL || 'https://servi-a-c-pro.onrender.com';
+const getBaseUrl = () => {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:8080';
+    }
+    return 'https://servi-a-c-pro.onrender.com';
+};
+const API_BASE_URL = getBaseUrl();
 const contentDiv = document.getElementById('dynamicContent');
+
 let bsModal = null;
 let categoriasCargadas = false;
 
@@ -76,7 +82,14 @@ async function renderDashboard() {
 async function renderProductos() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        const productosData = await API.Productos.listarActivos();
+        const response = await API.Productos.listarActivos(); // Ahora es un objeto Page
+        // Extraer el arreglo de productos de la respuesta paginada
+        const productos = response.content || response || [];
+        
+        if (!Array.isArray(productos)) {
+            throw new Error('La respuesta no contiene un arreglo de productos');
+        }
+
         contentDiv.innerHTML = `
             <div class="card border-0">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
@@ -88,7 +101,7 @@ async function renderProductos() {
                         <table class="table table-hover align-middle mb-0">
                             <thead class="bg-light"><tr><th class="ps-4">Equipo y Detalles</th><th>Categoría</th><th>Precio Base</th><th>Disponibilidad</th><th class="text-end pe-4">Acciones</th></tr></thead>
                             <tbody>
-                                ${productosData.map(p => `
+                                ${productos.map(p => `
                                     <tr>
                                         <td class="ps-4">
                                             <div class="d-flex align-items-center">
@@ -108,10 +121,10 @@ async function renderProductos() {
             </div>
         `;
     } catch (error) {
-        contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error: ${error.message}</div>`;
+        console.error('Error en renderProductos:', error);
+        contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error al cargar productos: ${error.message}</div>`;
     }
 }
-
 async function openProductoModal(id = null) {
     document.getElementById('productoForm').reset();
     document.getElementById('productoId').value = '';
