@@ -39,8 +39,10 @@ function loadPage(page) {
         pedidos: ['Control de Pedidos', 'Seguimiento financiero y estados de venta'],
         categorias: ['Clasificación', 'Organiza el catálogo de productos'],
         usuarios: ['Directorio de Usuarios', 'Administración de accesos y roles'],
-        solicitudes: ['Centro de Operaciones', 'Visitas técnicas y asignaciones']
+        solicitudes: ['Centro de Operaciones', 'Visitas técnicas y asignaciones'],
+        reportes: ['Reportes Técnicos', 'Evidencias, firmas y estados de servicio']
     };
+    
     document.getElementById('sectionTitle').textContent = titles[page][0];
     document.getElementById('sectionSubtitle').textContent = titles[page][1];
 
@@ -50,6 +52,7 @@ function loadPage(page) {
     if(page === 'categorias') renderCategorias();
     if(page === 'usuarios') renderUsuarios();
     if(page === 'solicitudes') renderSolicitudes();
+    if(page === 'reportes') renderReportes();
 }
 
 // ========== DASHBOARD ==========
@@ -536,3 +539,233 @@ async function actualizarContadoresAdmin() {
         console.error('Error al cargar contadores admin:', error);
     }
 }
+
+// ========== REPORTES Y EVIDENCIAS ==========
+let listaCitasGlobal = []; // Para guardar las citas en memoria y usarlas en el modal
+
+async function renderReportes() {
+    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+    try {
+        listaCitasGlobal = await API.Citas.listar();
+        
+        if (!listaCitasGlobal || listaCitasGlobal.length === 0) {
+            contentDiv.innerHTML = `<div class="alert alert-info shadow-sm m-4">No hay historial de citas o reportes en el sistema.</div>`;
+            return;
+        }
+
+        contentDiv.innerHTML = `
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white pt-4 px-4"><h5 class="fw-bold mb-0 text-dark"><i class="fas fa-clipboard-list text-primary me-2"></i>Historial de Trabajos</h5></div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light"><tr><th class="ps-4">Ticket</th><th>Cliente</th><th>Técnico</th><th>Fecha</th><th>Estado</th><th class="text-end pe-4">Evidencia</th></tr></thead>
+                            <tbody>
+                                ${listaCitasGlobal.map(cita => {
+                                    const badgeClass = cita.estado === 'COMPLETADA' ? 'bg-success' : (cita.estado === 'CANCELADA' ? 'bg-danger' : 'bg-warning text-dark');
+                                    // Solo mostrar botón de evidencia si está completada y tiene firma o fotos
+                                    const tieneEvidencia = cita.estado === 'COMPLETADA' && (cita.urlFirmaCliente || cita.urlsFotosAntes || cita.urlsFotosDespues);
+                                    const btnEvidencia = tieneEvidencia 
+                                        ? `<button class="btn btn-sm btn-primary shadow-sm rounded-pill px-3 fw-bold" onclick="abrirVisorEvidencia(${cita.idCita})"><i class="fas fa-camera me-1"></i> Ver Reporte</button>`
+                                        : `<span class="text-muted small">No disponible</span>`;
+
+                                    return `<tr>
+                                        <td class="ps-4 fw-bold text-primary">#${cita.idCita}</td>
+                                        <td><div class="fw-bold text-dark">${cita.nombreCliente}</div><small class="text-muted"><i class="fas fa-map-marker-alt text-danger me-1"></i>${cita.direccionCliente || 'Sin dirección'}</small></td>
+                                        <td><span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 p-2"><i class="fas fa-hard-hat me-1"></i> ${cita.nombreTecnico}</span></td>
+                                        <td class="small fw-semibold text-secondary">${formatearFecha(cita.fechaInicio)}</td>
+                                        <td><span class="badge ${badgeClass} shadow-sm px-3 py-2">${cita.estado}</span></td>
+                                        <td class="text-end pe-4">${btnEvidencia}</td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        contentDiv.innerHTML = `<div class="alert alert-danger shadow-sm m-4">Error al cargar reportes: ${error.message}</div>`;
+    }
+}
+
+window.abrirVisorEvidencia = function(idCita) {
+    const cita = listaCitasGlobal.find(c => c.idCita === idCita);
+    if (!cita) return;
+
+    window.citaActualParaPDF = cita;
+
+    const contenedor = document.getElementById('contenidoEvidencia');
+    
+    // Convertir strings separados por comas a arrays (si existen)
+    const fotosAntes = cita.urlsFotosAntes ? cita.urlsFotosAntes.split(',') : [];
+    const fotosDespues = cita.urlsFotosDespues ? cita.urlsFotosDespues.split(',') : [];
+
+    let html = `
+        <div class="row g-4">
+            <div class="col-12">
+                <h6 class="fw-bold text-dark text-uppercase border-bottom pb-2">Diagnóstico del Técnico</h6>
+                <div class="bg-white p-3 rounded border shadow-sm text-muted fst-italic">
+                    <i class="fas fa-quote-left text-primary opacity-50 me-2"></i>${cita.notas || 'El técnico no dejó observaciones escritas.'}
+                </div>
+            </div>`;
+
+    if (fotosAntes.length > 0) {
+        html += `<div class="col-md-6"><h6 class="fw-bold text-danger text-center"><i class="fas fa-times-circle me-1"></i> ANTES</h6><div class="d-flex flex-wrap gap-2 justify-content-center">`;
+        fotosAntes.forEach(url => html += `<img src="${url}" class="img-thumbnail shadow-sm" style="max-height: 150px; cursor: pointer;" onclick="window.open('${url}', '_blank')">`);
+        html += `</div></div>`;
+    }
+
+    if (fotosDespues.length > 0) {
+        html += `<div class="col-md-6"><h6 class="fw-bold text-success text-center"><i class="fas fa-check-circle me-1"></i> DESPUÉS</h6><div class="d-flex flex-wrap gap-2 justify-content-center">`;
+        fotosDespues.forEach(url => html += `<img src="${url}" class="img-thumbnail shadow-sm border-success" style="max-height: 150px; cursor: pointer;" onclick="window.open('${url}', '_blank')">`);
+        html += `</div></div>`;
+    }
+
+    if (cita.urlFirmaCliente) {
+        html += `
+            <div class="col-12 mt-4 text-center">
+                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Conformidad del Cliente</h6>
+                <div class="d-inline-block bg-white p-3 rounded border shadow-sm">
+                    <img src="${cita.urlFirmaCliente}" style="max-height: 120px; filter: contrast(1.2);">
+                    <div class="text-muted small mt-2 border-top pt-2">Firma digital de <strong>${cita.nombreCliente}</strong></div>
+                </div>
+            </div>`;
+    }
+
+    html += `</div>`;
+    contenedor.innerHTML = html;
+
+    const modal = new bootstrap.Modal(document.getElementById('evidenciaModal'));
+    modal.show();
+};
+
+// ========== EXPORTACIÓN A PDF (VERSIÓN PROFESIONAL) ==========
+window.descargarReportePDF = async function() {
+    const cita = window.citaActualParaPDF;
+    if (!cita) {
+        Swal.fire('Error', 'No hay datos de reporte seleccionados.', 'error');
+        return;
+    }
+
+    Swal.fire({
+        title: 'Generando Documento...',
+        text: 'Estructurando reporte profesional, por favor espera.',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    // 1. Preparar las imágenes (separar los arrays)
+    const fotosAntes = cita.urlsFotosAntes ? cita.urlsFotosAntes.split(',') : [];
+    const fotosDespues = cita.urlsFotosDespues ? cita.urlsFotosDespues.split(',') : [];
+
+    // 2. Construir el diseño corporativo en un contenedor temporal
+    const divTemporal = document.createElement('div');
+    divTemporal.style.padding = '40px';
+    divTemporal.style.backgroundColor = '#ffffff';
+    divTemporal.style.color = '#333333';
+    divTemporal.style.fontFamily = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+
+    divTemporal.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0dcaf0; padding-bottom: 20px; margin-bottom: 30px;">
+            <div>
+                <h1 style="color: #212529; font-weight: bold; margin: 0; font-size: 28px;">ServiA<span style="color: #0dcaf0;">CPro</span></h1>
+                <p style="margin: 5px 0 0; color: #6c757d; font-size: 14px;">Soluciones en Climatización Profesional</p>
+            </div>
+            <div style="text-align: right;">
+                <h2 style="color: #0dcaf0; font-weight: bold; margin: 0; font-size: 22px;">REPORTE TÉCNICO</h2>
+                <p style="margin: 5px 0 0; font-weight: bold; font-size: 16px;">TICKET #${cita.idCita.toString().padStart(5, '0')}</p>
+                <p style="margin: 0; color: #6c757d; font-size: 14px;">Fecha: ${new Date(cita.fechaInicio).toLocaleDateString('es-ES')}</p>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 20px; margin-bottom: 30px;">
+            <div style="flex: 1; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                <h4 style="margin-top: 0; color: #212529; font-size: 16px; font-weight: bold; border-bottom: 1px solid #dee2e6; padding-bottom: 5px;">Datos del Cliente</h4>
+                <p style="margin: 8px 0 4px; font-size: 14px;"><strong>Nombre:</strong> ${cita.nombreCliente}</p>
+                <p style="margin: 4px 0; font-size: 14px;"><strong>Dirección:</strong> ${cita.direccionCliente || 'No especificada'}</p>
+            </div>
+            <div style="flex: 1; padding: 15px; background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+                <h4 style="margin-top: 0; color: #212529; font-size: 16px; font-weight: bold; border-bottom: 1px solid #dee2e6; padding-bottom: 5px;">Detalles Operativos</h4>
+                <p style="margin: 8px 0 4px; font-size: 14px;"><strong>Técnico Asignado:</strong> ${cita.nombreTecnico}</p>
+                <p style="margin: 4px 0; font-size: 14px;"><strong>Estado del Servicio:</strong> <span style="color: #198754; font-weight: bold;">${cita.estado}</span></p>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+            <h4 style="color: #212529; font-size: 16px; font-weight: bold; border-bottom: 2px solid #dee2e6; padding-bottom: 5px; margin-bottom: 15px;">Diagnóstico y Observaciones</h4>
+            <div style="padding: 15px; border-left: 4px solid #0dcaf0; background-color: #f8f9fa; font-size: 14px; line-height: 1.5;">
+                ${cita.notas ? cita.notas.replace(/\n/g, '<br>') : 'El técnico no reportó observaciones adicionales.'}
+            </div>
+        </div>
+
+        ${(fotosAntes.length > 0 || fotosDespues.length > 0) ? `
+        <div style="margin-bottom: 30px; page-break-inside: avoid;">
+            <h4 style="color: #212529; font-size: 16px; font-weight: bold; border-bottom: 2px solid #dee2e6; padding-bottom: 5px; margin-bottom: 15px;">Evidencia Fotográfica</h4>
+            <div style="display: flex; gap: 20px;">
+                ${fotosAntes.length > 0 ? `
+                <div style="flex: 1; text-align: center;">
+                    <div style="background-color: #dc3545; color: white; padding: 5px; font-weight: bold; border-radius: 4px 4px 0 0; font-size: 14px;">ANTES DEL SERVICIO</div>
+                    <div style="border: 1px solid #dee2e6; border-top: none; padding: 10px; background-color: #ffffff; border-radius: 0 0 4px 4px;">
+                        <img src="${fotosAntes[0]}" style="max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 4px;">
+                    </div>
+                </div>` : ''}
+                
+                ${fotosDespues.length > 0 ? `
+                <div style="flex: 1; text-align: center;">
+                    <div style="background-color: #198754; color: white; padding: 5px; font-weight: bold; border-radius: 4px 4px 0 0; font-size: 14px;">DESPUÉS DEL SERVICIO</div>
+                    <div style="border: 1px solid #dee2e6; border-top: none; padding: 10px; background-color: #ffffff; border-radius: 0 0 4px 4px;">
+                        <img src="${fotosDespues[0]}" style="max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 4px;">
+                    </div>
+                </div>` : ''}
+            </div>
+        </div>
+        ` : ''}
+
+        <div style="margin-top: 50px; display: flex; justify-content: space-around; page-break-inside: avoid;">
+            <div style="text-align: center; width: 40%;">
+                <div style="height: 100px; border-bottom: 1px solid #212529; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px;">
+                    ${cita.urlFirmaCliente ? `<img src="${cita.urlFirmaCliente}" style="max-height: 80px; filter: contrast(1.5);">` : '<span style="color: #adb5bd;">Sin firma</span>'}
+                </div>
+                <p style="margin: 10px 0 0; font-weight: bold; font-size: 14px;">Firma de Conformidad</p>
+                <p style="margin: 0; font-size: 12px; color: #6c757d;">${cita.nombreCliente}</p>
+            </div>
+            
+            <div style="text-align: center; width: 40%;">
+                <div style="height: 100px; border-bottom: 1px solid #212529; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px;">
+                    </div>
+                <p style="margin: 10px 0 0; font-weight: bold; font-size: 14px;">Técnico Responsable</p>
+                <p style="margin: 0; font-size: 12px; color: #6c757d;">${cita.nombreTecnico}</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #adb5bd; border-top: 1px solid #e9ecef; padding-top: 15px;">
+            Este documento certifica la realización del servicio técnico detallado. Servi A/C Pro garantiza la calidad de la mano de obra. <br>
+            Para dudas o reclamaciones, consérvese este comprobante.
+        </div>
+    `;
+
+    // 3. Configuración para html2pdf
+    const opciones = {
+        margin:       0.3,
+        filename:     `Reporte_Tecnico_Ticket_${cita.idCita}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    try {
+        // Generar PDF usando el div temporal (sin insertarlo en la página visible)
+        await html2pdf().set(opciones).from(divTemporal).save();
+        Swal.close();
+        Swal.fire({
+            icon: 'success', title: '¡Documento Generado!',
+            text: 'El reporte profesional se descargó en tu equipo.',
+            toast: true, position: 'top-end', timer: 3000, showConfirmButton: false
+        });
+    } catch (error) {
+        console.error('Error generando PDF:', error);
+        Swal.close();
+        Swal.fire('Error', 'No se pudo generar el documento PDF.', 'error');
+    }
+};

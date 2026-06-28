@@ -83,6 +83,7 @@ const API = {
     },
 
     Citas: {
+        listar() { return API.request('/api/citas'); },
         listarPorTecnico(idTecnico) { return API.request(`/api/citas/tecnico/${idTecnico}`); },
         crear(data) { return API.request('/api/citas', { method: 'POST', body: JSON.stringify(data) }); },
         cambiarEstado(id, estado) { return API.request(`/api/citas/${id}/estado?estado=${estado}`, { method: 'PATCH' }); }
@@ -105,7 +106,7 @@ const API = {
     },
 
     Equipos: {
-        listarPorCliente(idCliente) { return API.request(`/api/equipos/cliente/${idCliente}`); },
-        crear(data) { return API.request('/api/equipos', { method: 'POST', body: JSON.stringify(data) }); }
+        listarPorCliente(idCliente) { return API.request(`/api/equipos-cliente/cliente/${idCliente}`); },
+        crear(data) { return API.request('/api/equipos-cliente', { method: 'POST', body: JSON.stringify(data) }); }
     }
 };

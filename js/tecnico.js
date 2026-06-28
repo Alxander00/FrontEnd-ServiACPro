@@ -334,14 +334,27 @@ async function guardarEstadoCita(event) {
     }
 
     try {
-        // Usamos fetch directamente porque enviamos archivos (FormData)
-        const BASE_URL = 'https://servi-a-c-pro.onrender.com'; // O http://localhost:8080 en local
+        // 1. Detectar si estamos en local o en producción
+        const BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+            ? 'http://localhost:8080' 
+            : 'https://servi-a-c-pro.onrender.com';
+
+        // 2. Obtener el token de seguridad guardado en el navegador
+        const token = Auth.getToken();
+
+        // 3. Hacer la petición fetch incluyéndole el token en los Headers
         const response = await fetch(`${BASE_URL}/api/citas/${idCita}/reporte`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
             body: formData
         });
 
-        if (!response.ok) throw new Error("Error al guardar el reporte");
+        if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(errorData || "Error al guardar el reporte");
+        }
         
         Swal.fire({
             icon: 'success', 
