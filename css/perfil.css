@@ -1,0 +1,661 @@
+/* ============================================
+   perfil.css - Diseño profesional con colores vivos
+   ============================================ */
+
+/* ----- FONDO Y TIPOGRAFÍA ----- */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f4f7fc;
+}
+
+/* ----- BANNER SUPERIOR ----- */
+.profile-banner {
+    height: 120px;
+    background: linear-gradient(135deg, #0d6efd 0%, #00b4ff 100%);
+    border-radius: 0 0 40px 40px;
+    margin-bottom: -60px;
+    position: relative;
+    z-index: 0;
+}
+
+.profile-container {
+    position: relative;
+    z-index: 1;
+    margin-top: -50px;
+}
+
+/* ----- TARJETAS DEL PERFIL (lado izquierdo) ----- */
+.card-profile-sidebar {
+    border: none;
+    border-radius: 28px;
+    background: #ffffff;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.3s;
+    overflow: hidden;
+}
+
+.card-profile-sidebar:hover {
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.06);
+}
+
+/* ----- AVATAR CON OVERLAY ----- */
+.avatar-upload-box {
+    width: 130px;
+    height: 130px;
+    margin: 0 auto;
+    border-radius: 50%;
+    border: 4px solid #ffffff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s;
+}
+
+.avatar-upload-box:hover {
+    transform: scale(1.02);
+}
+
+.avatar-upload-box img {
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+.avatar-edit-overlay {
+    transition: opacity 0.25s ease;
+    opacity: 0;
+}
+
+.avatar-upload-box:hover .avatar-edit-overlay {
+    opacity: 1;
+}
+
+/* ----- NAV PILLS (menú lateral) ----- */
+.nav-pills-custom .nav-link {
+    border-radius: 16px;
+    padding: 14px 18px;
+    margin-bottom: 6px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #4a5b6e;
+    background: transparent;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border: none;
+    width: 100%;
+    text-align: left;
+}
+
+.nav-pills-custom .nav-link i {
+    width: 24px;
+    text-align: center;
+    font-size: 1.2rem;
+    color: #7a8ba3;
+    transition: color 0.2s;
+}
+
+.nav-pills-custom .nav-link:hover {
+    background: rgba(13, 110, 253, 0.08);
+    color: #0d6efd;
+    transform: translateX(6px);
+}
+
+.nav-pills-custom .nav-link:hover i {
+    color: #0d6efd;
+}
+
+.nav-pills-custom .nav-link.active {
+    background: linear-gradient(135deg, #0d6efd 0%, #00b4ff 100%);
+    color: #fff !important;
+    box-shadow: 0 8px 24px rgba(13, 110, 253, 0.35);
+    transform: translateX(0);
+}
+
+.nav-pills-custom .nav-link.active i {
+    color: #fff !important;
+}
+
+.nav-pills-custom .nav-link .badge {
+    margin-left: auto;
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: 30px;
+    font-weight: 700;
+}
+
+/* ----- TARJETA DE CONTENIDO (lado derecho) ----- */
+.card-profile-content {
+    border: none;
+    border-radius: 28px;
+    background: #ffffff;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.3s;
+}
+
+.card-profile-content .card-body {
+    padding: 2.5rem;
+}
+
+/* ----- DASHBOARD (estadísticas) ----- */
+.stat-card {
+    border-radius: 24px;
+    border: none;
+    transition: transform 0.25s ease, box-shadow 0.3s;
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+    padding: 1.5rem;
+}
+
+.stat-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+
+/* ----- LISTADO DE TARJETAS (pedidos, citas, etc.) ----- */
+.list-card {
+    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+    transition: all 0.25s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.list-card:hover {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+    transform: translateY(-3px);
+    border-color: rgba(13, 110, 253, 0.15);
+}
+
+.list-card .card-body {
+    padding: 1.25rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ----- BADGES DE ESTADO (más vivos) ----- */
+.badge-status {
+    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 30px;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    display: inline-block;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.badge-status.bg-success {
+    background: #28a745 !important;
+    color: #fff !important;
+    border-color: #28a745;
+}
+
+.badge-status.bg-danger {
+    background: #dc3545 !important;
+    color: #fff !important;
+    border-color: #dc3545;
+}
+
+.badge-status.bg-warning {
+    background: #ffc107 !important;
+    color: #212529 !important;
+    border-color: #ffc107;
+}
+
+.badge-status.bg-primary {
+    background: #0d6efd !important;
+    color: #fff !important;
+    border-color: #0d6efd;
+}
+
+.badge-status.bg-info {
+    background: #0dcaf0 !important;
+    color: #000 !important;
+    border-color: #0dcaf0;
+}
+
+/* ===== TÍTULOS DE SECCIÓN EN NEGRO Y NEGRITA ===== */
+.section-header h4 {
+    font-weight: 800 !important;
+    margin: 0;
+    font-size: 1.3rem;
+    color: #1e293b !important; /* NEGRO */
+}
+
+.section-header h4 i {
+    color: #0d6efd;
+}
+
+/* ----- FORMULARIO (Datos Personales) ----- */
+.form-control-premium {
+    background: #f8faff;
+    border: 1px solid #e9edf4;
+    border-radius: 16px;
+    padding: 12px 18px;
+    font-weight: 500;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    color: #1e293b;
+}
+
+.form-control-premium:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.08);
+    background: #ffffff;
+    outline: none;
+}
+
+.form-control-premium[readonly] {
+    background: #f1f4f9;
+    color: #5a6a7e;
+    cursor: not-allowed;
+}
+
+/* ----- BOTÓN PREMIUM ----- */
+.btn-premium {
+    border-radius: 60px;
+    padding: 14px 40px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    background: linear-gradient(135deg, #0d6efd 0%, #00b4ff 100%);
+    border: none;
+    color: #fff;
+    transition: transform 0.2s, box-shadow 0.3s;
+    box-shadow: 0 8px 24px rgba(13, 110, 253, 0.25);
+}
+
+.btn-premium:hover {
+    transform: scale(1.02);
+    box-shadow: 0 12px 32px rgba(13, 110, 253, 0.4);
+    color: #fff;
+}
+
+.btn-premium:disabled {
+    opacity: 0.6;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ----- MEDIDOR DE FUERZA DE CONTRASEÑA ----- */
+.password-meter {
+    width: 100%;
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 10px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.password-meter-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 10px;
+    transition: width 0.3s ease, background 0.3s ease;
+}
+
+/* ----- EQUIPOS (alertas) ----- */
+.equipo-alerta {
+    border-left: 6px solid #ffc107;
+    border-radius: 20px;
+}
+
+.equipo-urgente {
+    border-left: 6px solid #dc3545;
+}
+
+.equipo-ok {
+    border-left: 6px solid #28a745;
+}
+
+/* ----- EMPTY STATE ----- */
+.empty-state {
+    padding: 3rem 1rem;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: #ccd7e6;
+    margin-bottom: 1.5rem;
+}
+
+/* ----- AVATAR (iniciales) ----- */
+.avatar-lg {
+    width: 80px;
+    height: 80px;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #eef4ff, #dce6f5);
+    color: #0d6efd;
+    border: 2px solid rgba(13, 110, 253, 0.2);
+    flex-shrink: 0;
+}
+
+/* ----- ANIMACIONES ----- */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.list-card,
+.stat-card {
+    animation: fadeInUp 0.4s ease-out;
+}
+
+/* ----- CHECKBOXES Y BOTONES DE SELECCIÓN ----- */
+.form-check-input.select-item {
+    width: 1.2rem;
+    height: 1.2rem;
+    margin-top: 0.1rem;
+    border-radius: 4px;
+    border: 2px solid #d1d5db;
+    transition: all 0.15s;
+    cursor: pointer;
+}
+
+.form-check-input.select-item:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.form-check-label {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #1e293b; /* NEGRO */
+    cursor: pointer;
+}
+
+.btn-accion {
+    border-radius: 30px !important;
+    padding: 0.3rem 0.9rem !important;
+    font-weight: 700;
+    font-size: 0.75rem !important;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+.btn-accion:hover {
+    transform: translateY(-1px);
+}
+
+.btn-accion-outline-secondary {
+    border-color: #ced4da;
+    color: #6c757d;
+}
+.btn-accion-outline-secondary:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.btn-accion-outline-danger {
+    border-color: #f5c6cb;
+    color: #dc3545;
+}
+.btn-accion-outline-danger:hover {
+    background-color: #f8d7da;
+    border-color: #f1aeb5;
+}
+
+.btn-accion-danger {
+    background: #dc3545;
+    color: #fff;
+    border-color: #dc3545;
+}
+.btn-accion-danger:hover {
+    background: #c82333;
+    border-color: #bd2130;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+/* ----- BOTÓN DE DETALLES (nuevo) ----- */
+.btn-detalle {
+    background: transparent;
+    border: none;
+    color: #0d6efd;
+    transition: color 0.2s, transform 0.2s;
+    padding: 4px 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+.btn-detalle:hover {
+    color: #0a58ca;
+    transform: scale(1.1);
+}
+
+.btn-archive-individual {
+    background: transparent;
+    border: none;
+    color: #adb5bd;
+    transition: color 0.2s;
+    padding: 4px 6px;
+    font-size: 0.9rem;
+}
+.btn-archive-individual:hover {
+    color: #dc3545;
+}
+
+/* ----- ICONOS Y TEXTOS EN TARJETAS (colores vivos) ----- */
+.card-info-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+    color: #495057;
+}
+
+.card-info-line i {
+    width: 18px;
+    text-align: center;
+    margin-top: 2px;
+    font-size: 0.85rem;
+}
+
+.card-info-line i.text-primary {
+    color: #0d6efd !important;
+}
+
+.card-info-line i.text-success {
+    color: #28a745 !important;
+}
+
+.card-info-line i.text-danger {
+    color: #dc3545 !important;
+}
+
+.card-info-line i.text-info {
+    color: #0dcaf0 !important;
+}
+
+.card-info-line i.text-warning {
+    color: #ffc107 !important;
+}
+
+.card-info-line strong {
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.card-info-line .text-success {
+    color: #28a745 !important;
+    font-weight: 700;
+}
+
+/* ----- HEADER DE SECCIÓN ----- */
+.section-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border-bottom: 2px solid rgba(13, 110, 253, 0.1);
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+}
+
+.section-header .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+@media (max-width: 991.98px) {
+    .card-profile-sidebar .nav-pills-custom {
+        flex-direction: row !important;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 6px;
+        padding-bottom: 6px;
+        -webkit-overflow-scrolling: touch;
+    }
+    .card-profile-sidebar .nav-pills-custom .nav-link {
+        flex: 0 0 auto;
+        padding: 10px 14px;
+        font-size: 0.8rem;
+        gap: 8px;
+        white-space: nowrap;
+        border-radius: 30px;
+    }
+    .card-profile-sidebar .nav-pills-custom .nav-link i {
+        font-size: 1rem;
+        width: auto;
+    }
+    .card-profile-sidebar .nav-pills-custom .nav-link .badge {
+        margin-left: 6px;
+        font-size: 0.6rem;
+        padding: 2px 6px;
+    }
+    .profile-banner {
+        height: 80px;
+        border-radius: 0 0 20px 20px;
+        margin-bottom: -40px;
+    }
+    .profile-container {
+        margin-top: -30px;
+    }
+    .avatar-upload-box {
+        width: 90px;
+        height: 90px;
+    }
+    .card-profile-content .card-body {
+        padding: 1.5rem !important;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .card-profile-sidebar .nav-pills-custom .nav-link {
+        font-size: 0.7rem;
+        padding: 6px 10px;
+    }
+    .card-profile-sidebar .nav-pills-custom .nav-link i {
+        font-size: 0.8rem;
+    }
+    .avatar-upload-box {
+        width: 70px;
+        height: 70px;
+    }
+    .card-profile-content .card-body {
+        padding: 1rem !important;
+    }
+    .list-card .card-body {
+        padding: 1rem !important;
+    }
+    .section-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .section-header .btn-group {
+        justify-content: flex-start;
+    }
+    .section-header h4 {
+        font-size: 1.1rem;
+    }
+}
+
+/* Grid de tarjetas responsive */
+.grid-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+}
+
+@media (max-width: 575.98px) {
+    .grid-cards {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+/* ===== ESTILOS PARA EL MODAL DE DETALLES (SweetAlert2) ===== */
+.swal2-popup .detalle-modal {
+    text-align: left;
+    font-size: 0.95rem;
+}
+
+.swal2-popup .detalle-modal .row {
+    margin-bottom: 8px;
+}
+
+.swal2-popup .detalle-modal .label {
+    font-weight: 700;
+    color: #1e293b;
+    display: inline-block;
+    min-width: 120px;
+}
+
+.swal2-popup .detalle-modal .value {
+    color: #495057;
+}
+
+.swal2-popup .detalle-modal .productos-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+.swal2-popup .detalle-modal .productos-table th {
+    background: #f8faff;
+    font-weight: 700;
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 2px solid #e9edf4;
+}
+
+.swal2-popup .detalle-modal .productos-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+.swal2-popup .detalle-modal .productos-table tr:last-child td {
+    border-bottom: none;
+}

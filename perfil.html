@@ -1,51 +1,26 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mi Perfil | ServiA/CPro</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <link rel="stylesheet" href="./css/main.css">
-    <style>
-        /* Estilos específicos para el perfil premium */
-        body { background-color: #f8f9fa; }
-        .profile-sidebar .list-group-item {
-            border: none;
-            padding: 12px 20px;
-            margin-bottom: 8px;
-            border-radius: 12px;
-            color: #6c757d;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .profile-sidebar .list-group-item:hover {
-            background-color: #f1f5f9;
-            color: #0d6efd;
-            transform: translateX(5px);
-        }
-        .profile-sidebar .list-group-item.active {
-            background: linear-gradient(135deg, #0d6efd 0%, #00d4ff 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.2);
-        }
-        .stat-card {
-            transition: transform 0.3s;
-            border-radius: 20px;
-        }
-        .stat-card:hover { transform: translateY(-5px); }
-        .avatar-lg {
-            width: 80px; height: 80px;
-            font-size: 2rem;
-            display: flex; align-items: center; justify-content: center;
-        }
-    </style>
-</head>
-<body class="d-flex flex-column min-vh-100">
 
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <!-- Estilos globales -->
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./css/style.css" />
+    <!-- Estilos exclusivos del perfil -->
+    <link rel="stylesheet" href="./css/perfil.css" />
+</head>
+<body class="d-flex flex-column min-vh-100 bg-light">
+
+    <!-- ===== NAVBAR ORIGINAL ===== -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
         <div class="container">
             <a class="navbar-brand fw-bold fs-4" href="index.html">ServiA<span class="text-info">CPro</span></a>
@@ -69,76 +44,88 @@
         </div>
     </nav>
 
-    <header class="bg-primary text-white text-center py-5" style="background: linear-gradient(135deg, #0d6efd 0%, #00d4ff 100%);">
-        <div class="container">
-            <h2 class="fw-bold mb-0">Mi Centro de Control</h2>
-            <p class="text-white mt-2 mb-0" style="opacity: 0.9; font-size: 1.1rem; font-weight: 500;">Gestiona tus servicios, historial y datos personales.</p>
-        </div>
-    </header>
+    <!-- ===== BANNER SUPERIOR ===== -->
+    <div class="profile-banner w-100"></div>
 
-    <section class="py-5 flex-grow-1">
-        <div class="container pb-5">
-            <div id="alertContainer"></div>
+    <!-- ===== CONTENIDO PRINCIPAL ===== -->
+    <div class="container profile-container mt-4">
+        <div class="row g-4 justify-content-center">
 
-            <div class="row g-4">
-                <div class="col-lg-3">
-                    <div class="card border-0 shadow-sm rounded-4 sticky-lg-top" style="top: 100px;">
-                        <div class="card-body p-3 profile-sidebar">
-                            <div class="list-group" id="perfilMenu">
-                                <a href="#" class="list-group-item active" data-seccion="dashboard">
-                                    <i class="fas fa-home me-2 w-20px text-center"></i> Panel Principal
-                                </a>
-                                <a href="#" class="list-group-item" data-seccion="pedidos">
-                                    <i class="fas fa-box-open me-2"></i> Mis Pedidos
-                                    <span id="badgePedidosCliente" class="badge bg-danger rounded-pill ms-2" style="display: none;">0</span>
-                                </a>
-                                <a href="#" class="list-group-item" data-seccion="equipos">
-                                    <i class="fas fa-snowflake me-2 w-20px text-center"></i> Mis Equipos
-                                    <span id="badgeEquiposCliente" class="badge bg-info rounded-pill ms-2" style="display: none;">0</span>
-                                </a>
-                                <a href="#" class="list-group-item" data-seccion="citas">
-                                    <i class="fas fa-calendar-check me-2"></i> Mis Citas
-                                    <span id="badgeCitasCliente" class="badge bg-danger rounded-pill ms-2" style="display: none;">0</span>
-                                </a>
-                                <a href="#" class="list-group-item" data-seccion="solicitudes">
-                                    <i class="fas fa-headset me-2"></i> Mis Solicitudes
-                                    <span id="badgeSolicitudesCliente" class="badge bg-danger rounded-pill ms-2" style="display: none;">0</span>
-                                </a>
-                                <hr class="my-2 text-muted opacity-25">
-                                <a href="#" class="list-group-item" data-seccion="datos">
-                                    <i class="fas fa-user-edit me-2 w-20px text-center"></i> Datos Personales
-                                </a>
-                                <button onclick="Auth.logout()" class="list-group-item text-danger mt-2 w-100 text-start bg-transparent">
-                                    <i class="fas fa-sign-out-alt me-2 w-20px text-center"></i> Cerrar Sesión
-                                </button>
+            <!-- ===== SIDEBAR CON AVATAR ===== -->
+            <div class="col-lg-4 col-xl-3">
+                <div class="card card-profile-sidebar text-center mb-4">
+                    <div class="card-body px-4 pb-4">
+                        <!-- Avatar con overlay -->
+                        <div class="avatar-upload-box position-relative overflow-hidden group">
+                            <img id="profileAvatarImg" src="" class="rounded-circle w-100 h-100 object-fit-cover shadow-inner" />
+                            <div class="avatar-edit-overlay d-flex align-items-center justify-content-center position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 text-white rounded-circle opacity-0 transition-all cursor-pointer"
+                                 style="cursor: pointer;" onclick="document.getElementById('avatarInput').click()">
+                                <i class="fas fa-camera fa-2x"></i>
                             </div>
                         </div>
+                        <input type="file" id="avatarInput" accept="image/png, image/jpeg, image/jpg" class="d-none" onchange="subirAvatar(this)">
+
+                        <p class="text-muted small mt-2 mb-0">Toca la foto para cambiarla</p>
+                        <h4 class="fw-bold text-dark mt-3 mb-1" id="lblNombreLateral">Cargando...</h4>
+                        <p class="text-muted small mb-0" id="lblEmailLateral">usuario@ejemplo.com</p>
                     </div>
                 </div>
 
-                <div class="col-lg-9">
-                    <div class="card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-body p-4 p-md-5" id="perfilContent">
-                            </div>
+                <!-- Menú lateral (pestañas) -->
+                <div class="card card-profile-sidebar p-3">
+                    <div class="nav flex-column nav-pills nav-pills-custom" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                        <button class="nav-link active" data-seccion="dashboard" type="button" role="tab">
+                            <i class="fas fa-home"></i> Panel Principal
+                        </button>
+                        <button class="nav-link" data-seccion="pedidos" type="button" role="tab">
+                            <i class="fas fa-box-open"></i> Mis Pedidos
+                            <span id="badgePedidosCliente" class="badge bg-danger rounded-pill ms-auto" style="display: none;">0</span>
+                        </button>
+                        <button class="nav-link" data-seccion="equipos" type="button" role="tab">
+                            <i class="fas fa-snowflake"></i> Mis Equipos
+                            <span id="badgeEquiposCliente" class="badge bg-warning rounded-pill ms-auto" style="display: none;">0</span>
+                        </button>
+                        <button class="nav-link" data-seccion="citas" type="button" role="tab">
+                            <i class="fas fa-calendar-check"></i> Mis Citas
+                            <span id="badgeCitasCliente" class="badge bg-danger rounded-pill ms-auto" style="display: none;">0</span>
+                        </button>
+                        <button class="nav-link" data-seccion="solicitudes" type="button" role="tab">
+                            <i class="fas fa-headset"></i> Solicitudes
+                            <span id="badgeSolicitudesCliente" class="badge bg-danger rounded-pill ms-auto" style="display: none;">0</span>
+                        </button>
+                        <button class="nav-link" data-seccion="datos" type="button" role="tab">
+                            <i class="fas fa-user-edit"></i> Datos Personales
+                        </button>
                     </div>
                 </div>
-
             </div>
-        </div>
-    </section>
 
+            <!-- ===== CONTENIDO DINÁMICO ===== -->
+            <div class="col-lg-8 col-xl-9">
+                <div class="card card-profile-content h-100">
+                    <div class="card-body p-4 p-lg-5" id="perfilContent">
+                        <!-- Se carga dinámicamente -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
     <footer class="bg-dark text-white py-4 mt-auto">
         <div class="container text-center">
             <small class="text-secondary">&copy; 2026 Servi A/C Pro - Proyecto Ingeniería en Sistemas. Todos los derechos reservados.</small>
         </div>
     </footer>
 
+    <!-- ===== SCRIPTS ===== -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="./js/auth.js"></script>
     <script src="./js/carrito.js"></script>
     <script src="./js/main.js"></script>
-    <script src="./js/perfil.js"></script>
     <script src="./js/api.js"></script>
+    <script src="./js/perfil.js"></script>
 </body>
 </html>
