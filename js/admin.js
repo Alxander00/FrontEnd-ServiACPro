@@ -40,6 +40,7 @@ function loadPage(page) {
         categorias: ['Clasificación', 'Organiza el catálogo de productos'],
         usuarios: ['Directorio de Usuarios', 'Administración de accesos y roles'],
         inventario: ['Inventario Técnico', 'Control de existencias y costos de materiales'],
+        cotizador: ['Cotizador Rápido', 'Genera presupuestos formales en PDF para clientes'],
         solicitudes: ['Centro de Operaciones', 'Visitas técnicas y asignaciones'],
         reportes: ['Reportes Técnicos', 'Evidencias, firmas y estados de servicio']
     };
@@ -55,6 +56,7 @@ function loadPage(page) {
     if(page === 'solicitudes') renderSolicitudes();
     if(page === 'reportes') renderReportes();
     if(page === 'inventario') renderInventario();
+    if(page === 'cotizador') renderCotizador();
 }
 
 // ========== DASHBOARD ==========
@@ -875,3 +877,317 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// ========== MÓDULO DE COTIZADOR RÁPIDO ==========
+let itemsCotizacion = [];
+let productosCatalogoCotizador = [];
+
+async function renderCotizador() {
+    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+    
+    try {
+        const response = await API.Productos.listarActivos();
+        productosCatalogoCotizador = response.content || response || [];
+        itemsCotizacion = []; 
+
+        // Dibujamos la estructura de la página UNA SOLA VEZ
+        contentDiv.innerHTML = `
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm rounded-4 mb-4">
+                        <div class="card-header bg-white pt-4 px-4 border-0">
+                            <h6 class="fw-bold text-dark mb-0"><i class="fas fa-user-tag text-primary me-2"></i>Datos del Prospecto</h6>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Nombre del Cliente <span class="text-danger">*</span></label>
+                                <input type="text" id="cotNombreCliente" class="form-control bg-light border-0" placeholder="Obligatorio para el PDF">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted">Validez de la Oferta</label>
+                                <select id="cotValidez" class="form-select bg-light border-0">
+                                    <option value="15 Días">15 Días</option>
+                                    <option value="30 Días" selected>30 Días</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm rounded-4">
+                        <div class="card-header bg-white pt-4 px-4 border-0">
+                            <h6 class="fw-bold text-dark mb-0"><i class="fas fa-plus-circle text-success me-2"></i>Agregar Conceptos</h6>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-primary">1. Seleccionar de Catálogo</label>
+                                <select id="cotSelectorProducto" class="form-select bg-light border-0 mb-2">
+                                    <option value="" selected disabled>Seleccionar equipo...</option>
+                                    ${productosCatalogoCotizador.map(p => `<option value="${p.idProducto}" data-precio="${p.precio}">${p.nombre} - $${p.precio.toFixed(2)}</option>`).join('')}
+                                </select>
+                                <button class="btn btn-sm btn-outline-primary w-100 fw-bold" onclick="agregarItemCotizacion('producto')"><i class="fas fa-cart-plus me-1"></i> Agregar Equipo</button>
+                            </div>
+                            
+                            <hr class="opacity-25">
+                            
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold text-success">2. Concepto Libre (Ej. Mano de obra)</label>
+                                <input type="text" id="cotConceptoExtra" class="form-control bg-light border-0 mb-2" placeholder="Descripción de mano de obra o material...">
+                                <div class="input-group input-group-sm mb-2">
+                                    <span class="input-group-text bg-light border-0">$</span>
+                                    <input type="number" id="cotPrecioExtra" class="form-control bg-light border-0" placeholder="0.00" step="0.01">
+                                </div>
+                                <button class="btn btn-sm btn-outline-success w-100 fw-bold" onclick="agregarItemCotizacion('extra')"><i class="fas fa-plus me-1"></i> Agregar Concepto</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm rounded-4 h-100">
+                        <div class="card-header bg-white pt-4 px-4 d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold text-dark mb-0"><i class="fas fa-list-alt text-info me-2"></i>Detalle del Presupuesto</h5>
+                            <button class="btn btn-danger fw-bold rounded-pill px-4 shadow-sm" onclick="generarPDFCotizacion()"><i class="fas fa-file-pdf me-2"></i>Generar PDF</button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th class="ps-4">Descripción</th>
+                                            <th>Cantidad</th>
+                                            <th>P. Unitario</th>
+                                            <th class="text-end">Importe</th>
+                                            <th class="text-end pe-4">Quitar</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tablaCotizacionBody">
+                                        </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="p-4 bg-light mt-auto border-top" id="totalesCotizacion">
+                                </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Primera actualización de la tabla (vacía)
+        actualizarTablaCotizacion();
+        
+    } catch (error) {
+        contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error al cargar el cotizador: ${error.message}</div>`;
+    }
+}
+
+// NUEVA FUNCIÓN: Solo actualiza la tabla de la derecha, sin borrar lo que escribiste en la izquierda
+function actualizarTablaCotizacion() {
+    const tbody = document.getElementById('tablaCotizacionBody');
+    const divTotales = document.getElementById('totalesCotizacion');
+    if (!tbody || !divTotales) return;
+
+    let subtotal = 0;
+    let htmlFilas = '';
+
+    if (itemsCotizacion.length === 0) {
+        htmlFilas = `<tr><td colspan="5" class="text-center text-muted py-4">No hay conceptos agregados a la cotización.</td></tr>`;
+    } else {
+        htmlFilas = itemsCotizacion.map((item, index) => {
+            const importe = item.cantidad * item.precio;
+            subtotal += importe;
+            return `
+            <tr>
+                <td class="ps-4 fw-bold text-dark">${item.descripcion}</td>
+                <td>
+                    <input type="number" class="form-control form-control-sm text-center bg-light border-0" style="width: 60px;" value="${item.cantidad}" min="1" onchange="actualizarCantidadCotizacion(${index}, this.value)">
+                </td>
+                <td>$${item.precio.toFixed(2)}</td>
+                <td class="text-end fw-bold text-primary">$${importe.toFixed(2)}</td>
+                <td class="text-end pe-4">
+                    <button class="btn btn-sm btn-light text-danger rounded-circle shadow-sm" onclick="eliminarItemCotizacion(${index})"><i class="fas fa-times"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    tbody.innerHTML = htmlFilas;
+
+    divTotales.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold text-muted">Subtotal:</span>
+            <span class="fw-bold text-dark fs-5">$${subtotal.toFixed(2)}</span>
+        </div>
+        <hr class="opacity-25 my-2">
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-dark fs-4">TOTAL:</span>
+            <span class="fw-bold text-success fs-2">$${subtotal.toFixed(2)}</span>
+        </div>
+    `;
+}
+
+window.agregarItemCotizacion = function(tipo) {
+    if (tipo === 'producto') {
+        const select = document.getElementById('cotSelectorProducto');
+        const idProd = select.value;
+        if (!idProd) {
+            Swal.fire('Atención', 'Selecciona un equipo del catálogo primero.', 'info');
+            return;
+        }
+        
+        const producto = productosCatalogoCotizador.find(p => p.idProducto == idProd);
+        itemsCotizacion.push({ descripcion: producto.nombre, cantidad: 1, precio: producto.precio });
+        select.value = ''; // Solo limpiamos la selección del catálogo
+        
+    } else if (tipo === 'extra') {
+        const descInput = document.getElementById('cotConceptoExtra');
+        const precioInput = document.getElementById('cotPrecioExtra');
+        const desc = descInput.value.trim();
+        const precio = parseFloat(precioInput.value);
+        
+        if (!desc || isNaN(precio) || precio <= 0) {
+            Swal.fire('Error', 'Ingresa una descripción y un precio mayor a cero.', 'warning');
+            return;
+        }
+        
+        itemsCotizacion.push({ descripcion: desc, cantidad: 1, precio: precio });
+        descInput.value = ''; // Limpiamos solo estos cuadros
+        precioInput.value = '';
+    }
+    
+    // Actualizamos solo la tabla, el resto del diseño queda intacto
+    actualizarTablaCotizacion();
+};
+
+window.eliminarItemCotizacion = function(index) {
+    itemsCotizacion.splice(index, 1);
+    actualizarTablaCotizacion();
+};
+
+window.actualizarCantidadCotizacion = function(index, nuevaCantidad) {
+    const cant = parseInt(nuevaCantidad);
+    if (cant > 0) itemsCotizacion[index].cantidad = cant;
+    actualizarTablaCotizacion();
+};
+
+window.generarPDFCotizacion = async function() {
+    const inputNombre = document.getElementById('cotNombreCliente');
+    const nombreCliente = inputNombre.value.trim();
+    
+    // VALIDACIÓN ESTRICTA DEL NOMBRE
+    if (!nombreCliente) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Falta el Cliente',
+            text: 'El nombre del prospecto es obligatorio para emitir la cotización.',
+            confirmButtonColor: '#0d6efd'
+        }).then(() => {
+            inputNombre.focus(); // Pone el cursor en la caja del nombre automáticamente
+        });
+        return;
+    }
+
+    const validez = document.getElementById('cotValidez').value;
+    
+    if (itemsCotizacion.length === 0) {
+        Swal.fire('Atención', 'Agrega al menos un concepto a la cotización.', 'warning');
+        return;
+    }
+
+    Swal.fire({ title: 'Generando Presupuesto...', text: 'Estructurando documento formal.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+    let totalGlobal = 0;
+    let filasItemsHTML = '';
+    
+    itemsCotizacion.forEach(item => {
+        const importe = item.cantidad * item.precio;
+        totalGlobal += importe;
+        filasItemsHTML += `
+            <tr style="border-bottom: 1px solid #dee2e6;">
+                <td style="padding: 12px 8px; color: #212529;">${item.descripcion}</td>
+                <td style="padding: 12px 8px; text-align: center;">${item.cantidad}</td>
+                <td style="padding: 12px 8px; text-align: right;">$${item.precio.toFixed(2)}</td>
+                <td style="padding: 12px 8px; text-align: right; font-weight: bold; color: #0d6efd;">$${importe.toFixed(2)}</td>
+            </tr>
+        `;
+    });
+
+    const divTemporal = document.createElement('div');
+    divTemporal.style.padding = '40px';
+    divTemporal.style.backgroundColor = '#ffffff';
+    divTemporal.style.color = '#333333';
+    divTemporal.style.fontFamily = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+
+    const fechaHoy = new Date().toLocaleDateString('es-ES');
+    const folioCotizacion = 'COT-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+
+    divTemporal.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0dcaf0; padding-bottom: 20px; margin-bottom: 30px;">
+            <div>
+                <h1 style="color: #212529; font-weight: bold; margin: 0; font-size: 28px;">ServiA<span style="color: #0dcaf0;">CPro</span></h1>
+                <p style="margin: 5px 0 0; color: #6c757d; font-size: 14px;">Climatización Profesional e Instalaciones</p>
+            </div>
+            <div style="text-align: right;">
+                <h2 style="color: #212529; font-weight: bold; margin: 0; font-size: 24px; text-transform: uppercase;">Presupuesto</h2>
+                <p style="margin: 5px 0 0; font-weight: bold; font-size: 16px; color: #0dcaf0;">Folio: ${folioCotizacion}</p>
+                <p style="margin: 0; color: #6c757d; font-size: 14px;">Fecha: ${fechaHoy}</p>
+            </div>
+        </div>
+
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 1px solid #e9ecef;">
+            <p style="margin: 0 0 5px; font-size: 14px; color: #6c757d;">Preparado exclusivamente para:</p>
+            <h3 style="margin: 0 0 10px; color: #212529; font-size: 18px; font-weight: bold;">${nombreCliente}</h3>
+            <p style="margin: 0; font-size: 14px; color: #198754; font-weight: bold;"><i class="fas fa-clock"></i> Oferta válida por: ${validez}</p>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
+            <thead>
+                <tr style="background-color: #212529; color: white;">
+                    <th style="padding: 12px 8px; text-align: left; border-radius: 4px 0 0 4px;">Concepto / Descripción</th>
+                    <th style="padding: 12px 8px; text-align: center;">Cant.</th>
+                    <th style="padding: 12px 8px; text-align: right;">Precio Unit.</th>
+                    <th style="padding: 12px 8px; text-align: right; border-radius: 0 4px 4px 0;">Importe Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${filasItemsHTML}
+            </tbody>
+        </table>
+
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 40px;">
+            <div style="width: 300px; background-color: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="font-weight: bold; color: #6c757d;">Subtotal:</span>
+                    <span style="font-weight: bold; color: #212529;">$${totalGlobal.toFixed(2)}</span>
+                </div>
+                <div style="border-top: 2px solid #dee2e6; margin: 10px 0;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: bold; color: #212529; font-size: 18px;">TOTAL:</span>
+                    <span style="font-weight: bold; color: #198754; font-size: 22px;">$${totalGlobal.toFixed(2)}</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; font-size: 11px; color: #adb5bd; border-top: 1px solid #e9ecef; padding-top: 15px; margin-top: auto;">
+            El presente documento es un presupuesto estimado. Los precios pueden variar si se requieren materiales adicionales durante la instalación que no pudieron ser previstos en la inspección inicial.<br>
+            Gracias por confiar en Servi A/C Pro.
+        </div>
+    `;
+
+    const opciones = {
+        margin:       0.4,
+        filename:     `Cotizacion_${nombreCliente.replace(/\s+/g, '_')}_${folioCotizacion}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    try {
+        await html2pdf().set(opciones).from(divTemporal).save();
+        Swal.close();
+        Swal.fire({ icon: 'success', title: '¡Presupuesto Generado!', text: 'El PDF se ha descargado en tu equipo.', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+    } catch (error) {
+        Swal.close();
+        Swal.fire('Error', 'No se pudo generar el presupuesto en PDF.', 'error');
+    }
+};
