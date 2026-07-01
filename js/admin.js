@@ -1,4 +1,4 @@
-// js/admin.js
+Auth.protectRoute(['ADMIN']);
 const getBaseUrl = () => {
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         return 'http://localhost:8080';
@@ -39,6 +39,7 @@ function loadPage(page) {
         pedidos: ['Control de Pedidos', 'Seguimiento financiero y estados de venta'],
         categorias: ['Clasificación', 'Organiza el catálogo de productos'],
         usuarios: ['Directorio de Usuarios', 'Administración de accesos y roles'],
+        inventario: ['Inventario Técnico', 'Control de existencias y costos de materiales'],
         solicitudes: ['Centro de Operaciones', 'Visitas técnicas y asignaciones'],
         reportes: ['Reportes Técnicos', 'Evidencias, firmas y estados de servicio']
     };
@@ -53,6 +54,7 @@ function loadPage(page) {
     if(page === 'usuarios') renderUsuarios();
     if(page === 'solicitudes') renderSolicitudes();
     if(page === 'reportes') renderReportes();
+    if(page === 'inventario') renderInventario();
 }
 
 // ========== DASHBOARD ==========
@@ -769,3 +771,107 @@ window.descargarReportePDF = async function() {
         Swal.fire('Error', 'No se pudo generar el documento PDF.', 'error');
     }
 };
+
+// ========== MÓDULO DE INVENTARIO ==========
+async function renderInventario() {
+    contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
+    try {
+        const repuestos = await API.Repuestos.listarActivos();
+        
+        // Calcular inversión total
+        const inversionTotal = repuestos.reduce((acc, rep) => acc + (rep.stockActual * rep.costoUnitario), 0);
+
+        let html = `
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0">Existencias Actuales</h5>
+                <button class="btn btn-primary fw-bold rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#repuestoModal">
+                    <i class="fas fa-plus me-2"></i>Nuevo Material
+                </button>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm bg-primary text-white rounded-4">
+                        <div class="card-body p-4">
+                            <h6 class="opacity-75 mb-1">Inversión en Almacén</h6>
+                            <h2 class="fw-bold mb-0">$${inversionTotal.toFixed(2)}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Material</th>
+                                <th>Unidad</th>
+                                <th>Costo Unit.</th>
+                                <th>Stock Disponible</th>
+                                <th class="text-end pe-4">Valor Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+
+        if (repuestos.length === 0) {
+            html += `<tr><td colspan="5" class="text-center py-4 text-muted">No hay materiales registrados.</td></tr>`;
+        } else {
+            repuestos.forEach(rep => {
+                const valorTotal = rep.stockActual * rep.costoUnitario;
+                // Alerta visual si el stock es muy bajo
+                const badgeStock = rep.stockActual <= 5 ? 'bg-danger' : 'bg-success';
+                
+                html += `
+                    <tr>
+                        <td class="ps-4 fw-bold text-dark">${rep.nombre}</td>
+                        <td><span class="badge bg-secondary bg-opacity-10 text-secondary border">${rep.unidadMedida}</span></td>
+                        <td>$${rep.costoUnitario.toFixed(2)}</td>
+                        <td><span class="badge ${badgeStock} px-3 py-2 fs-6">${rep.stockActual}</span></td>
+                        <td class="text-end pe-4 fw-bold text-primary">$${valorTotal.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        html += `</tbody></table></div></div>`;
+        contentDiv.innerHTML = html;
+
+    } catch (error) {
+        contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error al cargar inventario: ${error.message}</div>`;
+    }
+}
+
+// Configurar el formulario del modal
+document.addEventListener('DOMContentLoaded', () => {
+    const repuestoForm = document.getElementById('repuestoForm');
+    if (repuestoForm) {
+        repuestoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.innerHTML = 'Guardando...';
+
+            const nuevoRepuesto = {
+                nombre: document.getElementById('repNombre').value,
+                unidadMedida: document.getElementById('repUnidad').value,
+                stockActual: parseFloat(document.getElementById('repStock').value),
+                costoUnitario: parseFloat(document.getElementById('repCosto').value)
+            };
+
+            try {
+                await API.Repuestos.crear(nuevoRepuesto);
+                Swal.fire({ icon: 'success', title: '¡Material Registrado!', text: 'El inventario ha sido actualizado.', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+                bootstrap.Modal.getInstance(document.getElementById('repuestoModal')).hide();
+                e.target.reset();
+                renderInventario(); // Recargar la tabla
+            } catch (error) {
+                Swal.fire('Error', error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Guardar en Almacén';
+            }
+        });
+    }
+});

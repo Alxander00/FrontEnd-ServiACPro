@@ -1,4 +1,4 @@
-// js/tecnico.js
+Auth.protectRoute(['TECNICO']);
 let bsModalEstado = null;
 let calendar = null;
 let mapaActual = null;
@@ -304,7 +304,7 @@ async function guardarEstadoCita(event) {
     formData.append('estado', nuevoEstado);
     formData.append('notas', notas);
 
-    // Si está completado, empacamos las fotos y la firma
+    // Si está completado, empacamos las fotos, la firma y los REPUESTOS
     if (nuevoEstadoSelect === 'Completado') {
         const inputAntes = document.getElementById('fotoAntes');
         const inputDespues = document.getElementById('fotoDespues');
@@ -331,6 +331,20 @@ async function guardarEstadoCita(event) {
         // Transformar la firma a imagen base64 y agregarla
         const firmaBase64 = canvas.toDataURL('image/png');
         formData.append('firma', firmaBase64);
+
+        const repuestosArray = [];
+        document.querySelectorAll('.repuesto-item').forEach(fila => {
+            const idReq = fila.querySelector('.select-repuesto').value;
+            const cant = parseFloat(fila.querySelector('.input-cantidad').value);
+            if (idReq && cant > 0) {
+                repuestosArray.push({ idRepuesto: parseInt(idReq), cantidad: cant });
+            }
+        });
+        
+        // Empacar como JSON en el FormData
+        if (repuestosArray.length > 0) {
+            formData.append('repuestos', JSON.stringify(repuestosArray));
+        }
     }
 
     try {
@@ -359,7 +373,7 @@ async function guardarEstadoCita(event) {
         Swal.fire({
             icon: 'success', 
             title: '¡Reporte Enviado!', 
-            text: 'Las evidencias y el estado se han guardado exitosamente.',
+            text: 'Las evidencias, materiales y el estado se han guardado exitosamente.',
             confirmButtonColor: '#0d6efd'
         });
         
@@ -417,3 +431,65 @@ window.mostrarMapa = async function(direccion, idCliente) {
         setTimeout(() => { mapaActual.invalidateSize(); }, 300);
     }, 100);
 };
+
+// ========== CONTROL DE INVENTARIO ==========
+let catalogoRepuestos = [];
+
+async function cargarCatalogoRepuestos() {
+    try {
+        catalogoRepuestos = await API.Repuestos.listarActivos();
+    } catch (error) {
+        console.error("Error al cargar repuestos:", error);
+    }
+}
+
+// Llamar a esta función cuando cargue la página
+document.addEventListener('DOMContentLoaded', () => {
+    cargarCatalogoRepuestos();
+});
+
+function agregarFilaRepuesto() {
+    const contenedor = document.getElementById('contenedorRepuestos');
+    const idFila = `repuesto_row_${Date.now()}`;
+    
+    let opcionesHTML = '<option value="" disabled selected>Selecciona un material...</option>';
+    catalogoRepuestos.forEach(rep => {
+        opcionesHTML += `<option value="${rep.idRepuesto}" data-unidad="${rep.unidadMedida}">
+            ${rep.nombre} (Stock: ${rep.stockActual} ${rep.unidadMedida})
+        </option>`;
+    });
+
+    const html = `
+        <div class="row g-2 mb-2 align-items-center repuesto-item" id="${idFila}">
+            <div class="col-7">
+                <select class="form-select form-select-sm border-primary select-repuesto" onchange="actualizarUnidad('${idFila}')">
+                    ${opcionesHTML}
+                </select>
+            </div>
+            <div class="col-3">
+                <div class="input-group input-group-sm">
+                    <input type="number" class="form-control input-cantidad" placeholder="0.0" step="0.1" min="0.1">
+                    <span class="input-group-text bg-light text-muted span-unidad" style="font-size: 0.7rem;">U.</span>
+                </div>
+            </div>
+            <div class="col-2 text-end">
+                <button type="button" class="btn btn-sm btn-light text-danger rounded-circle shadow-sm" onclick="document.getElementById('${idFila}').remove()">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    contenedor.insertAdjacentHTML('beforeend', html);
+}
+
+function actualizarUnidad(idFila) {
+    const fila = document.getElementById(idFila);
+    const select = fila.querySelector('.select-repuesto');
+    const unidadSpan = fila.querySelector('.span-unidad');
+    const optionSeleccionada = select.options[select.selectedIndex];
+    
+    if (optionSeleccionada && optionSeleccionada.dataset.unidad) {
+        // Mostrar solo las primeras 3 letras de la unidad (Ej: "Met" para Metros)
+        unidadSpan.textContent = optionSeleccionada.dataset.unidad.substring(0, 3).toUpperCase();
+    }
+}

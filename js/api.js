@@ -108,5 +108,10 @@ const API = {
     Equipos: {
         listarPorCliente(idCliente) { return API.request(`/api/equipos-cliente/cliente/${idCliente}`); },
         crear(data) { return API.request('/api/equipos-cliente', { method: 'POST', body: JSON.stringify(data) }); }
-    }
+    },
+
+    Repuestos: {
+        listarActivos() { return API.request('/api/repuestos'); },
+        crear(data) { return API.request('/api/repuestos', { method: 'POST', body: JSON.stringify(data) }); }
+    },
 };

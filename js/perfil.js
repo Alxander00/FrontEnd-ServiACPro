@@ -1,5 +1,4 @@
-// js/perfil.js
-
+Auth.protectRoute(['CLIENTE']);
 document.addEventListener('DOMContentLoaded', () => {
     if (!Auth.isAuthenticated()) {
         window.location.href = 'login.html';

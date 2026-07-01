@@ -64,6 +64,24 @@ const Auth = (() => {
         return !!token && token !== 'undefined' && token !== 'null';
     };
 
+    const protectRoute = (rolesPermitidos) => {
+        // 1. Verificar si NO hay sesión activa en el navegador
+        if (!isAuthenticated()) {
+            window.location.replace('login.html'); // Usamos replace() para borrar el historial
+            return false;
+        }
+
+        // 2. Verificar si el usuario tiene el rol correcto para esta página
+        const user = getUser();
+        if (rolesPermitidos && (!user || !rolesPermitidos.includes(user.rol))) {
+            // Si intenta entrar a una vista que no le corresponde
+            window.location.replace('index.html');
+            return false;
+        }
+        
+        return true;
+    };
+
     const requireAuth = (redirectUrl = 'login.html') => {
         if (!isAuthenticated()) {
             window.location.href = redirectUrl;
@@ -72,12 +90,14 @@ const Auth = (() => {
         return true;
     };
 
+    // 👇 EL RETORNO QUE HACE PÚBLICA LA FUNCIÓN 👇
     return {
         login,
         logout,
         getUser,
         getToken,
         isAuthenticated,
-        requireAuth
+        requireAuth,
+        protectRoute
     };
 })();

@@ -1,0 +1,16 @@
+{
+  "name": "Servi A/C Pro - Gestión",
+  "short_name": "ServiAC Pro",
+  "description": "Sistema de gestión y operaciones para Servi A/C Pro",
+  "start_url": "./login.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d6efd",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3306/3306606.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
