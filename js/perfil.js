@@ -237,8 +237,10 @@ async function cargarDatosLateral() {
 
     const avatarImg = document.getElementById('profileAvatarImg');
     if (user.fotoUrl) {
-        avatarImg.src = `${API_URL}/uploads/avatars/${user.fotoUrl}`;
+        // Ahora usamos directamente la URL de Cloudinary que guardamos en el campo
+        avatarImg.src = user.fotoUrl;
     } else {
+        // Si no tiene foto, usamos el servicio de UI Avatars
         const nombre = encodeURIComponent(user.nombre || 'Usuario');
         avatarImg.src = `https://ui-avatars.com/api/?name=${nombre}&background=0d6efd&color=fff&size=150&font-size=0.4&bold=true`;
     }
@@ -267,27 +269,43 @@ window.subirAvatar = async function (input) {
 
     try {
         const token = Auth.getToken();
-        const res = await fetch(`${API_URL}/usuario/actualizar-avatar`, {
+        const res = await fetch(`${API_URL}/usuarios/actualizar-avatar`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
             body: formData
         });
 
-        if (res.ok) {
-            Swal.close();
-            await Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Foto actualizada', showConfirmButton: false, timer: 2000 });
-            await cargarDatosLateral();
-            const seccionActiva = document.querySelector('.nav-pills-custom .nav-link.active');
-            if (seccionActiva) await mostrarSeccion(seccionActiva.dataset.seccion);
-        } else {
-            Swal.close();
-            const errorText = await res.text();
-            Swal.fire('Error', `No se pudo subir la foto: ${errorText}`, 'error');
+        if (!res.ok) {
+            const errorData = await res.text();
+            throw new Error(errorData || "Error al subir la foto");
         }
+
+        const usuarioActualizado = await res.json();
+
+        // ACTUALIZAR LA SESIÓN LOCAL
+        const user = Auth.getUser();
+        const updatedUser = { ...user, fotoUrl: usuarioActualizado.fotoUrl };
+        localStorage.setItem('climapro_user', JSON.stringify(updatedUser));
+
+        Swal.close();
+        await Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Foto actualizada',
+            showConfirmButton: false,
+            timer: 2000
+        });
+
+        // Recargar los datos visuales
+        await cargarDatosLateral();
+        const seccionActiva = document.querySelector('.nav-pills-custom .nav-link.active');
+        if (seccionActiva) await mostrarSeccion(seccionActiva.dataset.seccion);
+
     } catch (e) {
         Swal.close();
         console.error(e);
-        Swal.fire('Error', 'Fallo de conexión al subir la imagen.', 'error');
+        Swal.fire('Error', e.message || 'Fallo de conexión al subir la imagen.', 'error');
     } finally {
         input.value = '';
     }

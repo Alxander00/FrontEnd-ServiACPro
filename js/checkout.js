@@ -32,31 +32,44 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initMapa() {
-    // Coordenadas base en El Salvador
-    const coordsBase = [13.6929, -89.2182];
-    
-    // Inicializar el mapa
-    mapCheckout = L.map('mapaCheckout').setView(coordsBase, 12);
+    // 1️⃣ Obtener usuario autenticado
+    const user = Auth.getUser();
+
+    // 2️⃣ Coordenadas por defecto (El Salvador)
+    let coordsBase = [13.6929, -89.2182];
+
+    // 3️⃣ Si el usuario tiene coordenadas guardadas, usarlas
+    if (user && user.latitud && user.longitud) {
+        coordsBase = [parseFloat(user.latitud), parseFloat(user.longitud)];
+        console.log('📍 Mapa centrado en dirección guardada:', coordsBase);
+    } else {
+        console.log('📍 Mapa centrado en ubicación por defecto (El Salvador)');
+    }
+
+    // 4️⃣ Inicializar el mapa con las coordenadas elegidas
+    mapCheckout = L.map('mapaCheckout').setView(coordsBase, 14); // Zoom más cercano si tiene coordenadas
+
+    // 5️⃣ Capa de mapa (OpenStreetMap)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(mapCheckout);
 
-    // Crear el marcador arrastrable
+    // 6️⃣ Crear el marcador arrastrable en la posición actual
     markerCheckout = L.marker(coordsBase, { draggable: true }).addTo(mapCheckout);
 
-    // Evento al arrastrar y soltar el marcador
+    // 7️⃣ Evento: al arrastrar el marcador, obtener dirección
     markerCheckout.on('dragend', function (e) {
         const coords = e.target.getLatLng();
         obtenerDireccion(coords.lat, coords.lng);
     });
 
-    // Evento al hacer clic en cualquier parte del mapa
+    // 8️⃣ Evento: al hacer clic en el mapa, mover el marcador y obtener dirección
     mapCheckout.on('click', function(e) {
         markerCheckout.setLatLng(e.latlng);
         obtenerDireccion(e.latlng.lat, e.latlng.lng);
     });
 
-    // Botón para usar la ubicación actual del dispositivo
+    // 9️⃣ Botón "Usar mi ubicación"
     document.getElementById('btnMiUbicacion').addEventListener('click', () => {
         const status = document.getElementById('geoStatus');
         
@@ -81,6 +94,11 @@ function initMapa() {
             }
         );
     });
+
+    // 🔟 (Opcional) Si el usuario tiene coordenadas, obtener dirección automáticamente al cargar
+    if (user && user.latitud && user.longitud) {
+        obtenerDireccion(parseFloat(user.latitud), parseFloat(user.longitud));
+    }
 }
 
 // Función para transformar las coordenadas en una dirección en texto (Geocodificación Inversa)

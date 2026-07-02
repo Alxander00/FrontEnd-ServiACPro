@@ -1,18 +1,25 @@
 // js/carrito.js
 
 const Carrito = (() => {
-    const CART_KEY = 'climapro_cart';
-  
+    const CART_KEY_PREFIX = 'climapro_cart_';
+
+    // Obtener la clave del carrito basada en el usuario
+    const getCartKey = () => {
+        const user = Auth.getUser();
+        const userId = user?.idUsuario || 'invitado';
+        return CART_KEY_PREFIX + userId;
+    };
+
     const getCart = () => {
-        const cart = localStorage.getItem(CART_KEY);
+        const cart = localStorage.getItem(getCartKey());
         return cart ? JSON.parse(cart) : [];
     };
-  
+
     const saveCart = (cart) => {
-        localStorage.setItem(CART_KEY, JSON.stringify(cart));
+        localStorage.setItem(getCartKey(), JSON.stringify(cart));
         actualizarContadorCarrito();
     };
-  
+
     const addItem = (producto) => {
         const cart = getCart();
         const existing = cart.find(item => item.id === producto.id && item.incluyeInstalacion === producto.incluyeInstalacion);
@@ -23,13 +30,13 @@ const Carrito = (() => {
         }
         saveCart(cart);
     };
-  
+
     const removeItem = (id, incluyeInstalacion) => {
         let cart = getCart();
         cart = cart.filter(item => !(item.id === id && item.incluyeInstalacion === incluyeInstalacion));
         saveCart(cart);
     };
-  
+
     const updateCantidad = (id, incluyeInstalacion, cantidad) => {
         const cart = getCart();
         const item = cart.find(item => item.id === id && item.incluyeInstalacion === incluyeInstalacion);
@@ -38,12 +45,12 @@ const Carrito = (() => {
             saveCart(cart);
         }
     };
-  
+
     const clearCart = () => {
-        localStorage.removeItem(CART_KEY);
+        localStorage.removeItem(getCartKey());
         actualizarContadorCarrito();
     };
-  
+
     const getTotal = () => {
         return getCart().reduce((total, item) => {
             const precioBase = item.precio;
@@ -51,7 +58,7 @@ const Carrito = (() => {
             return total + ((precioBase + precioInstalacion) * item.cantidad);
         }, 0);
     };
-  
+
     const actualizarContadorCarrito = () => {
         const cart = getCart();
         const totalItems = cart.reduce((acc, item) => acc + item.cantidad, 0);
@@ -61,6 +68,6 @@ const Carrito = (() => {
             el.style.display = totalItems > 0 ? 'inline-block' : 'none';
         });
     };
-  
+
     return { getCart, addItem, removeItem, updateCantidad, clearCart, getTotal, actualizarContadorCarrito };
 })();

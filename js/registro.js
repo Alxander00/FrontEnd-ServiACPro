@@ -88,16 +88,16 @@ document.addEventListener('DOMContentLoaded', () => {
         formRegistro.addEventListener('submit', async (e) => {
             e.preventDefault();
             let esValido = true;
-            
+
             if (!regexDUI.test(duiInput.value)) {
                 duiInput.classList.add('is-invalid');
                 esValido = false;
             }
-            
+
             if (!validarTelefono()) {
                 esValido = false;
             }
-            
+
             const pass1 = document.getElementById('pass1');
             const pass2 = document.getElementById('pass2');
             if (pass1.value !== pass2.value) {
@@ -106,42 +106,44 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 pass2.classList.remove('is-invalid');
             }
-            
+
             if (!validarFechaNacimiento()) {
                 esValido = false;
             }
-            
+
             if (!esValido) return;
 
             const userData = {
-                nombre: document.getElementById('nombres').value,
-                apellidos: document.getElementById('apellidos').value,
-                email: document.getElementById('correo').value,
-                telefono: telefonoInput.value,
-                dui: duiInput.value,
-                direccion: document.getElementById('direccion').value,
+                nombre: document.getElementById('nombres').value.trim(),
+                apellido: document.getElementById('apellidos').value.trim(),
+                email: document.getElementById('correo').value.trim(),
+                telefono: telefonoInput.value.trim(),
+                dui: duiInput.value.trim(),
+                direccion: document.getElementById('direccion').value.trim(),
                 password: pass1.value,
-                fechaNacimiento: fechaInput.value || null
+                fechaNacimiento: fechaInput.value || null,
+                rol: 'CLIENTE'
             };
-            
+
             try {
                 await Auth.register(userData);
-                // Aquí aplicamos el cambio de flujo del que hablamos antes
                 Swal.fire({
                     icon: 'success',
                     title: '¡Cuenta creada!',
                     text: 'Tu registro ha sido exitoso. Por favor, inicia sesión.',
                     confirmButtonColor: '#0d6efd'
                 }).then(() => {
-                    window.location.href = 'login.html'; 
+                    window.location.href = 'login.html';
                 });
             } catch (error) {
+                console.error('Error en registro:', error);
+                // Mostrar el mensaje de error que viene del backend
                 Swal.fire('Error', error.message || 'Error al registrar. Intente de nuevo.', 'error');
             }
         });
     }
 
-    // ========== GEOLOCALIZACIÓN PARA DIRECCIÓN ==========
+    // ========== GEOLOCALIZACIÓN ==========
     const btnUbicacion = document.getElementById('btnUbicacion');
     const direccionTextarea = document.getElementById('direccion');
     const estadoGeo = document.getElementById('estadoGeo');

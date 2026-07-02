@@ -3,9 +3,6 @@ const Auth = (() => {
     const USER_KEY = 'climapro_user';
     const TOKEN_KEY = 'climapro_token';
 
-    // ==========================================
-    // DETECCIÓN AUTOMÁTICA DEL ENTORNO
-    // ==========================================
     const getBaseUrl = () => {
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             return 'http://localhost:8080';
@@ -27,13 +24,42 @@ const Auth = (() => {
                 throw new Error(errorData.message || 'Error de autenticación');
             }
             const data = await response.json();
-            // Guardar token y usuario
             localStorage.setItem(TOKEN_KEY, data.token);
             localStorage.setItem(USER_KEY, JSON.stringify(data.user));
             return data.user;
         } catch (error) {
             console.error(error);
             throw new Error('Credenciales inválidas o error de servidor.');
+        }
+    };
+
+    const register = async (userData) => {
+        try {
+            const response = await fetch(`${BASE_URL}/usuarios`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+            
+            // Si la respuesta no es OK, intentamos obtener el mensaje de error
+            if (!response.ok) {
+                let errorMessage = 'Error al registrar usuario';
+                try {
+                    const errorData = await response.json();
+                    // El backend devuelve { message: "..." }
+                    errorMessage = errorData.message || errorMessage;
+                } catch (e) {
+                    // Si no se puede parsear JSON, usamos el texto de la respuesta
+                    errorMessage = await response.text() || errorMessage;
+                }
+                throw new Error(errorMessage);
+            }
+            
+            // ✅ Registro exitoso
+            return await response.json();
+        } catch (error) {
+            console.error('Error en registro:', error);
+            throw new Error(error.message || 'Error de registro. Por favor, intenta de nuevo.');
         }
     };
 
@@ -45,10 +71,7 @@ const Auth = (() => {
 
     const getUser = () => {
         const userStr = localStorage.getItem(USER_KEY);
-        // Si es null, undefined o la cadena "undefined", devolvemos null
-        if (!userStr || userStr === 'undefined' || userStr === 'null') {
-            return null;
-        }
+        if (!userStr || userStr === 'undefined' || userStr === 'null') return null;
         try {
             return JSON.parse(userStr);
         } catch (e) {
@@ -65,20 +88,15 @@ const Auth = (() => {
     };
 
     const protectRoute = (rolesPermitidos) => {
-        // 1. Verificar si NO hay sesión activa en el navegador
         if (!isAuthenticated()) {
-            window.location.replace('login.html'); // Usamos replace() para borrar el historial
+            window.location.replace('login.html');
             return false;
         }
-
-        // 2. Verificar si el usuario tiene el rol correcto para esta página
         const user = getUser();
         if (rolesPermitidos && (!user || !rolesPermitidos.includes(user.rol))) {
-            // Si intenta entrar a una vista que no le corresponde
             window.location.replace('index.html');
             return false;
         }
-        
         return true;
     };
 
@@ -90,9 +108,9 @@ const Auth = (() => {
         return true;
     };
 
-    // 👇 EL RETORNO QUE HACE PÚBLICA LA FUNCIÓN 👇
     return {
         login,
+        register,
         logout,
         getUser,
         getToken,
