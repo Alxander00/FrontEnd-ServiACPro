@@ -34,10 +34,15 @@ self.addEventListener('activate', event => {
 
 // Estrategia: Red Primero (Network First)
 self.addEventListener('fetch', event => {
+  // Ignorar peticiones de extensiones de Chrome para evitar el error "unsupported scheme"
+  if (!event.request.url.startsWith('http')) {
+      return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Si hay internet y responde bien, actualiza el caché con la versión más fresca
+        // Si hay internet y responde bien, actualiza el caché
         if(response && response.status === 200 && response.type === 'basic') {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));

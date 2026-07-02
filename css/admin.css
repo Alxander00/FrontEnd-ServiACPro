@@ -1,52 +1,74 @@
-/* css/admin.css */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+/* ============================================
+   admin.css - Panel Administrativo Moderno
+   ============================================ */
 
-body { 
-    font-family: 'Montserrat', sans-serif; 
-    background-color: #f4f7fa; 
-    color: #2c3e50;
+/* ----- FUENTE Y BASE ----- */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #f4f7fc;
+    color: #1e293b;
 }
 
-/* Sidebar Elegante */
-.sidebar { 
-    min-height: 100vh; 
-    background: linear-gradient(180deg, #0a192f 0%, #112240 50%, #0056b3 100%);
-    box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+/* ----- SIDEBAR ----- */
+.sidebar {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #0a192f 0%, #112240 50%, #0d6efd 100%);
+    box-shadow: 4px 0 20px rgba(0,0,0,0.08);
     z-index: 10;
+    transition: all 0.3s;
 }
 
 .text-accent { color: #00d4ff; }
 
-.nav-pills .nav-link { 
-    color: rgba(255,255,255,0.6); 
-    margin-bottom: 10px; 
-    border-radius: 12px; 
+.nav-pills .nav-link {
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 8px;
+    border-radius: 14px;
     padding: 14px 20px;
-    transition: all 0.3s ease;
+    transition: all 0.25s ease;
     font-weight: 600;
     font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: none;
+    background: transparent;
 }
 
-.nav-pills .nav-link:hover, .nav-pills .nav-link.active { 
-    background: rgba(255,255,255,0.15); 
-    color: #fff; 
+.nav-pills .nav-link i {
+    width: 24px;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.nav-pills .nav-link:hover,
+.nav-pills .nav-link.active {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
     transform: translateX(6px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
 }
 
-/* Tarjetas y Contenedores */
+.nav-pills .nav-link .badge {
+    margin-left: auto;
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: 30px;
+}
+
+/* ----- TARJETAS ----- */
 .card {
     background: #ffffff;
-    border-radius: 20px !important;
+    border-radius: 24px !important;
     border: none;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.03);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.03);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     overflow: hidden;
 }
 
 .card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.07);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.06);
 }
 
 .card-header {
@@ -55,38 +77,34 @@ body {
     padding: 20px 25px;
 }
 
-/* Navbar Superior */
-.navbar {
-    border-radius: 20px;
-    padding: 15px 25px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.02) !important;
-    margin-bottom: 30px;
+/* ----- TABLAS ----- */
+.table {
+    margin-bottom: 0;
 }
-
-/* Tablas Modernas */
-.table { margin-bottom: 0; }
 .table th {
     font-weight: 700;
     color: #8392a5;
     border-bottom: 2px solid #f0f2f5;
     padding: 18px 20px;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.8px;
 }
 .table td {
-    padding: 20px;
+    padding: 18px 20px;
     vertical-align: middle;
     color: #495057;
     border-bottom: 1px solid #f8f9fa;
 }
-.table-hover tbody tr { transition: all 0.2s ease; }
+.table-hover tbody tr {
+    transition: all 0.2s ease;
+}
 .table-hover tbody tr:hover {
     background-color: #f8fbff;
     box-shadow: inset 4px 0 0 #0d6efd;
 }
 
-/* Elementos Visuales Personalizados */
+/* ----- STAT ICONS ----- */
 .stat-icon {
     width: 65px;
     height: 65px;
@@ -95,7 +113,8 @@ body {
     justify-content: center;
     border-radius: 18px;
     font-size: 2rem;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    flex-shrink: 0;
 }
 
 .bg-gradient-primary { background: linear-gradient(135deg, #0d6efd 0%, #00d4ff 100%); color: white; }
@@ -104,62 +123,146 @@ body {
 .bg-gradient-info { background: linear-gradient(135deg, #0dcaf0 0%, #007bff 100%); color: white; }
 .bg-gradient-danger { background: linear-gradient(135deg, #dc3545 0%, #f87171 100%); color: white; }
 
+/* ----- AVATAR CIRCULAR ----- */
 .avatar-circle {
-    width: 45px;
-    height: 45px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 1rem;
+    flex-shrink: 0;
 }
 
-.letter-spacing-1 { letter-spacing: 1px; }
+/* ----- BADGES ----- */
+.badge-status {
+    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 30px;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+}
 
-/* Controles de Formulario y Botones */
+.badge-status.bg-success { background: #28a745 !important; color: #fff !important; border-color: #28a745; }
+.badge-status.bg-danger { background: #dc3545 !important; color: #fff !important; border-color: #dc3545; }
+.badge-status.bg-warning { background: #ffc107 !important; color: #212529 !important; border-color: #ffc107; }
+.badge-status.bg-primary { background: #0d6efd !important; color: #fff !important; border-color: #0d6efd; }
+.badge-status.bg-info { background: #0dcaf0 !important; color: #000 !important; border-color: #0dcaf0; }
+
+/* ----- BOTONES ----- */
+.btn {
+    border-radius: 60px;
+    padding: 10px 24px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+}
+
+.btn-sm {
+    padding: 6px 16px;
+    border-radius: 30px;
+    font-size: 0.8rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #00b4ff 100%);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(13,110,253,0.2);
+}
+.btn-primary:hover { background: linear-gradient(135deg, #0b5ed7 0%, #0099e6 100%); color: #fff; }
+
+.btn-success {
+    background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(25,135,84,0.2);
+}
+.btn-success:hover { background: linear-gradient(135deg, #157347 0%, #1ba87a 100%); color: #fff; }
+
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545 0%, #f87171 100%);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(220,53,69,0.2);
+}
+.btn-danger:hover { background: linear-gradient(135deg, #c82333 0%, #e85a5a 100%); color: #fff; }
+
+.btn-outline-secondary {
+    border: 1px solid #ced4da;
+    color: #6c757d;
+    background: transparent;
+}
+.btn-outline-secondary:hover { background: #e9ecef; border-color: #adb5bd; }
+
+/* ----- FORMULARIOS ----- */
 .form-control, .form-select {
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 12px 18px;
-    border: 1px solid #e9ecef;
-    background-color: #f8f9fa;
+    border: 1px solid #e9edf4;
+    background-color: #f8faff;
     transition: all 0.3s;
+    font-weight: 500;
 }
 .form-control:focus, .form-select:focus {
     border-color: #0d6efd;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
+    box-shadow: 0 0 0 4px rgba(13,110,253,0.08);
     background-color: #ffffff;
 }
 
-.btn {
-    border-radius: 12px;
-    padding: 10px 20px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-.btn-sm { padding: 6px 12px; border-radius: 8px; }
-
-/* Modal */
+/* ----- MODALES ----- */
 .modal-content {
-    border-radius: 24px;
+    border-radius: 28px;
     border: none;
     overflow: hidden;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.12);
 }
 .modal-header {
-    background: linear-gradient(135deg, #0d6efd 0%, #00d4ff 100%);
+    background: linear-gradient(135deg, #0d6efd 0%, #00b4ff 100%);
     border-bottom: none;
-    padding: 25px 30px;
+    padding: 20px 28px;
 }
 .modal-header .modal-title { font-weight: 800; color: white; }
-.modal-body { padding: 35px; }
+.modal-body { padding: 30px; }
 
-/* Custom Scrollbar para el div de contenido */
+/* ----- NAVBAR SUPERIOR ----- */
+.navbar {
+    border-radius: 24px;
+    padding: 14px 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02) !important;
+    margin-bottom: 30px;
+}
+
+/* ----- RESPONSIVE SIDEBAR ----- */
+@media (max-width: 768px) {
+    .sidebar {
+        min-height: auto;
+        padding-bottom: 0.5rem;
+    }
+    .sidebar .nav-pills .nav-link {
+        padding: 10px 14px;
+        font-size: 0.85rem;
+    }
+    .sidebar .nav-pills .nav-link span.d-none {
+        display: inline !important;
+    }
+    .navbar .input-group {
+        display: none;
+    }
+}
+
+/* ----- SCROLLBAR ----- */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
 ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+/* ----- UTILIDADES ----- */
+.shadow-inner { box-shadow: inset 0 4px 12px rgba(0,0,0,0.02); }
+.border-dashed { border-style: dashed !important; }
