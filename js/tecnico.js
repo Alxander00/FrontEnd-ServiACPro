@@ -8,6 +8,12 @@ let vistaActual = 'tarjetas';
 let todasLasCitas = [];
 let citasFiltradas = [];
 
+// ✅ NUEVAS VARIABLES PARA PAGINACIÓN
+let currentPage = 0;
+const pageSize = 10;
+let totalPages = 1;
+let totalElements = 0;
+
 // Variables para la firma
 let canvas = null;
 let ctx = null;
@@ -80,8 +86,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('filtroEstado').addEventListener('change', aplicarFiltros);
     document.getElementById('filtroOrden').addEventListener('change', aplicarFiltros);
 
+    // ✅ EVENTOS DE PAGINACIÓN
+    document.getElementById('btnAnterior')?.addEventListener('click', () => cambiarPagina(-1));
+    document.getElementById('btnSiguiente')?.addEventListener('click', () => cambiarPagina(1));
+
     // Cargar citas
-    await cargarCitas();
+    await cargarCitas(0);
 
     // Notificación desde URL (si viene de una notificación)
     const urlParams = new URLSearchParams(window.location.search);
@@ -96,17 +106,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ==========================================
-// CARGAR CITAS
+// CARGAR CITAS (CON PAGINACIÓN)
 // ==========================================
-async function cargarCitas() {
+async function cargarCitas(page = 0) {
     const user = Auth.getUser();
+    if (!user) return;
+
     try {
-        const citas = await API.Citas.listarPorTecnico(user.idUsuario);
-        todasLasCitas = citas || [];
+        document.getElementById('agendaContainer').innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Cargando citas...</p>
+            </div>
+        `;
+
+        const response = await API.Citas.listarPorTecnico(user.idUsuario, page, pageSize);
+
+        // La respuesta es un objeto Page de Spring
+        todasLasCitas = response.content || [];
+        totalPages = response.totalPages || 1;
+        totalElements = response.totalElements || 0;
+        currentPage = response.number || 0;
+
         citasFiltradas = [...todasLasCitas];
         actualizarEstadisticas(citasFiltradas);
         renderizarTarjetas(citasFiltradas);
         renderizarCalendario(citasFiltradas);
+        actualizarPaginacion();
+
     } catch (error) {
         console.error(error);
         document.getElementById('agendaContainer').innerHTML = `
@@ -114,6 +141,36 @@ async function cargarCitas() {
                 <div class="alert alert-danger">Error al cargar citas: ${error.message}</div>
             </div>
         `;
+    }
+}
+
+// ==========================================
+// ACTUALIZAR PAGINACIÓN (UI)
+// ==========================================
+function actualizarPaginacion() {
+    const container = document.getElementById('paginacionContainer');
+    if (!container) return;
+
+    const total = document.getElementById('totalPaginas');
+    const actual = document.getElementById('paginaActual');
+    const btnAnterior = document.getElementById('btnAnterior');
+    const btnSiguiente = document.getElementById('btnSiguiente');
+    const infoTotal = document.getElementById('infoTotalCitas');
+
+    if (total) total.textContent = totalPages;
+    if (actual) actual.textContent = currentPage + 1;
+    if (btnAnterior) btnAnterior.disabled = currentPage === 0;
+    if (btnSiguiente) btnSiguiente.disabled = currentPage >= totalPages - 1;
+    if (infoTotal) infoTotal.textContent = totalElements;
+}
+
+// ==========================================
+// CAMBIAR PÁGINA
+// ==========================================
+function cambiarPagina(delta) {
+    const nuevaPagina = currentPage + delta;
+    if (nuevaPagina >= 0 && nuevaPagina < totalPages) {
+        cargarCitas(nuevaPagina);
     }
 }
 
@@ -215,7 +272,7 @@ function renderizarTarjetas(citas) {
         const tipoServicio = cita.tipoServicio || 'No especificado';
         const mensajeCliente = cita.mensajeCliente || 'Sin mensaje adicional';
 
-        // Botón de chat (ahora con idCita)
+        // Botón de chat (con idCita)
         const btnChat = `
             <button class="btn btn-outline-primary btn-sm rounded-pill fw-bold" 
                     onclick="event.stopPropagation(); abrirChatConCliente(${cita.idCliente}, '${cita.nombreCliente}', ${cita.idCita})">
@@ -265,7 +322,6 @@ function renderizarTarjetas(citas) {
             </div>
         `;
 
-        // Evento click para abrir modal de detalles (evita que se dispare al hacer clic en botón eliminar o chat)
         col.addEventListener('click', function(e) {
             if (e.target.closest('button')) return;
             abrirDetallesCita(cita);
@@ -397,7 +453,7 @@ function abrirDetallesCita(cita) {
         mostrarMapa(cita.direccionCliente, cita.idCliente);
     };
 
-    // Botón de chat en el footer del modal de detalles
+    // Botón de chat en el footer (CON idCita)
     const btnChatFooter = document.createElement('button');
     btnChatFooter.className = 'btn btn-outline-primary fw-bold rounded-pill';
     btnChatFooter.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Chat';
@@ -406,9 +462,7 @@ function abrirDetallesCita(cita) {
         abrirChatConCliente(cita.idCliente, cita.nombreCliente, cita.idCita);
     };
 
-    // Agregar el botón al footer (antes de "Cerrar")
     const footer = document.querySelector('#modalDetallesCita .modal-footer');
-    // Eliminar botón existente si lo hay
     const existingBtn = footer.querySelector('.btn-chat-detalle');
     if (existingBtn) existingBtn.remove();
     btnChatFooter.classList.add('btn-chat-detalle');
@@ -418,31 +472,65 @@ function abrirDetallesCita(cita) {
 }
 
 // ==========================================
-// ABRIR CHAT CON CLIENTE
+// ABRIR CHAT CON CLIENTE (desde técnico) - VERSIÓN CON ID CITA
 // ==========================================
-window.abrirChatConCliente = function(idCliente, nombreCliente) {
+window.abrirChatConCliente = async function(idCliente, nombreCliente, idCita) {
     const user = Auth.getUser();
     if (!user) {
         Swal.fire('Error', 'Debes iniciar sesión.', 'error');
         return;
     }
 
-    const ids = [user.idUsuario, idCliente].sort((a, b) => a - b);
-    const conversacionId = `conversacion_${ids[0]}_${ids[1]}`;
+    if (!idCita) {
+        console.error('❌ idCita es nulo o indefinido');
+        Swal.fire('Error', 'No se pudo identificar la cita para el chat.', 'error');
+        return;
+    }
 
-    const modal = new bootstrap.Modal(document.getElementById('modalChat'));
-    modal.show();
+    try {
+        console.log('📦 Payload a enviar:', { idCliente, idTecnico: user.idUsuario, idCita });
 
-    modal._element.addEventListener('shown.bs.modal', function onShown() {
-        modal._element.removeEventListener('shown.bs.modal', onShown);
-        Chat.init(conversacionId, 'chatContainer', nombreCliente || 'Cliente');
-    });
+        const response = await fetch(`${API_URL}/api/conversaciones/iniciar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Auth.getToken()}`
+            },
+            body: JSON.stringify({
+                idCliente: idCliente,
+                idTecnico: user.idUsuario,
+                idCita: idCita
+            })
+        });
 
-    modal._element.addEventListener('hidden.bs.modal', function onHidden() {
-        modal._element.removeEventListener('hidden.bs.modal', onHidden);
-        Chat.destroy();
-        document.getElementById('chatContainer').innerHTML = '';
-    });
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Respuesta del servidor (error):', errorText);
+            throw new Error(`Error al iniciar conversación: ${response.status} - ${errorText}`);
+        }
+
+        const conversacion = await response.json();
+        const conversacionId = conversacion.id;
+
+        const modal = new bootstrap.Modal(document.getElementById('modalChat'));
+        modal.show();
+
+        modal._element.addEventListener('shown.bs.modal', function onShown() {
+            modal._element.removeEventListener('shown.bs.modal', onShown);
+            Chat.init(conversacionId, 'chatContainer', nombreCliente || 'Cliente');
+        });
+
+        modal._element.addEventListener('hidden.bs.modal', function onHidden() {
+            modal._element.removeEventListener('hidden.bs.modal', onHidden);
+            Chat.destroy();
+            document.getElementById('chatContainer').innerHTML = '';
+            document.getElementById('chatNombreDestinatario').textContent = '';
+        });
+
+    } catch (error) {
+        console.error('❌ Error al abrir chat:', error);
+        Swal.fire('Error', 'No se pudo iniciar la conversación.', 'error');
+    }
 };
 
 // ==========================================
@@ -589,7 +677,7 @@ async function guardarEstadoCita(event) {
         });
 
         bsModalEstado.hide();
-        await cargarCitas();
+        await cargarCitas(currentPage);
     } catch (error) {
         Swal.fire('Error', error.message, 'error');
     } finally {
@@ -821,80 +909,9 @@ window.eliminarCita = async function(idCita) {
             showConfirmButton: false,
             timer: 2000
         });
-        await cargarCitas();
+        await cargarCitas(currentPage);
     } catch (error) {
         Swal.fire('Error', error.message, 'error');
-    }
-};
-
-// ==========================================
-// ABRIR CHAT CON CLIENTE (desde técnico) - VERSIÓN CON ID CITA
-// ==========================================
-window.abrirChatConCliente = async function(idCliente, nombreCliente, idCita) {
-    const user = Auth.getUser();
-    if (!user) {
-        Swal.fire('Error', 'Debes iniciar sesión.', 'error');
-        return;
-    }
-
-    // 🔍 DEPURACIÓN 1: Ver qué parámetros llegan
-    console.log('🔍 abrirChatConCliente llamado con:', { idCliente, nombreCliente, idCita, user: user.idUsuario });
-
-    try {
-        const payload = {
-            idCliente: idCliente,
-            idTecnico: user.idUsuario,
-            idCita: idCita
-        };
-
-        // 🔍 DEPURACIÓN 2: Ver el payload que se va a enviar
-        console.log('📦 Payload a enviar:', payload);
-
-        const response = await fetch(`${API_URL}/api/conversaciones/iniciar`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${Auth.getToken()}`
-            },
-            body: JSON.stringify(payload)
-        });
-
-        // 🔍 DEPURACIÓN 3: Si la respuesta no es OK, leer el cuerpo del error
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Respuesta del servidor (error):', {
-                status: response.status,
-                statusText: response.statusText,
-                body: errorText
-            });
-            throw new Error(`Error al iniciar conversación: ${response.status} - ${errorText}`);
-        }
-
-        const conversacion = await response.json();
-        console.log('✅ Conversación creada/obtenida:', conversacion);
-        const conversacionId = conversacion.id;
-
-        // 2. Mostrar modal
-        const modal = new bootstrap.Modal(document.getElementById('modalChat'));
-        modal.show();
-
-        // 3. Inicializar chat
-        modal._element.addEventListener('shown.bs.modal', function onShown() {
-            modal._element.removeEventListener('shown.bs.modal', onShown);
-            Chat.init(conversacionId, 'chatContainer', nombreCliente || 'Cliente');
-        });
-
-        // 4. Limpiar al cerrar
-        modal._element.addEventListener('hidden.bs.modal', function onHidden() {
-            modal._element.removeEventListener('hidden.bs.modal', onHidden);
-            Chat.destroy();
-            document.getElementById('chatContainer').innerHTML = '';
-            document.getElementById('chatNombreDestinatario').textContent = '';
-        });
-
-    } catch (error) {
-        console.error('❌ Error al abrir chat:', error);
-        Swal.fire('Error', 'No se pudo iniciar la conversación.', 'error');
     }
 };
 

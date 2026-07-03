@@ -31,16 +31,13 @@ const API = {
         try {
             let response = await fetch(`${API_URL}${endpoint}`, config);
 
-            // Si el token expiró (401), intentar renovar
             if (response.status === 401) {
                 try {
                     const newToken = await Auth.refreshAccessToken();
-                    // Reintentar la petición con el nuevo token
                     headers['Authorization'] = `Bearer ${newToken}`;
                     config.headers = headers;
                     response = await fetch(`${API_URL}${endpoint}`, config);
                 } catch (refreshError) {
-                    // Si falla la renovación, redirigir al login
                     localStorage.removeItem('climapro_user');
                     localStorage.removeItem('climapro_token');
                     localStorage.removeItem('climapro_refresh_token');
@@ -90,7 +87,11 @@ const API = {
 
     Citas: {
         listar() { return API.request('/api/citas'); },
-        listarPorTecnico(idTecnico) { return API.request(`/api/citas/tecnico/${idTecnico}`); },
+        // ✅ MODIFICADO: ahora acepta page y size
+        listarPorTecnico(idTecnico, page = 0, size = 10) {
+            return API.request(`/api/citas/tecnico/${idTecnico}?page=${page}&size=${size}`);
+        },
+        listarPorCliente(idCliente) { return API.request(`/api/citas/cliente/${idCliente}`); },
         crear(data) { return API.request('/api/citas', { method: 'POST', body: JSON.stringify(data) }); },
         cambiarEstado(id, estado) { return API.request(`/api/citas/${id}/estado?estado=${estado}`, { method: 'PATCH' }); }
     },

@@ -154,6 +154,22 @@
                 <div id="calendar"></div>
             </div>
         </div>
+
+        <!-- ===== PAGINACIÓN ===== -->
+        <div id="paginacionContainer" class="d-flex justify-content-between align-items-center mt-4">
+            <button class="btn btn-outline-primary rounded-pill px-4 fw-bold shadow-sm" id="btnAnterior" disabled>
+                <i class="fas fa-chevron-left me-2"></i> Anterior
+            </button>
+            <div class="text-center">
+                <span class="text-muted small d-block">Mostrando <span id="infoTotalCitas">0</span> citas</span>
+                <span class="fw-semibold">
+                    Página <span id="paginaActual" class="text-primary">1</span> de <span id="totalPaginas">1</span>
+                </span>
+            </div>
+            <button class="btn btn-outline-primary rounded-pill px-4 fw-bold shadow-sm" id="btnSiguiente" disabled>
+                Siguiente <i class="fas fa-chevron-right ms-2"></i>
+            </button>
+        </div>
     </div>
 
     <!-- ===== MODAL DETALLES DE CITA ===== -->
