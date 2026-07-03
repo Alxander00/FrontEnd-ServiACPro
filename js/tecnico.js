@@ -1,5 +1,5 @@
 // ==========================================
-// tecnico.js - Panel Técnico con paginación
+// tecnico.js - Panel Técnico con paginación y WhatsApp
 // ==========================================
 
 Auth.protectRoute(['TECNICO']);
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('filtroEstado').addEventListener('change', aplicarFiltros);
     document.getElementById('filtroOrden').addEventListener('change', aplicarFiltros);
 
-    // ✅ EVENTOS DE PAGINACIÓN
+    // EVENTOS DE PAGINACIÓN
     document.getElementById('btnAnterior')?.addEventListener('click', () => cambiarPagina(-1));
     document.getElementById('btnSiguiente')?.addEventListener('click', () => cambiarPagina(1));
 
@@ -224,7 +224,7 @@ function aplicarFiltros() {
 }
 
 // ==========================================
-// RENDERIZAR TARJETAS (con chat y detalles)
+// RENDERIZAR TARJETAS (con WhatsApp y teléfono)
 // ==========================================
 function renderizarTarjetas(citas) {
     const container = document.getElementById('agendaContainer');
@@ -277,7 +277,23 @@ function renderizarTarjetas(citas) {
         const tipoServicio = cita.tipoServicio || 'No especificado';
         const mensajeCliente = cita.mensajeCliente || 'Sin mensaje adicional';
 
-        // Botón de chat (con idCita)
+        // ✅ Obtener teléfono del cliente (limpiar formato para WhatsApp)
+        const telefono = cita.telefonoCliente || '';
+        const telefonoLimpio = telefono.replace(/\D/g, ''); // solo dígitos
+        const numeroWhatsApp = telefonoLimpio ? `503${telefonoLimpio}` : ''; // prefijo El Salvador
+
+        // Botón de chat con enlace a WhatsApp
+        const btnWhatsApp = telefonoLimpio ? `
+            <a href="https://wa.me/${numeroWhatsApp}?text=Hola%20${encodeURIComponent(cita.nombreCliente || '')}%2C%20soy%20el%20t%C3%A9cnico%20de%20ServiA%2FC%20Pro%20para%20la%20cita%20%23${cita.idCita}" 
+               target="_blank" 
+               class="btn btn-success btn-sm rounded-pill fw-bold" 
+               onclick="event.stopPropagation();"
+               title="Enviar mensaje por WhatsApp">
+                <i class="fab fa-whatsapp me-1"></i> WhatsApp
+            </a>
+        ` : '';
+
+        // Botón de chat interno (el que ya existía)
         const btnChat = `
             <button class="btn btn-outline-primary btn-sm rounded-pill fw-bold" 
                     onclick="event.stopPropagation(); abrirChatConCliente(${cita.idCliente}, '${cita.nombreCliente}', ${cita.idCita})">
@@ -303,6 +319,24 @@ function renderizarTarjetas(citas) {
                     <i class="fas fa-user-circle me-1"></i><strong>${cita.nombreCliente}</strong>
                 </h6>
 
+                <!-- 📞 Teléfono con enlace a WhatsApp -->
+                ${telefonoLimpio ? `
+                    <p class="cita-telefono mb-1">
+                        <i class="fas fa-phone text-success me-1"></i>
+                        <a href="https://wa.me/${numeroWhatsApp}?text=Hola%20${encodeURIComponent(cita.nombreCliente || '')}%2C%20soy%20el%20t%C3%A9cnico%20de%20ServiA%2FC%20Pro%20para%20la%20cita%20%23${cita.idCita}" 
+                           target="_blank" 
+                           class="text-decoration-none fw-semibold text-success"
+                           onclick="event.stopPropagation();">
+                            ${telefono}
+                            <i class="fab fa-whatsapp ms-1"></i>
+                        </a>
+                    </p>
+                ` : `
+                    <p class="cita-telefono mb-1 text-muted small">
+                        <i class="fas fa-phone me-1"></i> Sin número registrado
+                    </p>
+                `}
+
                 <p class="cita-direccion mb-2">
                     <i class="fas fa-map-marker-alt text-danger me-1"></i>
                     ${cita.direccionCliente || 'Sin dirección registrada'}
@@ -318,17 +352,19 @@ function renderizarTarjetas(citas) {
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mt-2">
-                    <div>
-                        <span class="text-muted small"><i class="fas fa-hand-pointer me-1"></i>Click para ver detalles</span>
+                    <div class="d-flex gap-1 flex-wrap">
+                        <span class="text-muted small me-1"><i class="fas fa-hand-pointer me-1"></i>Click</span>
                         ${btnChat}
+                        ${btnWhatsApp}
                     </div>
                     ${btnEliminar}
                 </div>
             </div>
         `;
 
+        // Evento click para abrir modal de detalles (evita que se dispare al hacer clic en enlaces o botones)
         col.addEventListener('click', function(e) {
-            if (e.target.closest('button')) return;
+            if (e.target.closest('a') || e.target.closest('button')) return;
             abrirDetallesCita(cita);
         });
 
@@ -359,7 +395,8 @@ function renderizarCalendario(citas) {
                 direccion: cita.direccionCliente || 'Sin dirección',
                 idCliente: cita.idCliente,
                 estado: cita.estado,
-                notas: cita.notas || ''
+                notas: cita.notas || '',
+                telefono: cita.telefonoCliente || ''
             }
         };
     });
@@ -390,7 +427,7 @@ function renderizarCalendario(citas) {
 }
 
 // ==========================================
-// ABRIR DETALLES DE CITA (MODAL) CON CHAT
+// ABRIR DETALLES DE CITA (MODAL) CON TELÉFONO Y WHATSAPP
 // ==========================================
 let citaActualDetalles = null;
 
@@ -405,13 +442,30 @@ function abrirDetallesCita(cita) {
                         cita.estado === 'EN_PROCESO' ? 'en-proceso' :
                         cita.estado === 'COMPLETADA' ? 'completada' : 'cancelada';
 
+    // ✅ Teléfono para WhatsApp
+    const telefono = cita.telefonoCliente || '';
+    const telefonoLimpio = telefono.replace(/\D/g, '');
+    const numeroWhatsApp = telefonoLimpio ? `503${telefonoLimpio}` : '';
+    const enlaceWhatsApp = numeroWhatsApp ? 
+        `https://wa.me/${numeroWhatsApp}?text=Hola%20${encodeURIComponent(cita.nombreCliente || '')}%2C%20soy%20el%20t%C3%A9cnico%20de%20ServiA%2FC%20Pro%20para%20la%20cita%20%23${cita.idCita}` 
+        : '#';
+
     body.innerHTML = `
         <div class="row g-3">
             <div class="col-md-6">
                 <div class="bg-light p-3 rounded-4 h-100">
                     <h6 class="fw-bold text-primary mb-2"><i class="fas fa-user me-2"></i>Cliente</h6>
                     <p class="mb-1"><strong>${cita.nombreCliente}</strong></p>
-                    <p class="mb-0 text-muted small"><i class="fas fa-phone me-1"></i> ${cita.telefonoCliente || 'No disponible'}</p>
+                    ${telefonoLimpio ? `
+                        <p class="mb-1">
+                            <i class="fas fa-phone text-success me-1"></i>
+                            <a href="${enlaceWhatsApp}" target="_blank" class="text-decoration-none fw-semibold text-success">
+                                ${telefono} <i class="fab fa-whatsapp ms-1"></i>
+                            </a>
+                        </p>
+                    ` : `
+                        <p class="mb-0 text-muted small"><i class="fas fa-phone me-1"></i>Sin número registrado</p>
+                    `}
                 </div>
             </div>
             <div class="col-md-6">
@@ -445,6 +499,13 @@ function abrirDetallesCita(cita) {
                     <p class="mb-0"><span class="badge-estado ${estadoBadge}">${cita.estado}</span></p>
                 </div>
             </div>
+            ${telefonoLimpio ? `
+            <div class="col-12">
+                <a href="${enlaceWhatsApp}" target="_blank" class="btn btn-success w-100 rounded-pill fw-bold">
+                    <i class="fab fa-whatsapp me-2"></i> Contactar por WhatsApp
+                </a>
+            </div>
+            ` : ''}
         </div>
     `;
 
