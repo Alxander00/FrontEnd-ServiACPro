@@ -553,7 +553,7 @@ async function mostrarSeccion(seccion) {
                 // 1. Rediseñamos el botón de Chat para incluir la burbuja de notificación roja (oculta por defecto)
                 const btnChat = (!esFinalizado && cita.idTecnico)
                     ? `<button class="btn btn-outline-primary btn-sm position-relative fw-bold rounded-pill px-3" 
-                            onclick="abrirChatConTecnico(${cita.idTecnico}, '${cita.nombreTecnico}')">
+                            onclick="abrirChatConTecnico(${cita.idTecnico}, '${cita.nombreTecnico}', ${cita.idCita})">
                         <i class="fas fa-comment-dots me-1"></i> Chat
                         <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle" 
                                 id="badge-chat-${cita.idCita}" style="display: none;">
@@ -1085,9 +1085,9 @@ window.actualizarDatos = async function (event) {
 };
 
 // ==========================================
-// ABRIR CHAT CON TÉCNICO (desde perfil)
+// ABRIR CHAT CON TÉCNICO (desde perfil) - VERSIÓN CON ID CITA
 // ==========================================
-window.abrirChatConTecnico = async function(idTecnico, nombreTecnico) {
+window.abrirChatConTecnico = async function(idTecnico, nombreTecnico, idCita) {
     const user = Auth.getUser();
     if (!user) {
         Swal.fire('Error', 'Debes iniciar sesión.', 'error');
@@ -1095,7 +1095,7 @@ window.abrirChatConTecnico = async function(idTecnico, nombreTecnico) {
     }
 
     try {
-        // 1. Obtener o crear la conversación
+        // 1. Obtener o crear la conversación con idCita
         const response = await fetch(`${API_URL}/api/conversaciones/iniciar`, {
             method: 'POST',
             headers: {
@@ -1104,7 +1104,8 @@ window.abrirChatConTecnico = async function(idTecnico, nombreTecnico) {
             },
             body: JSON.stringify({
                 idCliente: user.idUsuario,
-                idTecnico: idTecnico
+                idTecnico: idTecnico,
+                idCita: idCita  // AHORA ENVÍA EL ID DE LA CITA
             })
         });
 
@@ -1113,7 +1114,7 @@ window.abrirChatConTecnico = async function(idTecnico, nombreTecnico) {
         }
 
         const conversacion = await response.json();
-        const conversacionId = conversacion.idConversacion || conversacion.id;
+        const conversacionId = conversacion.id;
 
         // 2. Mostrar modal
         const modal = new bootstrap.Modal(document.getElementById('modalChat'));

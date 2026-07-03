@@ -215,9 +215,10 @@ function renderizarTarjetas(citas) {
         const tipoServicio = cita.tipoServicio || 'No especificado';
         const mensajeCliente = cita.mensajeCliente || 'Sin mensaje adicional';
 
-        // Botón de chat
+        // Botón de chat (ahora con idCita)
         const btnChat = `
-            <button class="btn btn-outline-primary btn-sm rounded-pill fw-bold" onclick="event.stopPropagation(); abrirChatConCliente(${cita.idCliente}, '${cita.nombreCliente}')">
+            <button class="btn btn-outline-primary btn-sm rounded-pill fw-bold" 
+                    onclick="event.stopPropagation(); abrirChatConCliente(${cita.idCliente}, '${cita.nombreCliente}', ${cita.idCita})">
                 <i class="fas fa-comment-dots me-1"></i> Chat
             </button>
         `;
@@ -396,13 +397,13 @@ function abrirDetallesCita(cita) {
         mostrarMapa(cita.direccionCliente, cita.idCliente);
     };
 
-    // Botón de chat en el footer
+    // Botón de chat en el footer del modal de detalles
     const btnChatFooter = document.createElement('button');
     btnChatFooter.className = 'btn btn-outline-primary fw-bold rounded-pill';
     btnChatFooter.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Chat';
     btnChatFooter.onclick = function() {
         bsModalDetalles.hide();
-        abrirChatConCliente(cita.idCliente, cita.nombreCliente);
+        abrirChatConCliente(cita.idCliente, cita.nombreCliente, cita.idCita);
     };
 
     // Agregar el botón al footer (antes de "Cerrar")
@@ -827,35 +828,51 @@ window.eliminarCita = async function(idCita) {
 };
 
 // ==========================================
-// ABRIR CHAT CON CLIENTE (desde técnico)
+// ABRIR CHAT CON CLIENTE (desde técnico) - VERSIÓN CON ID CITA
 // ==========================================
-window.abrirChatConCliente = async function(idCliente, nombreCliente) {
+window.abrirChatConCliente = async function(idCliente, nombreCliente, idCita) {
     const user = Auth.getUser();
     if (!user) {
         Swal.fire('Error', 'Debes iniciar sesión.', 'error');
         return;
     }
 
+    // 🔍 DEPURACIÓN 1: Ver qué parámetros llegan
+    console.log('🔍 abrirChatConCliente llamado con:', { idCliente, nombreCliente, idCita, user: user.idUsuario });
+
     try {
-        // 1. Obtener o crear la conversación
+        const payload = {
+            idCliente: idCliente,
+            idTecnico: user.idUsuario,
+            idCita: idCita
+        };
+
+        // 🔍 DEPURACIÓN 2: Ver el payload que se va a enviar
+        console.log('📦 Payload a enviar:', payload);
+
         const response = await fetch(`${API_URL}/api/conversaciones/iniciar`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${Auth.getToken()}`
             },
-            body: JSON.stringify({
-                idCliente: idCliente,
-                idTecnico: user.idUsuario
-            })
+            body: JSON.stringify(payload)
         });
 
+        // 🔍 DEPURACIÓN 3: Si la respuesta no es OK, leer el cuerpo del error
         if (!response.ok) {
-            throw new Error('Error al iniciar conversación');
+            const errorText = await response.text();
+            console.error('❌ Respuesta del servidor (error):', {
+                status: response.status,
+                statusText: response.statusText,
+                body: errorText
+            });
+            throw new Error(`Error al iniciar conversación: ${response.status} - ${errorText}`);
         }
 
         const conversacion = await response.json();
-        const conversacionId = conversacion.idConversacion || conversacion.id;
+        console.log('✅ Conversación creada/obtenida:', conversacion);
+        const conversacionId = conversacion.id;
 
         // 2. Mostrar modal
         const modal = new bootstrap.Modal(document.getElementById('modalChat'));
@@ -876,7 +893,7 @@ window.abrirChatConCliente = async function(idCliente, nombreCliente) {
         });
 
     } catch (error) {
-        console.error('Error al abrir chat:', error);
+        console.error('❌ Error al abrir chat:', error);
         Swal.fire('Error', 'No se pudo iniciar la conversación.', 'error');
     }
 };
