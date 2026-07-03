@@ -2,6 +2,7 @@
 const Auth = (() => {
     const USER_KEY = 'climapro_user';
     const TOKEN_KEY = 'climapro_token';
+    const REFRESH_TOKEN_KEY = 'climapro_refresh_token';
 
     const getBaseUrl = () => {
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -24,7 +25,10 @@ const Auth = (() => {
                 throw new Error(errorData.message || 'Error de autenticación');
             }
             const data = await response.json();
-            localStorage.setItem(TOKEN_KEY, data.token);
+            
+            // Guardar access token y refresh token
+            localStorage.setItem(TOKEN_KEY, data.accessToken);
+            localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
             localStorage.setItem(USER_KEY, JSON.stringify(data.user));
             return data.user;
         } catch (error) {
@@ -41,21 +45,17 @@ const Auth = (() => {
                 body: JSON.stringify(userData)
             });
             
-            // Si la respuesta no es OK, intentamos obtener el mensaje de error
             if (!response.ok) {
                 let errorMessage = 'Error al registrar usuario';
                 try {
                     const errorData = await response.json();
-                    // El backend devuelve { message: "..." }
                     errorMessage = errorData.message || errorMessage;
                 } catch (e) {
-                    // Si no se puede parsear JSON, usamos el texto de la respuesta
                     errorMessage = await response.text() || errorMessage;
                 }
                 throw new Error(errorMessage);
             }
             
-            // ✅ Registro exitoso
             return await response.json();
         } catch (error) {
             console.error('Error en registro:', error);
@@ -66,6 +66,7 @@ const Auth = (() => {
     const logout = () => {
         localStorage.removeItem(USER_KEY);
         localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
         window.location.href = 'login.html';
     };
 
@@ -81,6 +82,7 @@ const Auth = (() => {
     };
 
     const getToken = () => localStorage.getItem(TOKEN_KEY);
+    const getRefreshToken = () => localStorage.getItem(REFRESH_TOKEN_KEY);
 
     const isAuthenticated = () => {
         const token = getToken();
@@ -108,12 +110,41 @@ const Auth = (() => {
         return true;
     };
 
+    // Renovar Access Token usando Refresh Token
+    const refreshAccessToken = async () => {
+        const refreshToken = getRefreshToken();
+        if (!refreshToken) throw new Error('No hay refresh token disponible');
+
+        try {
+            const response = await fetch(`${BASE_URL}/auth/refresh-token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refreshToken })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Refresh token inválido');
+            }
+
+            const data = await response.json();
+            localStorage.setItem(TOKEN_KEY, data.accessToken);
+            return data.accessToken;
+        } catch (error) {
+            // Si falla, cerrar sesión
+            logout();
+            throw error;
+        }
+    };
+
     return {
         login,
         register,
         logout,
         getUser,
         getToken,
+        getRefreshToken,
+        refreshAccessToken,
         isAuthenticated,
         requireAuth,
         protectRoute

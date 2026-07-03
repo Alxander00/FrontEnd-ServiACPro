@@ -1,0 +1,181 @@
+body {
+  font-family: "Montserrat", sans-serif;
+  background: #f0f4f8;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+  border: none;
+  height: 100%;
+}
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+.stat-card .stat-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+.stat-card .stat-number {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.stat-card .stat-label {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cita-card {
+  background: white;
+  border-radius: 20px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+  border-left: 6px solid #0d6efd;
+  height: 100%;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+.cita-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+.cita-card .cita-hora {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+.cita-card .cita-cliente {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+.cita-card .cita-direccion {
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+.cita-card .cita-id {
+  font-size: 0.75rem;
+  color: #adb5bd;
+  font-weight: 600;
+}
+
+/* ===== BADGES DE ESTADO CON COLORES SUAVES (PASTEL) ===== */
+.badge-estado {
+  padding: 6px 16px;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.badge-estado.programada {
+  background: #dbeafe; /* azul pastel */
+  color: #1e40af;
+}
+.badge-estado.en-proceso {
+  background: #fef3c7; /* amarillo pastel */
+  color: #92400e;
+}
+.badge-estado.completada {
+  background: #d1fae5; /* verde pastel */
+  color: #065f46;
+}
+.badge-estado.cancelada {
+  background: #fee2e2; /* rojo pastel */
+  color: #991b1b;
+}
+
+.cita-card.urgente {
+  border-left-color: #f87171; /* rojo suave */
+  animation: pulse-border 2s ease-in-out infinite;
+}
+@keyframes pulse-border {
+  0%, 100% { border-left-color: #f87171; }
+  50% { border-left-color: #fca5a5; }
+}
+.cita-card.urgente .cita-urgente-badge {
+  background: #f87171;
+  color: white;
+  padding: 2px 12px;
+  border-radius: 30px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.filtros-container {
+  background: white;
+  border-radius: 16px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  margin-bottom: 1.5rem;
+}
+.filtros-container .form-select,
+.filtros-container .form-control {
+  border-radius: 30px;
+  border: 1px solid #e9edf4;
+  background: #f8faff;
+  font-size: 0.9rem;
+  padding: 0.5rem 1.2rem;
+}
+.filtros-container .form-select:focus,
+.filtros-container .form-control:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+}
+
+.empty-state {
+  padding: 4rem 2rem;
+  text-align: center;
+}
+.empty-state i {
+  font-size: 4rem;
+  color: #ccd7e6;
+  margin-bottom: 1.5rem;
+}
+
+.btn-google-maps {
+  background: #4285f4;
+  color: white;
+  border-radius: 30px;
+  padding: 0.5rem 1.5rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+.btn-google-maps:hover {
+  background: #3367d6;
+  color: white;
+  transform: scale(1.02);
+}
+
+@media (max-width: 768px) {
+  .stat-card .stat-number {
+    font-size: 1.6rem;
+  }
+  .filtros-container {
+    padding: 1rem;
+  }
+  .filtros-container .row > div {
+    margin-bottom: 0.5rem;
+  }
+}

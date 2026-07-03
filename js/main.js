@@ -57,10 +57,8 @@ function actualizarNavAuth() {
     const authContainer = document.getElementById('authButtons');
     const cartIcon = document.querySelector('a[href="carrito.html"]');
     
-    // Si no existe el contenedor, salimos
     if (!authContainer) return;
     
-    // Verificar autenticación
     if (Auth.isAuthenticated()) {
         const user = Auth.getUser();
         if (!user) {
@@ -93,8 +91,15 @@ function actualizarNavAuth() {
         const iniciales = (user.nombre ? user.nombre.charAt(0).toUpperCase() : 'U') + 
                          (user.apellido ? user.apellido.charAt(0).toUpperCase() : '');
         
+        // ✅ La campana se inserta dentro de authContainer como elemento inline
+        let notificacionesHtml = '';
+        if (user.rol === 'TECNICO') {
+            notificacionesHtml = `<div id="notificacionesContainer" style="display:inline-block; margin-right: 8px;"></div>`;
+        }
+        
         authContainer.innerHTML = `
-            <div class="dropdown">
+            ${notificacionesHtml}
+            <div class="dropdown" style="display:inline-block;">
                 <button class="btn btn-light rounded-pill dropdown-toggle d-flex align-items-center gap-2 shadow-sm border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: white; padding: 5px 12px;">
                     <div class="rounded-circle bg-${colorRol} bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
                         <span class="fw-bold text-${colorRol}" style="font-size: 0.85rem;">${iniciales}</span>
@@ -112,7 +117,6 @@ function actualizarNavAuth() {
             </div>
         `;
     } else {
-        // No autenticado: mostrar botones de login/registro
         if (cartIcon) cartIcon.style.display = 'inline-block';
         authContainer.innerHTML = `
             <a href="login.html" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">Iniciar Sesión</a>

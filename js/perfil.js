@@ -112,7 +112,7 @@ const formatearFecha = (fechaString) => {
 };
 
 // ==========================================
-// VER DETALLE (NUEVA FUNCIÓN)
+// VER DETALLE
 // ==========================================
 window.verDetalle = function(tipo, id) {
     const data = window._detallesData[tipo] || [];
@@ -131,7 +131,6 @@ window.verDetalle = function(tipo, id) {
     let titulo = '';
     let contenido = '';
 
-    // ===== PEDIDOS =====
     if (tipo === 'pedidos') {
         titulo = `Detalles del Pedido #${item.idPedido}`;
         const badgeClass = item.estado === 'Completado' ? 'success' :
@@ -169,10 +168,7 @@ window.verDetalle = function(tipo, id) {
                 ${productosHtml}
             </div>
         `;
-    }
-
-    // ===== CITAS =====
-    else if (tipo === 'citas') {
+    } else if (tipo === 'citas') {
         titulo = `Detalles de la Cita #${item.idCita}`;
         let badgeClass = '';
         if (item.estado === 'PROGRAMADA') badgeClass = 'primary';
@@ -189,10 +185,7 @@ window.verDetalle = function(tipo, id) {
                 ${item.telefonoCliente ? `<div class="row"><span class="label">Teléfono:</span> <span class="value">${item.telefonoCliente}</span></div>` : ''}
             </div>
         `;
-    }
-
-    // ===== SOLICITUDES =====
-    else if (tipo === 'solicitudes') {
+    } else if (tipo === 'solicitudes') {
         titulo = `Detalles de la Solicitud #${item.idSolicitud}`;
         const badgeClass = item.estado === 'PENDIENTE' ? 'warning' :
                           item.estado === 'ASIGNADA' ? 'success' : 'danger';
@@ -208,7 +201,6 @@ window.verDetalle = function(tipo, id) {
         `;
     }
 
-    // Mostrar el modal
     Swal.fire({
         title: titulo,
         html: contenido,
@@ -237,10 +229,8 @@ async function cargarDatosLateral() {
 
     const avatarImg = document.getElementById('profileAvatarImg');
     if (user.fotoUrl) {
-        // Ahora usamos directamente la URL de Cloudinary que guardamos en el campo
         avatarImg.src = user.fotoUrl;
     } else {
-        // Si no tiene foto, usamos el servicio de UI Avatars
         const nombre = encodeURIComponent(user.nombre || 'Usuario');
         avatarImg.src = `https://ui-avatars.com/api/?name=${nombre}&background=0d6efd&color=fff&size=150&font-size=0.4&bold=true`;
     }
@@ -281,8 +271,6 @@ window.subirAvatar = async function (input) {
         }
 
         const usuarioActualizado = await res.json();
-
-        // ACTUALIZAR LA SESIÓN LOCAL
         const user = Auth.getUser();
         const updatedUser = { ...user, fotoUrl: usuarioActualizado.fotoUrl };
         localStorage.setItem('climapro_user', JSON.stringify(updatedUser));
@@ -297,7 +285,6 @@ window.subirAvatar = async function (input) {
             timer: 2000
         });
 
-        // Recargar los datos visuales
         await cargarDatosLateral();
         const seccionActiva = document.querySelector('.nav-pills-custom .nav-link.active');
         if (seccionActiva) await mostrarSeccion(seccionActiva.dataset.seccion);
@@ -312,6 +299,48 @@ window.subirAvatar = async function (input) {
 };
 
 // ==========================================
+// CARGAR ESTADÍSTICAS DEL CLIENTE (sin gráficos)
+// ==========================================
+async function cargarEstadisticasCliente() {
+    const user = Auth.getUser();
+    if (!user) return;
+
+    try {
+        const response = await fetch(`${API_URL}/api/estadisticas/cliente/${user.idUsuario}`, {
+            headers: { 'Authorization': `Bearer ${Auth.getToken()}` }
+        });
+        if (!response.ok) throw new Error('Error al cargar estadísticas');
+        const data = await response.json();
+
+        // Actualizar contadores
+        const totalPedidos = document.getElementById('totalPedidosCliente');
+        const totalGastado = document.getElementById('totalGastadoCliente');
+        const totalProductos = document.getElementById('totalProductosComprados');
+        if (totalPedidos) totalPedidos.textContent = data.totalPedidos || 0;
+        if (totalGastado) totalGastado.textContent = `$${(data.totalGastado || 0).toFixed(2)}`;
+        if (totalProductos) {
+            const count = data.productosMasComprados.reduce((acc, p) => acc + p.comprados, 0);
+            totalProductos.textContent = count || 0;
+        }
+
+        // Productos más comprados
+        const container = document.getElementById('productosMasComprados');
+        if (data.productosMasComprados && data.productosMasComprados.length > 0) {
+            container.innerHTML = data.productosMasComprados.map(p => `
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    ${p.nombre}
+                    <span class="badge bg-primary rounded-pill">${p.comprados} uds.</span>
+                </li>
+            `).join('');
+        } else {
+            container.innerHTML = '<li class="list-group-item text-muted">Aún no has comprado productos.</li>';
+        }
+    } catch (error) {
+        console.error('Error cargando estadísticas del cliente:', error);
+    }
+}
+
+// ==========================================
 // MOSTRAR SECCIÓN
 // ==========================================
 async function mostrarSeccion(seccion) {
@@ -320,7 +349,7 @@ async function mostrarSeccion(seccion) {
     content.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>';
 
     // ============================
-    // DASHBOARD
+    // DASHBOARD (sin gráficos)
     // ============================
     if (seccion === 'dashboard') {
         const iniciales = user.nombre.charAt(0) + (user.apellido ? user.apellido.charAt(0) : '');
@@ -333,39 +362,61 @@ async function mostrarSeccion(seccion) {
                 </div>
             </div>
 
-            <h5 class="fw-bold text-dark mb-4"><i class="fas fa-chart-simple me-2 text-primary"></i>Resumen de Actividad</h5>
-
-            <div class="row g-4">
-                <div class="col-md-6">
-                    <div class="stat-card d-flex align-items-center">
-                        <div class="stat-icon bg-primary bg-opacity-10 text-primary me-4">
-                            <i class="fas fa-box-open"></i>
+            <!-- Estadísticas rápidas -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-4">
+                    <div class="stat-card d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                            <i class="fas fa-shopping-bag"></i>
                         </div>
                         <div>
-                            <h6 class="fw-bold text-dark mb-1">Mis Pedidos</h6>
-                            <p class="text-muted small mb-3">Revisa tus compras recientes</p>
-                            <button class="btn btn-primary btn-sm rounded-pill px-4 fw-bold" onclick="document.querySelector('[data-seccion=pedidos]').click()">
-                                Ver pedidos
-                            </button>
+                            <div class="stat-number" id="totalPedidosCliente">0</div>
+                            <div class="stat-label">Pedidos completados</div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="stat-card d-flex align-items-center">
-                        <div class="stat-icon bg-info bg-opacity-10 text-info me-4">
-                            <i class="fas fa-tools"></i>
+                <div class="col-md-4">
+                    <div class="stat-card d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-success bg-opacity-10 text-success">
+                            <i class="fas fa-dollar-sign"></i>
                         </div>
                         <div>
-                            <h6 class="fw-bold text-dark mb-1">Soporte Técnico</h6>
-                            <p class="text-muted small mb-3">Agenda una visita o consulta</p>
-                            <a href="contacto.html" class="btn btn-info text-white btn-sm rounded-pill px-4 fw-bold">
-                                Contactar
-                            </a>
+                            <div class="stat-number" id="totalGastadoCliente">$0.00</div>
+                            <div class="stat-label">Total gastado</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                            <i class="fas fa-tag"></i>
+                        </div>
+                        <div>
+                            <div class="stat-number" id="totalProductosComprados">0</div>
+                            <div class="stat-label">Productos comprados</div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Productos más comprados -->
+            <h5 class="fw-bold text-dark mb-3"><i class="fas fa-star text-warning me-2"></i>Productos más comprados</h5>
+            <ul class="list-group list-group-flush" id="productosMasComprados">
+                <li class="list-group-item text-muted">Cargando...</li>
+            </ul>
+
+            <!-- Botón de acción -->
+            <div class="mt-4">
+                <a href="catalogo.html" class="btn btn-primary rounded-pill px-4 fw-bold">
+                    <i class="fas fa-store me-2"></i>Seguir comprando
+                </a>
+            </div>
         `;
+
+        // Cargar estadísticas después de renderizar
+        setTimeout(() => {
+            cargarEstadisticasCliente();
+        }, 100);
     }
 
     // ============================
@@ -377,7 +428,6 @@ async function mostrarSeccion(seccion) {
             const archivados = obtenerArchivados('pedidos');
             const pedidosVisibles = todosLosPedidos.filter((p) => !archivados.includes(p.idPedido));
 
-            // Guardar en caché para detalles
             window._detallesData.pedidos = pedidosVisibles;
 
             if (pedidosVisibles.length === 0) {
@@ -495,8 +545,14 @@ async function mostrarSeccion(seccion) {
                 else if (cita.estado === 'COMPLETADA') badgeClass = 'success';
                 else badgeClass = 'danger';
 
+                // 1. Declaramos el botón de archivar (que se había borrado)
                 const btnArchivar = esFinalizado
                     ? `<button class="btn-archive-individual" onclick="ocultarItem('citas', ${cita.idCita})" title="Archivar individual"><i class="fas fa-archive"></i></button>`
+                    : '';
+
+                // 2. Declaramos el botón de chat
+                const btnChat = (!esFinalizado && cita.idTecnico)
+                    ? `<button class="btn-detalle text-primary" style="border-color: #0d6efd; background-color: #e9ecef;" onclick="abrirChatConTecnico(${cita.idTecnico}, '${cita.nombreTecnico}')" title="Chatear con técnico"><i class="fas fa-comment-dots"></i></button>`
                     : '';
 
                 html += `
@@ -523,7 +579,7 @@ async function mostrarSeccion(seccion) {
                             </div>
                             <div class="d-flex justify-content-end mt-2 gap-1">
                                 <button class="btn-detalle" onclick="verDetalle('citas', ${cita.idCita})" title="Ver detalles"><i class="fas fa-eye"></i></button>
-                                ${btnArchivar}
+                                ${btnChat} ${btnArchivar}
                             </div>
                         </div>
                     </div>
@@ -867,7 +923,7 @@ async function mostrarSeccion(seccion) {
 }
 
 // ==========================================
-// FUNCIONES DE SELECCIÓN Y ELIMINACIÓN (solo finalizados)
+// FUNCIONES DE SELECCIÓN Y ELIMINACIÓN
 // ==========================================
 
 window.toggleSeleccionarTodos = function(tipo) {
@@ -992,6 +1048,61 @@ window.actualizarDatos = async function (event) {
     } finally {
         btnSubmit.disabled = false;
         btnSubmit.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Cambios';
+    }
+};
+
+// ==========================================
+// ABRIR CHAT CON TÉCNICO (desde perfil)
+// ==========================================
+window.abrirChatConTecnico = async function(idTecnico, nombreTecnico) {
+    const user = Auth.getUser();
+    if (!user) {
+        Swal.fire('Error', 'Debes iniciar sesión.', 'error');
+        return;
+    }
+
+    try {
+        // 1. Obtener o crear la conversación
+        const response = await fetch(`${API_URL}/api/conversaciones/iniciar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Auth.getToken()}`
+            },
+            body: JSON.stringify({
+                idCliente: user.idUsuario,
+                idTecnico: idTecnico
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al iniciar conversación');
+        }
+
+        const conversacion = await response.json();
+        const conversacionId = conversacion.idConversacion || conversacion.id;
+
+        // 2. Mostrar modal
+        const modal = new bootstrap.Modal(document.getElementById('modalChat'));
+        modal.show();
+
+        // 3. Inicializar chat
+        modal._element.addEventListener('shown.bs.modal', function onShown() {
+            modal._element.removeEventListener('shown.bs.modal', onShown);
+            Chat.init(conversacionId, 'chatContainer', nombreTecnico || 'Técnico');
+        });
+
+        // 4. Limpiar al cerrar
+        modal._element.addEventListener('hidden.bs.modal', function onHidden() {
+            modal._element.removeEventListener('hidden.bs.modal', onHidden);
+            Chat.destroy();
+            document.getElementById('chatContainer').innerHTML = '';
+            document.getElementById('chatNombreDestinatario').textContent = '';
+        });
+
+    } catch (error) {
+        console.error('Error al abrir chat:', error);
+        Swal.fire('Error', 'No se pudo iniciar la conversación.', 'error');
     }
 };
 

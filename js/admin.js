@@ -16,7 +16,7 @@ const contentDiv = document.getElementById('dynamicContent');
 let bsModalProducto = null;
 let bsModalCategoria = null;
 let categoriasCargadas = false;
-let currentImageUrls = []; // 👈 Nuevo
+let currentImageUrls = [];
 
 const formatearFecha = (fechaString) => {
     const opciones = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
@@ -339,7 +339,7 @@ async function guardarProducto(event) {
         capacidadBtu: parseInt(document.getElementById('prodBTU').value) || 0,
         stock: parseInt(document.getElementById('prodStock').value) || 0,
         idCategoria: categoriaId,
-        imagenesUrls: currentImageUrls  // 👈 URLs a mantener
+        imagenesUrls: currentImageUrls
     };
 
     const fileInput = document.getElementById('prodImagenes');
@@ -347,7 +347,6 @@ async function guardarProducto(event) {
     const productoBlob = new Blob([JSON.stringify(payloadTexto)], { type: 'application/json' });
     formData.append('producto', productoBlob);
 
-    // Enviar nuevas imágenes
     if (fileInput.files.length > 0) {
         for (let i = 0; i < fileInput.files.length; i++) {
             formData.append('imagenes', fileInput.files[i]);
@@ -445,7 +444,6 @@ async function renderCategorias() {
     }
 }
 
-// CREAR CATEGORÍA
 async function guardarCategoria(event) {
     event.preventDefault();
     const nombre = document.getElementById('nombreCategoria').value;
@@ -459,7 +457,6 @@ async function guardarCategoria(event) {
     }
 }
 
-// EDITAR CATEGORÍA
 function editarCategoria(id, nombre) {
     document.getElementById('categoriaId').value = id;
     document.getElementById('categoriaNombre').value = nombre;
@@ -480,7 +477,6 @@ async function guardarCategoriaEdicion(event) {
     }
 }
 
-// ELIMINAR CATEGORÍA
 async function eliminarCategoria(id) {
     const result = await Swal.fire({ title: '¿Borrar categoría?', text: "Los equipos dentro de esta categoría quedarán huérfanos.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, borrar' });
     if (result.isConfirmed) {
@@ -507,7 +503,9 @@ async function renderPedidos() {
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center pt-4 px-4">
                     <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-file-invoice-dollar text-success me-2"></i>Historial de Transacciones</h5>
-                    <button class="btn btn-outline-success fw-bold bg-success bg-opacity-10 border-0" onclick="exportarPedidos()"><i class="fas fa-file-excel me-2"></i>Exportar Excel</button>
+                    <button class="btn btn-success fw-bold bg-success bg-opacity-10 border-0" onclick="abrirModalFiltrosExcel()">
+                        <i class="fas fa-file-excel me-2"></i>Exportar Excel
+                    </button>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -535,42 +533,71 @@ async function renderPedidos() {
     }
 }
 
-window.cambiarEstadoPedido = async function(id, nuevoEstado) {
-    try {
-        await API.Pedidos.cambiarEstado(id, nuevoEstado);
-        renderPedidos();
-        Swal.fire({ icon: 'success', title: 'Actualizado', text: `Factura #${id} movida a ${nuevoEstado}`, toast: true, position: 'top-end', timer: 2000 });
-        actualizarContadoresAdmin();
-    } catch (error) {
-        Swal.fire('Error', error.message, 'error');
-    }
-};
-
-async function eliminarPedido(id) {
-    const result = await Swal.fire({ title: '¿Anular registro de pedido?', text: "La factura y detalles desaparecerán del sistema.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, anular' });
-    if (result.isConfirmed) {
-        try {
-            await API.request(`/api/pedidos/${id}`, { method: 'DELETE' });
-            renderPedidos();
-            Swal.fire('Eliminado', 'Registro anulado correctamente.', 'success');
-        } catch (error) {
-            Swal.fire('Error', error.message, 'error');
-        }
-    }
+// ===== FUNCIONES PARA EXPORTAR EXCEL CON FILTROS =====
+function abrirModalFiltrosExcel() {
+    document.getElementById('formFiltrosExcel').reset();
+    const modal = new bootstrap.Modal(document.getElementById('modalFiltrosExcel'));
+    modal.show();
 }
 
-async function exportarPedidos() {
+async function exportarPedidosConFiltros() {
+    const fechaInicio = document.getElementById('filtroFechaInicio').value;
+    const fechaFin = document.getElementById('filtroFechaFin').value;
+    const estado = document.getElementById('filtroEstado').value;
+    const idCliente = document.getElementById('filtroIdCliente').value;
+    const emailCliente = document.getElementById('filtroEmailCliente').value.trim();
+
+    let url = `${API_BASE_URL}/api/pedidos/exportar/excel?`;
+    const params = [];
+    if (fechaInicio) params.push(`fechaInicio=${encodeURIComponent(fechaInicio)}`);
+    if (fechaFin) params.push(`fechaFin=${encodeURIComponent(fechaFin)}`);
+    if (estado) params.push(`estado=${encodeURIComponent(estado)}`);
+    if (idCliente) params.push(`idCliente=${encodeURIComponent(idCliente)}`);
+    if (emailCliente) params.push(`emailCliente=${encodeURIComponent(emailCliente)}`);
+    url += params.join('&');
+
     try {
-        Swal.fire({ title: 'Generando archivo...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-        const response = await fetch(`${API_BASE_URL}/api/pedidos/exportar/excel`);
-        if (!response.ok) throw new Error('Error al exportar');
+        Swal.fire({
+            title: 'Generando reporte...',
+            text: 'Por favor espera mientras se procesa la información.',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const token = Auth.getToken();
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al generar el reporte');
+        }
+
         const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'Reporte_Ventas_ClimaPro.xlsx';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        Swal.fire('Completado', 'Tu descarga ha iniciado.', 'success');
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = 'Reporte_Pedidos_Filtrado.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        Swal.close();
+        Swal.fire({
+            icon: 'success',
+            title: 'Reporte generado',
+            text: 'La descarga ha comenzado.',
+            toast: true,
+            position: 'top-end',
+            timer: 3000,
+            showConfirmButton: false
+        });
+
+        bootstrap.Modal.getInstance(document.getElementById('modalFiltrosExcel')).hide();
+
     } catch (error) {
+        Swal.close();
         Swal.fire('Error', error.message, 'error');
     }
 }
@@ -1152,3 +1179,74 @@ window.generarPDFCotizacion = async function() {
         Swal.fire('Error', 'No se pudo generar el presupuesto en PDF.', 'error');
     }
 };
+
+// ==========================================
+// EXPORTAR EXCEL CON FILTROS
+// ==========================================
+function abrirModalFiltrosExcel() {
+    document.getElementById('formFiltrosExcel').reset();
+    const modal = new bootstrap.Modal(document.getElementById('modalFiltrosExcel'));
+    modal.show();
+}
+
+async function exportarPedidosConFiltros() {
+    const fechaInicio = document.getElementById('filtroFechaInicio').value;
+    const fechaFin = document.getElementById('filtroFechaFin').value;
+    const estado = document.getElementById('filtroEstado').value;
+    const idCliente = document.getElementById('filtroIdCliente').value;
+    const emailCliente = document.getElementById('filtroEmailCliente').value.trim();
+
+    let url = `${API_BASE_URL}/api/pedidos/exportar/excel?`;
+    const params = [];
+    if (fechaInicio) params.push(`fechaInicio=${encodeURIComponent(fechaInicio)}`);
+    if (fechaFin) params.push(`fechaFin=${encodeURIComponent(fechaFin)}`);
+    if (estado) params.push(`estado=${encodeURIComponent(estado)}`);
+    if (idCliente) params.push(`idCliente=${encodeURIComponent(idCliente)}`);
+    if (emailCliente) params.push(`emailCliente=${encodeURIComponent(emailCliente)}`);
+    url += params.join('&');
+
+    try {
+        Swal.fire({
+            title: 'Generando reporte...',
+            text: 'Por favor espera mientras se procesa la información.',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const token = Auth.getToken();
+        const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al generar el reporte');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = 'Reporte_Pedidos_Filtrado.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        Swal.close();
+        Swal.fire({
+            icon: 'success',
+            title: 'Reporte generado',
+            text: 'La descarga ha comenzado.',
+            toast: true,
+            position: 'top-end',
+            timer: 3000,
+            showConfirmButton: false
+        });
+
+        bootstrap.Modal.getInstance(document.getElementById('modalFiltrosExcel')).hide();
+
+    } catch (error) {
+        Swal.close();
+        Swal.fire('Error', error.message, 'error');
+    }
+}

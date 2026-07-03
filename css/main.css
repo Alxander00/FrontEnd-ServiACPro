@@ -505,3 +505,27 @@ body.dark-mode footer {
     font-weight: 500;
     font-size: 0.9rem;
 }
+
+/* ===== NAVBAR - ALINEACIÓN CORRECTA ===== */
+#authButtons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+#notificacionesContainer {
+    display: inline-block;
+    margin-right: 4px;
+}
+#darkModeToggle {
+    margin-right: 4px;
+}
+.navbar .d-flex.align-items-center {
+    flex-wrap: nowrap;
+}
+@media (max-width: 992px) {
+    .navbar .d-flex.align-items-center {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+}

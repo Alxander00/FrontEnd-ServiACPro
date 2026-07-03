@@ -1,19 +1,14 @@
 // js/api.js
 
-// ==========================================
-// DETECCIÓN AUTOMÁTICA DEL ENTORNO
-// ==========================================
 const getApiUrl = () => {
-    // Si estamos en localhost (Live Server, VS Code, etc.)
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         return 'http://localhost:8080';
     }
-    // Si estamos en Netlify o cualquier otro dominio de producción
     return 'https://servi-a-c-pro.onrender.com';
 };
 
 const API_URL = getApiUrl();
-console.log('🌐 API_URL:', API_URL); // Para depuración
+console.log('🌐 API_URL:', API_URL);
 
 const API = {
     getToken() {
@@ -34,16 +29,26 @@ const API = {
         const config = { ...options, headers };
 
         try {
-            const response = await fetch(`${API_URL}${endpoint}`, config);
+            let response = await fetch(`${API_URL}${endpoint}`, config);
 
-            // Si el servidor responde con 401 (No autorizado), redirigir al login
+            // Si el token expiró (401), intentar renovar
             if (response.status === 401) {
-                localStorage.removeItem('climapro_user');
-                localStorage.removeItem('climapro_token');
-                if (!window.location.pathname.includes('login.html')) {
-                    window.location.href = 'login.html';
+                try {
+                    const newToken = await Auth.refreshAccessToken();
+                    // Reintentar la petición con el nuevo token
+                    headers['Authorization'] = `Bearer ${newToken}`;
+                    config.headers = headers;
+                    response = await fetch(`${API_URL}${endpoint}`, config);
+                } catch (refreshError) {
+                    // Si falla la renovación, redirigir al login
+                    localStorage.removeItem('climapro_user');
+                    localStorage.removeItem('climapro_token');
+                    localStorage.removeItem('climapro_refresh_token');
+                    if (!window.location.pathname.includes('login.html')) {
+                        window.location.href = 'login.html';
+                    }
+                    throw new Error('Sesión expirada. Inicia sesión nuevamente.');
                 }
-                throw new Error('Sesión expirada. Inicia sesión nuevamente.');
             }
 
             if (!response.ok) {
