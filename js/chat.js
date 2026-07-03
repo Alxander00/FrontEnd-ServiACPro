@@ -63,7 +63,7 @@ const Chat = (() => {
         stompClient.connect({ 'Authorization': `Bearer ${token}` }, (frame) => {
             console.log('🔗 Conectado al WebSocket de chat');
 
-            // 👇 AQUÍ ESTÁ EL CAMBIO: Ya no usamos el ID del usuario en la URL 👇
+            // Suscripción genérica para recibir los mensajes enrutados por Spring Boot
             stompClient.subscribe(`/user/queue/messages`, (message) => {
                 console.log('📩 Mensaje recibido:', message.body);
                 const msg = JSON.parse(message.body);
@@ -72,10 +72,20 @@ const Chat = (() => {
                 }
             });
 
-            // Lo mismo para las notificaciones
+            // Suscripción a las notificaciones y encendido del "Puntito Rojo"
             stompClient.subscribe(`/user/queue/notifications`, (notification) => {
                 const notif = JSON.parse(notification.body);
+                
+                // 1. Mostrar la alerta flotante (Toast)
                 mostrarNotificacion(notif);
+
+                // 2. Encender la burbuja roja en el botón de chat correspondiente
+                if (notif.idCita) {
+                    const badge = document.getElementById(`badge-chat-${notif.idCita}`);
+                    if (badge) {
+                        badge.style.display = 'inline-block';
+                    }
+                }
             });
         }, (error) => {
             console.error('❌ Error en WebSocket:', error);

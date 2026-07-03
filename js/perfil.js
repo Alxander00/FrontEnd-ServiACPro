@@ -550,36 +550,69 @@ async function mostrarSeccion(seccion) {
                     ? `<button class="btn-archive-individual" onclick="ocultarItem('citas', ${cita.idCita})" title="Archivar individual"><i class="fas fa-archive"></i></button>`
                     : '';
 
-                // 2. Declaramos el botón de chat
+                // 1. Rediseñamos el botón de Chat para incluir la burbuja de notificación roja (oculta por defecto)
                 const btnChat = (!esFinalizado && cita.idTecnico)
-                    ? `<button class="btn-detalle text-primary" style="border-color: #0d6efd; background-color: #e9ecef;" onclick="abrirChatConTecnico(${cita.idTecnico}, '${cita.nombreTecnico}')" title="Chatear con técnico"><i class="fas fa-comment-dots"></i></button>`
+                    ? `<button class="btn btn-outline-primary btn-sm position-relative fw-bold rounded-pill px-3" 
+                            onclick="abrirChatConTecnico(${cita.idTecnico}, '${cita.nombreTecnico}')">
+                        <i class="fas fa-comment-dots me-1"></i> Chat
+                        <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle" 
+                                id="badge-chat-${cita.idCita}" style="display: none;">
+                            <span class="visually-hidden">Mensajes nuevos</span>
+                        </span>
+                    </button>`
                     : '';
 
+                // 2. Nuevo diseño de la tarjeta (Más espacio, mejor jerarquía)
                 html += `
-                    <div class="list-card">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div class="form-check">
-                                    <input class="form-check-input select-item" type="checkbox" value="${cita.idCita}" data-tipo="citas" id="cita_${cita.idCita}" ${!esFinalizado ? 'disabled' : ''}>
-                                    <label class="form-check-label" for="cita_${cita.idCita}">Cita #${cita.idCita}</label>
+                    <div class="card border-0 shadow-sm mb-3 cita-card-premium transition-hover">
+                        <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="bg-light rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-tools text-primary"></i>
                                 </div>
-                                <span class="badge-status bg-${badgeClass}">${cita.estado}</span>
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-dark">Cita #${cita.idCita}</h6>
+                                    <small class="text-muted">${formatearFecha(cita.fechaInicio)}</small>
+                                </div>
                             </div>
-                            <div class="card-info-line">
-                                <i class="fas fa-user-cog text-info"></i>
-                                <span><strong>Técnico:</strong> ${cita.nombreTecnico}</span>
+                            <span class="badge bg-${badgeClass} bg-opacity-10 text-${badgeClass} px-3 py-2 rounded-pill fw-bold border border-${badgeClass} border-opacity-25">
+                                ${cita.estado}
+                            </span>
+                        </div>
+                        
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <i class="fas fa-user-cog text-info mt-1"></i>
+                                        <div>
+                                            <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Técnico Asignado</small>
+                                            <span class="fw-semibold text-dark">${cita.nombreTecnico || 'Pendiente de asignación'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <i class="fas fa-map-marker-alt text-danger mt-1"></i>
+                                        <div>
+                                            <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Ubicación</small>
+                                            <span class="text-dark small">${cita.direccionCliente || 'No especificada'}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="card-info-line">
-                                <i class="fas fa-clock text-primary"></i>
-                                <span>${formatearFecha(cita.fechaInicio)}</span>
+                        </div>
+                        
+                        <div class="card-footer bg-white border-top-0 pb-3 pt-0 d-flex justify-content-between align-items-center">
+                            <div class="form-check">
+                                <input class="form-check-input select-item" type="checkbox" value="${cita.idCita}" data-tipo="citas" id="cita_${cita.idCita}" ${!esFinalizado ? 'disabled' : ''}>
                             </div>
-                            <div class="card-info-line">
-                                <i class="fas fa-map-marker-alt text-danger"></i>
-                                <span>${cita.direccionCliente || 'No especificada'}</span>
-                            </div>
-                            <div class="d-flex justify-content-end mt-2 gap-1">
-                                <button class="btn-detalle" onclick="verDetalle('citas', ${cita.idCita})" title="Ver detalles"><i class="fas fa-eye"></i></button>
-                                ${btnChat} ${btnArchivar}
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-light btn-sm text-secondary rounded-pill px-3 fw-bold border" onclick="verDetalle('citas', ${cita.idCita})" title="Ver detalles completos">
+                                    <i class="fas fa-eye me-1"></i> Detalles
+                                </button>
+                                ${btnChat}
+                                ${btnArchivar}
                             </div>
                         </div>
                     </div>
