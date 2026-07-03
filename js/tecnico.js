@@ -309,13 +309,42 @@ async function guardarEstadoCita(event) {
         const inputAntes = document.getElementById('fotoAntes');
         const inputDespues = document.getElementById('fotoDespues');
         
+        // Validar firma
         if (isCanvasEmpty(canvas)) {
             Swal.fire('Firma Requerida', 'El cliente debe firmar la pantalla.', 'warning');
             btn.disabled = false; btn.innerHTML = txtOriginal; return;
         }
+
+        // ✅ Validar tamaño de la firma (máx 1MB)
+        const firmaBase64 = canvas.toDataURL('image/png');
+        const firmaSizeBytes = Math.round((firmaBase64.length * 3) / 4);
+        if (firmaSizeBytes > 1024 * 1024) { // 1MB
+            Swal.fire('Firma demasiado grande', 'La firma pesa más de 1MB. Intenta firmar con trazos más finos.', 'warning');
+            btn.disabled = false; btn.innerHTML = txtOriginal;
+            return;
+        }
+
+        // Validar fotos del "Después"
         if (inputDespues.files.length === 0) {
             Swal.fire('Evidencia Incompleta', 'Por favor sube al menos una foto de cómo quedó el trabajo.', 'warning');
             btn.disabled = false; btn.innerHTML = txtOriginal; return;
+        }
+
+        // ✅ Validar tamaño de cada foto (máx 5MB por foto)
+        const maxFotoSize = 5 * 1024 * 1024; // 5MB
+        for (let i = 0; i < inputDespues.files.length; i++) {
+            if (inputDespues.files[i].size > maxFotoSize) {
+                Swal.fire('Foto demasiado grande', `La foto "${inputDespues.files[i].name}" supera los 5MB.`, 'warning');
+                btn.disabled = false; btn.innerHTML = txtOriginal;
+                return;
+            }
+        }
+        for (let i = 0; i < inputAntes.files.length; i++) {
+            if (inputAntes.files[i].size > maxFotoSize) {
+                Swal.fire('Foto demasiado grande', `La foto "${inputAntes.files[i].name}" supera los 5MB.`, 'warning');
+                btn.disabled = false; btn.innerHTML = txtOriginal;
+                return;
+            }
         }
         
         // Agregar múltiples fotos del "Antes"
@@ -328,10 +357,10 @@ async function guardarEstadoCita(event) {
             formData.append('fotosDespues', inputDespues.files[i]);
         }
         
-        // Transformar la firma a imagen base64 y agregarla
-        const firmaBase64 = canvas.toDataURL('image/png');
+        // Agregar la firma (ya validada)
         formData.append('firma', firmaBase64);
 
+        // Procesar repuestos
         const repuestosArray = [];
         document.querySelectorAll('.repuesto-item').forEach(fila => {
             const idReq = fila.querySelector('.select-repuesto').value;
@@ -341,22 +370,19 @@ async function guardarEstadoCita(event) {
             }
         });
         
-        // Empacar como JSON en el FormData
         if (repuestosArray.length > 0) {
             formData.append('repuestos', JSON.stringify(repuestosArray));
         }
     }
 
     try {
-        // 1. Detectar si estamos en local o en producción
+        // Detectar entorno
         const BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
             ? 'http://localhost:8080' 
             : 'https://servi-a-c-pro.onrender.com';
 
-        // 2. Obtener el token de seguridad guardado en el navegador
         const token = Auth.getToken();
 
-        // 3. Hacer la petición fetch incluyéndole el token en los Headers
         const response = await fetch(`${BASE_URL}/api/citas/${idCita}/reporte`, {
             method: 'POST',
             headers: {

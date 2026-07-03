@@ -16,6 +16,7 @@ const contentDiv = document.getElementById('dynamicContent');
 let bsModalProducto = null;
 let bsModalCategoria = null;
 let categoriasCargadas = false;
+let currentImageUrls = []; // 👈 Nuevo
 
 const formatearFecha = (fechaString) => {
     const opciones = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
@@ -33,6 +34,50 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('categoriaForm').addEventListener('submit', guardarCategoriaEdicion);
     document.getElementById('repuestoForm').addEventListener('submit', guardarRepuesto);
 
+    // Previsualización de imágenes seleccionadas
+    document.getElementById('prodImagenes').addEventListener('change', function(e) {
+        const previewContainer = document.getElementById('nuevasImagenesPreview');
+        previewContainer.innerHTML = '';
+        const files = this.files;
+
+        if (files.length === 0) {
+            previewContainer.style.display = 'none';
+            return;
+        }
+
+        previewContainer.style.display = 'flex';
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const div = document.createElement('div');
+                div.className = 'position-relative';
+                div.style.width = '100px';
+                div.style.height = '100px';
+                div.style.borderRadius = '8px';
+                div.style.overflow = 'hidden';
+                div.style.border = '1px solid #e9edf4';
+                div.innerHTML = `
+                    <img src="${ev.target.result}" class="w-100 h-100" style="object-fit: cover;" alt="Vista previa">
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle" 
+                            style="width: 22px; height: 22px; padding: 0; font-size: 12px; line-height: 1;" 
+                            onclick="eliminarImagenSeleccionada(this, ${i})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                previewContainer.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Limpiar previsualización al cerrar el modal
+    document.getElementById('productoModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('prodImagenes').value = '';
+        document.getElementById('nuevasImagenesPreview').innerHTML = '';
+        document.getElementById('nuevasImagenesPreview').style.display = 'none';
+    });
+
     loadPage('dashboard');
     actualizarContadoresAdmin();
 
@@ -45,6 +90,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// ===== ELIMINAR UNA IMAGEN DE LA SELECCIÓN (nuevas) =====
+window.eliminarImagenSeleccionada = function(btn, index) {
+    const input = document.getElementById('prodImagenes');
+    const dt = new DataTransfer();
+    const files = input.files;
+
+    for (let i = 0; i < files.length; i++) {
+        if (i !== index) dt.items.add(files[i]);
+    }
+    input.files = dt.files;
+
+    input.dispatchEvent(new Event('change'));
+};
+
+// ===== ELIMINAR UNA IMAGEN EXISTENTE (de las que tiene el producto) =====
+window.eliminarImagenExistente = function(index) {
+    currentImageUrls.splice(index, 1);
+    mostrarImagenesActuales(currentImageUrls);
+    if (currentImageUrls.length === 0) {
+        document.getElementById('currentImagesContainer').style.display = 'none';
+    }
+};
 
 function loadPage(page) {
     const titles = {
@@ -136,7 +204,7 @@ async function renderProductos() {
                                         <td class="fw-bold text-dark fs-5">$${p.precio.toFixed(2)}</td>
                                         <td><span class="badge ${p.stock > 5 ? 'bg-success' : (p.stock > 0 ? 'bg-warning' : 'bg-danger')} bg-opacity-10 text-${p.stock > 5 ? 'success' : (p.stock > 0 ? 'warning text-dark' : 'danger')} border-0 px-3 py-2"><i class="fas ${p.stock > 5 ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-1"></i> ${p.stock} unid.</span></td>
                                         <td class="text-end pe-4">
-                                            <button class="btn btn-sm btn-light text-primary me-2 shadow-sm" onclick="editarProducto(${p.idProducto})" title="Editar"><i class="fas fa-edit"></i></button>
+                                            <button class="btn btn-sm btn-light text-primary me-2 shadow-sm" onclick="openProductoModal(${p.idProducto})" title="Editar"><i class="fas fa-edit"></i></button>
                                             <button class="btn btn-sm btn-light text-danger shadow-sm" onclick="eliminarProducto(${p.idProducto})" title="Eliminar"><i class="fas fa-trash"></i></button>
                                         </td>
                                     </tr>`).join('')}
@@ -152,21 +220,31 @@ async function renderProductos() {
     }
 }
 
-// ABRIR MODAL PRODUCTO
+// ==========================================
+// ABRIR MODAL PRODUCTO (CON IMÁGENES)
+// ==========================================
 async function openProductoModal(id = null) {
     document.getElementById('productoForm').reset();
     document.getElementById('productoId').value = '';
     document.getElementById('modalTitle').textContent = 'Agregar Equipo';
+    document.getElementById('currentImagesContainer').style.display = 'none';
+    document.getElementById('prodImagenes').value = '';
+    document.getElementById('nuevasImagenesPreview').innerHTML = '';
+    document.getElementById('nuevasImagenesPreview').style.display = 'none';
+    currentImageUrls = [];
+
     if (!categoriasCargadas) await cargarCategoriasEnSelect();
 
     if (id) {
         try {
             const prod = await API.Productos.obtenerPorId(id);
-            document.getElementById('prodNombre').value = prod.nombre;
-            document.getElementById('prodPrecio').value = prod.precio;
-            document.getElementById('prodBTU').value = prod.capacidadBTU;
-            document.getElementById('prodStock').value = prod.stock;
-            document.getElementById('prodCategoria').value = prod.idCategoria;
+
+            document.getElementById('prodNombre').value = prod.nombre || '';
+            document.getElementById('prodPrecio').value = prod.precio || '';
+            document.getElementById('prodBTU').value = prod.capacidadBTU || '';
+            document.getElementById('prodStock').value = prod.stock || 0;
+            document.getElementById('prodCategoria').value = prod.idCategoria || '';
+
             const desc = prod.descripcion || '';
             const marcaMatch = desc.match(/Marca: ([^-]+)-(.*)/);
             if (marcaMatch) {
@@ -176,8 +254,14 @@ async function openProductoModal(id = null) {
                 document.getElementById('prodMarca').value = prod.marca || '';
                 document.getElementById('prodDescripcion').value = desc;
             }
+
             document.getElementById('productoId').value = prod.idProducto;
             document.getElementById('modalTitle').textContent = 'Modificar Equipo';
+
+            // Guardar URLs actuales y mostrarlas
+            currentImageUrls = prod.imagenesUrls || [];
+            mostrarImagenesActuales(currentImageUrls);
+
         } catch (error) {
             Swal.fire('Error', 'No se pudo cargar el producto', 'error');
             return;
@@ -186,7 +270,34 @@ async function openProductoModal(id = null) {
     bsModalProducto.show();
 }
 
+// ==========================================
+// MOSTRAR IMÁGENES ACTUALES CON BOTÓN ELIMINAR
+// ==========================================
+function mostrarImagenesActuales(imagenes) {
+    const container = document.getElementById('currentImagesContainer');
+    const list = document.getElementById('currentImagesList');
+
+    if (!imagenes || imagenes.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    list.innerHTML = imagenes.map((url, index) => `
+        <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #e9edf4; flex-shrink: 0; position: relative;">
+            <img src="${url}" class="w-100 h-100" style="object-fit: cover;" alt="Imagen del producto">
+            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 rounded-circle" 
+                    style="width: 22px; height: 22px; padding: 0; font-size: 12px; line-height: 1;" 
+                    onclick="eliminarImagenExistente(${index})">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
+// ==========================================
 // CARGAR CATEGORÍAS EN SELECT
+// ==========================================
 async function cargarCategoriasEnSelect() {
     const select = document.getElementById('prodCategoria');
     select.innerHTML = '<option value="">Cargando...</option>';
@@ -200,7 +311,9 @@ async function cargarCategoriasEnSelect() {
     }
 }
 
-// GUARDAR PRODUCTO
+// ==========================================
+// GUARDAR PRODUCTO (CON URLs Y NUEVAS IMÁGENES)
+// ==========================================
 async function guardarProducto(event) {
     event.preventDefault();
     const submitBtn = event.target.querySelector('button[type="submit"]');
@@ -225,15 +338,20 @@ async function guardarProducto(event) {
         precio: parseFloat(document.getElementById('prodPrecio').value),
         capacidadBtu: parseInt(document.getElementById('prodBTU').value) || 0,
         stock: parseInt(document.getElementById('prodStock').value) || 0,
-        idCategoria: categoriaId
+        idCategoria: categoriaId,
+        imagenesUrls: currentImageUrls  // 👈 URLs a mantener
     };
 
     const fileInput = document.getElementById('prodImagenes');
     const formData = new FormData();
     const productoBlob = new Blob([JSON.stringify(payloadTexto)], { type: 'application/json' });
     formData.append('producto', productoBlob);
+
+    // Enviar nuevas imágenes
     if (fileInput.files.length > 0) {
-        formData.append('imagenes', fileInput.files[0]);
+        for (let i = 0; i < fileInput.files.length; i++) {
+            formData.append('imagenes', fileInput.files[i]);
+        }
     }
 
     try {
@@ -261,9 +379,9 @@ async function guardarProducto(event) {
     }
 }
 
-// EDITAR Y ELIMINAR PRODUCTO
-async function editarProducto(id) { openProductoModal(id); }
-
+// ==========================================
+// ELIMINAR PRODUCTO
+// ==========================================
 async function eliminarProducto(id) {
     const result = await Swal.fire({ title: '¿Eliminar equipo?', text: "Esta acción lo borrará del catálogo permanentemente.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, eliminar' });
     if (result.isConfirmed) {
@@ -341,7 +459,7 @@ async function guardarCategoria(event) {
     }
 }
 
-// EDITAR CATEGORÍA (nuevo)
+// EDITAR CATEGORÍA
 function editarCategoria(id, nombre) {
     document.getElementById('categoriaId').value = id;
     document.getElementById('categoriaNombre').value = nombre;
@@ -833,11 +951,9 @@ async function guardarRepuesto(event) {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
     
-    // Verificamos si existe el input oculto y si tiene un ID (para saber si es edición)
     const idInput = document.getElementById('repuestoIdActual');
     const idRepuesto = idInput ? idInput.value : '';
     
-    // Construimos el objeto con los datos, asegurando que el stock sea un número entero
     const payload = {
         nombre: document.getElementById('repNombre').value,
         unidadMedida: document.getElementById('repUnidad').value,
@@ -847,19 +963,16 @@ async function guardarRepuesto(event) {
     
     try {
         if (idRepuesto) {
-            // Si hay ID, es una edición (Actualizamos con PUT)
             await API.request(`/api/repuestos/${idRepuesto}`, { 
                 method: 'PUT', 
                 body: JSON.stringify(payload) 
             });
             Swal.fire({ icon: 'success', title: 'Actualizado', text: 'Material editado correctamente.', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
         } else {
-            // Si no hay ID, es un registro nuevo (Creamos con POST)
             await API.Repuestos.crear(payload);
             Swal.fire({ icon: 'success', title: 'Registrado', text: 'Nuevo material en almacén.', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
         }
         
-        // Cerramos el modal y recargamos la tabla
         bootstrap.Modal.getInstance(document.getElementById('repuestoModal')).hide();
         renderInventario();
     } catch (error) {

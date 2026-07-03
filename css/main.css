@@ -349,3 +349,159 @@ body.dark-mode footer {
     background-color: #0a0a0a !important;
     border-top: 1px solid #333 !important;
 }
+
+/* ===== MODAL DE DETALLES - DISEÑO PREMIUM ===== */
+
+#modalDetalle .modal-content {
+    border-radius: 32px !important;
+    overflow: hidden;
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Carrusel */
+#modalDetalle .carousel-item img {
+    min-height: 500px;
+    max-height: 600px;
+    object-fit: contain;
+    padding: 20px;
+    background: transparent;
+}
+
+#modalDetalle .carousel-control-prev,
+#modalDetalle .carousel-control-next {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(12px);
+    border-radius: 50%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+#modalDetalle .carousel-control-prev:hover,
+#modalDetalle .carousel-control-next:hover {
+    background: rgba(255, 255, 255, 0.7);
+    transform: translateY(-50%) scale(1.08);
+}
+
+#modalDetalle .carousel-control-prev {
+    left: 20px;
+}
+
+#modalDetalle .carousel-control-next {
+    right: 20px;
+}
+
+/* Badge de estado en la imagen */
+#modalBadgeEstado {
+    animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+}
+
+/* Botón de cerrar */
+#modalDetalle .btn-close {
+    transition: all 0.3s ease;
+}
+
+#modalDetalle .btn-close:hover {
+    transform: rotate(90deg);
+}
+
+/* Botón principal */
+#modalDetalle .btn-primary {
+    background: linear-gradient(145deg, #0d6efd, #0a58ca);
+    border: none;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+#modalDetalle .btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(13, 110, 253, 0.35);
+}
+
+#modalDetalle .btn-primary:disabled {
+    background: #adb5bd;
+    transform: none;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+/* Botón WhatsApp */
+#modalDetalle .btn-success {
+    background: linear-gradient(145deg, #25d366, #128C7E);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+#modalDetalle .btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(37, 211, 102, 0.3);
+}
+
+/* Scroll para reseñas */
+#resenasContainer::-webkit-scrollbar {
+    width: 4px;
+}
+
+#resenasContainer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+#resenasContainer::-webkit-scrollbar-thumb {
+    background: #0d6efd;
+    border-radius: 10px;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+    #modalDetalle .carousel-item img {
+        min-height: 320px;
+        max-height: 420px;
+    }
+    #productoCarousel {
+        min-height: 320px;
+    }
+    .display-4 {
+        font-size: 2.5rem !important;
+    }
+    #modalDetalle .p-4.p-lg-5 {
+        padding: 1.5rem !important;
+    }
+}
+
+@media (max-width: 576px) {
+    #modalDetalle .carousel-item img {
+        min-height: 220px;
+        max-height: 300px;
+    }
+    #productoCarousel {
+        min-height: 220px;
+    }
+    .display-4 {
+        font-size: 2rem !important;
+    }
+    #modalDetalle .p-4.p-lg-5 {
+        padding: 1.2rem !important;
+    }
+}
+
+/* Estilo para el badge de stock en la información */
+#modalStockBadgeInfo {
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+#modalStockCantidadInfo {
+    font-weight: 500;
+    font-size: 0.9rem;
+}

@@ -196,23 +196,29 @@ function renderizarProductos() {
         const badgeVendido = (prod.totalVendido && prod.totalVendido > 0) ? 
             `<span class="position-absolute top-0 start-0 m-2 badge bg-success">⭐ Más vendido</span>` : '';
 
+        // ✅ Card clickeable: onclick en toda la card
         const botonCarritoHTML = esClienteOInvitado 
-            ? `<button class="btn btn-primary" onclick="verDetalles(${prod.idProducto})"><i class="fas fa-cart-plus"></i></button>`
+            ? `<button class="btn btn-primary w-100" onclick="event.stopPropagation(); agregarAlCarrito(${prod.idProducto})"><i class="fas fa-cart-plus me-2"></i>Agregar</button>`
+            : '';
+
+        // Badge agotado en la card (pequeño)
+        const badgeStock = prod.stock <= 0 
+            ? `<span class="position-absolute top-0 end-0 m-2 badge bg-danger">Agotado</span>` 
             : '';
 
         col.innerHTML = `
-            <div class="card h-100 border-0 shadow-sm product-card">
+            <div class="card h-100 border-0 shadow-sm product-card" style="cursor: pointer;" onclick="verDetalles(${prod.idProducto})">
                 <div class="position-relative">
                     ${badgeVendido}
+                    ${badgeStock}
                     <img src="${imgUrl}" class="card-img-top p-3 bg-light" alt="${prod.nombre}" style="height: 200px; object-fit: contain;">
-                    <span class="position-absolute top-0 end-0 m-3 badge bg-primary">${prod.capacidadBTU} BTU</span>
+                    <span class="position-absolute bottom-0 end-0 m-2 badge bg-primary">${prod.capacidadBTU} BTU</span>
                 </div>
                 <div class="card-body d-flex flex-column">
                     <span class="text-info fw-bold small text-uppercase">${prod.nombreCategoria || 'Equipo'}</span>
                     <h5 class="card-title fw-bold text-dark mb-2">${prod.nombre}</h5>
                     <h4 class="text-primary fw-bold mb-3">$${prod.precio.toFixed(2)}</h4>
-                    <div class="mt-auto d-flex gap-2">
-                        <button class="btn btn-outline-primary w-100" onclick="verDetalles(${prod.idProducto})">Detalles</button>
+                    <div class="mt-auto">
                         ${botonCarritoHTML}
                     </div>
                 </div>
@@ -228,45 +234,104 @@ window.verDetalles = async function(id) {
     if (!prod) return;
     productoActual = prod;
 
+    // ===== 1. CARGAR IMÁGENES EN EL CARRUSEL =====
     const carouselInner = document.getElementById('modalCarouselInner');
     carouselInner.innerHTML = '';
+    
     if (prod.imagenesUrls && prod.imagenesUrls.length > 0) {
         prod.imagenesUrls.forEach((url, index) => {
             const isActive = index === 0 ? 'active' : '';
             const div = document.createElement('div');
             div.className = `carousel-item ${isActive}`;
-            div.innerHTML = `<img src="${url}" class="d-block w-100" style="height: 250px; object-fit: contain;">`;
+            div.innerHTML = `<img src="${url}" class="d-block w-100" alt="${prod.nombre}" loading="lazy">`;
             carouselInner.appendChild(div);
         });
     } else {
-        carouselInner.innerHTML = `<div class="carousel-item active"><img src="./img/breezeless_ambiente.png" class="d-block w-100" style="height: 250px; object-fit: contain;"></div>`;
+        carouselInner.innerHTML = `
+            <div class="carousel-item active">
+                <img src="./img/breezeless_ambiente.png" class="d-block w-100" alt="${prod.nombre}" loading="lazy">
+            </div>
+        `;
     }
+    
+    // Reiniciar carrusel
     const carouselElement = document.getElementById('productoCarousel');
-    if (carouselElement) new bootstrap.Carousel(carouselElement);
+    if (carouselElement) {
+        const bsCarousel = bootstrap.Carousel.getInstance(carouselElement);
+        if (bsCarousel) bsCarousel.dispose();
+        new bootstrap.Carousel(carouselElement);
+    }
 
-    document.getElementById('modalCategoria').textContent = prod.nombreCategoria;
+    // ===== 2. DATOS BÁSICOS =====
+    document.getElementById('modalCategoria').textContent = prod.nombreCategoria || 'Equipo';
     document.getElementById('modalTitulo').textContent = prod.nombre;
     document.getElementById('modalDescripcion').textContent = prod.descripcion || "Sin descripción disponible.";
     document.getElementById('modalPrecio').textContent = `$${prod.precio.toFixed(2)}`;
     document.getElementById('modalBTU').textContent = `${prod.capacidadBTU} BTU`;
-    
     document.getElementById('modalMarca').textContent = prod.marca || "ServiA/CPro";
     document.getElementById('modalGarantia').textContent = "1 año";
-    
-    document.getElementById('modalStock').textContent = prod.stock > 0 ? `${prod.stock} unidades` : 'Agotado';
-    document.getElementById('modalStock').className = prod.stock > 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
 
+    // ===== 3. STOCK (EN IMAGEN + EN INFORMACIÓN) =====
+    // Elementos en la imagen (barra inferior)
+    const stockEl = document.getElementById('modalStockImagen');
+    const stockBadgeImagen = document.getElementById('modalStockBadgeImagen');
+    
+    // Elementos en la sección de información
+    const stockBadgeInfo = document.getElementById('modalStockBadgeInfo');
+    const stockCantidadInfo = document.getElementById('modalStockCantidadInfo');
+
+    if (prod.stock > 0) {
+        // === IMAGEN ===
+        stockEl.textContent = `${prod.stock} unidades disponibles`;
+        stockEl.style.color = '#198754';
+        stockBadgeImagen.className = 'badge bg-success px-4 py-2 rounded-pill fs-6';
+        stockBadgeImagen.innerHTML = `<i class="fas fa-check-circle me-1"></i> En stock`;
+        
+        // === INFORMACIÓN ===
+        stockBadgeInfo.className = 'badge bg-success px-4 py-2 rounded-pill fs-6';
+        stockBadgeInfo.innerHTML = `<i class="fas fa-check-circle me-1"></i> En stock`;
+        stockCantidadInfo.textContent = `(${prod.stock} unidades)`;
+        stockCantidadInfo.style.color = '#198754';
+    } else {
+        // === IMAGEN ===
+        stockEl.textContent = 'Sin stock disponible';
+        stockEl.style.color = '#dc3545';
+        stockBadgeImagen.className = 'badge bg-danger px-4 py-2 rounded-pill fs-6';
+        stockBadgeImagen.innerHTML = `<i class="fas fa-times-circle me-1"></i> Agotado`;
+        
+        // === INFORMACIÓN ===
+        stockBadgeInfo.className = 'badge bg-danger px-4 py-2 rounded-pill fs-6';
+        stockBadgeInfo.innerHTML = `<i class="fas fa-times-circle me-1"></i> Agotado`;
+        stockCantidadInfo.textContent = '(0 unidades)';
+        stockCantidadInfo.style.color = '#dc3545';
+    }
+
+    // ===== 4. BOTÓN AÑADIR AL CARRITO =====
+    const btnAddCart = document.getElementById('modalAddCart');
+    if (prod.stock <= 0) {
+        btnAddCart.disabled = true;
+        btnAddCart.innerHTML = '<i class="fas fa-times-circle me-2"></i>Agotado';
+        btnAddCart.className = 'btn btn-secondary fw-bold py-3 rounded-pill shadow-sm';
+    } else {
+        btnAddCart.disabled = false;
+        btnAddCart.innerHTML = '<i class="fas fa-cart-plus me-2"></i>Añadir al Carrito';
+        btnAddCart.className = 'btn btn-primary fw-bold py-3 rounded-pill shadow-sm';
+    }
+
+    // ===== 5. RESETEAR CHECKBOX DE INSTALACIÓN =====
     const chk = document.getElementById('checkboxInstalacion');
     if (chk) chk.checked = false;
 
+    // ===== 6. CARGAR RESEÑAS =====
     const resenasContainer = document.getElementById('resenasContainer');
-    resenasContainer.innerHTML = '<p class="text-muted">Cargando valoraciones...</p>';
+    resenasContainer.innerHTML = '<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary" role="status"></div></div>';
     document.getElementById('formResenaSection').style.display = 'none';
     document.getElementById('avisoResena').innerHTML = '';
     calificacionSeleccionada = 0;
 
     await cargarResenas(prod.idProducto);
-    
+
+    // ===== 7. MOSTRAR MODAL =====
     bsModalDetalle.show();
 };
 
@@ -276,45 +341,71 @@ async function cargarResenas(productoId) {
             API.Resenas.obtenerEstadisticas(productoId),
             API.Resenas.listarPorProducto(productoId)
         ]);
+
         const promedio = estadisticas.promedio || 0;
         const total = estadisticas.total || 0;
         const starsHtml = generarEstrellas(promedio);
-        document.getElementById('promedioResenas').innerHTML = `${starsHtml} <span class="small text-muted">(${total} valoraciones)</span>`;
+
+        const textoPromedio = `${starsHtml} <span class="text-muted small">(${total} valoraciones)</span>`;
+        document.getElementById('promedioResenas').innerHTML = textoPromedio;
+        document.getElementById('promedioResenasDetalle').innerHTML = textoPromedio;
 
         const container = document.getElementById('resenasContainer');
-        if (!listaResenas.length) {
-            container.innerHTML = '<p class="text-muted">No hay reseñas aún. Sé el primero en opinar.</p>';
+        if (!listaResenas || listaResenas.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-3 text-muted">
+                    <i class="fas fa-comment-slash fa-2x mb-2 opacity-25"></i>
+                    <p class="small mb-0">No hay reseñas aún.<br>Sé el primero en opinar.</p>
+                </div>
+            `;
         } else {
             container.innerHTML = listaResenas.map(r => `
-                <div class="border-bottom pb-2 mb-2">
-                    <div class="d-flex justify-content-between">
-                        <strong>${r.nombreUsuario}</strong>
-                        <small class="text-muted">${new Date(r.fecha).toLocaleDateString()}</small>
+                <div class="d-flex align-items-start gap-2 border-bottom pb-2 mb-2">
+                    <div class="bg-primary bg-opacity-10 rounded-circle p-2" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <span class="fw-bold text-primary small">${(r.nombreUsuario || 'U').charAt(0).toUpperCase()}</span>
                     </div>
-                    <div>${generarEstrellas(r.calificacion)}</div>
-                    <p class="small mt-1">${r.comentario}</p>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong class="small">${r.nombreUsuario || 'Usuario'}</strong>
+                            <small class="text-muted" style="font-size: 0.65rem;">${new Date(r.fecha).toLocaleDateString()}</small>
+                        </div>
+                        <div class="small">${generarEstrellas(r.calificacion)}</div>
+                        <p class="small text-muted mt-1 mb-0">${r.comentario || 'Sin comentario.'}</p>
+                    </div>
                 </div>
             `).join('');
         }
 
+        // Verificar si el usuario puede reseñar
         const user = Auth.getUser();
         if (user && user.rol === 'CLIENTE') {
-            const puede = await API.Resenas.puedeResenar(productoId, user.idUsuario);
-            if (puede) {
-                const yaResenado = listaResenas.some(r => r.idUsuario === user.idUsuario);
-                if (!yaResenado) {
-                    document.getElementById('formResenaSection').style.display = 'block';
-                    initStarSelector();
+            try {
+                const puede = await API.Resenas.puedeResenar(productoId, user.idUsuario);
+                if (puede) {
+                    const yaResenado = listaResenas.some(r => r.idUsuario === user.idUsuario);
+                    if (!yaResenado) {
+                        document.getElementById('formResenaSection').style.display = 'block';
+                        initStarSelector();
+                        document.getElementById('avisoResena').innerHTML = '';
+                    } else {
+                        document.getElementById('avisoResena').innerHTML = '✅ Ya has valorado este producto. ¡Gracias!';
+                    }
                 } else {
-                    document.getElementById('avisoResena').innerHTML = 'Ya has valorado este producto. ¡Gracias por tu opinión!';
+                    document.getElementById('avisoResena').innerHTML = '🔒 Debes comprar este producto para opinar.';
                 }
-            } else {
-                document.getElementById('avisoResena').innerHTML = 'Para opinar debes haber comprado y recibido este producto.';
+            } catch (error) {
+                console.error('Error al verificar permiso para reseñar:', error);
+                document.getElementById('avisoResena').innerHTML = '⚠️ Error al verificar permisos.';
             }
         }
     } catch (error) {
         console.error('Error al cargar reseñas:', error);
-        document.getElementById('resenasContainer').innerHTML = '<p class="text-danger">Error al cargar las valoraciones</p>';
+        document.getElementById('resenasContainer').innerHTML = `
+            <div class="text-center py-3 text-danger">
+                <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+                <p class="small mb-0">Error al cargar las valoraciones</p>
+            </div>
+        `;
     }
 }
 
@@ -390,19 +481,62 @@ document.getElementById('modalAddCart').addEventListener('click', () => {
     }
 });
 
-window.agregarAlCarrito = function(id, incluyeInstalacion = false) {
+window.agregarAlCarrito = async function(id, incluyeInstalacion = false) {
+    // 1. Verificar autenticación
     if (!Auth.requireAuth('login.html')) return;
     const user = Auth.getUser();
     if (user && user.rol !== 'CLIENTE') {
         Swal.fire({ icon: 'error', title: 'Acción denegada', text: 'Tu cuenta no puede realizar compras.', confirmButtonColor: '#dc3545' });
         return;
     }
+
+    // 2. ✅ Consultar stock disponible
+    try {
+        const stock = await API.Productos.stockDisponible(id);
+        if (stock <= 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Producto agotado',
+                text: 'Lo sentimos, este producto no tiene stock disponible.',
+                confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+    } catch (error) {
+        console.error('Error al consultar stock:', error);
+        Swal.fire({
+            icon: 'warning',
+            title: 'Error de conexión',
+            text: 'No pudimos verificar el stock. Intenta de nuevo.',
+            confirmButtonColor: '#0d6efd'
+        });
+        return;
+    }
+
+    // 3. Buscar el producto y agregar al carrito
     const prod = productosData.find(p => p.idProducto === id);
     if (!prod) return;
+    
     let imgUrl = "./img/breezeless_ambiente.png";
     if (prod.imagenesUrls && prod.imagenesUrls.length > 0) imgUrl = prod.imagenesUrls[0];
-    Carrito.addItem({ id: prod.idProducto, nombre: prod.nombre, precio: prod.precio, imagen: imgUrl, incluyeInstalacion });
-    Swal.fire({ icon: 'success', title: '¡Agregado!', text: `"${prod.nombre}" ${incluyeInstalacion ? 'con instalación' : 'solo equipo'} añadido.`, toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+    
+    Carrito.addItem({ 
+        id: prod.idProducto, 
+        nombre: prod.nombre, 
+        precio: prod.precio, 
+        imagen: imgUrl, 
+        incluyeInstalacion 
+    });
+    
+    Swal.fire({
+        icon: 'success',
+        title: '¡Agregado!',
+        text: `"${prod.nombre}" ${incluyeInstalacion ? 'con instalación' : 'solo equipo'} añadido.`,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2000
+    });
     bsModalDetalle.hide();
 };
 

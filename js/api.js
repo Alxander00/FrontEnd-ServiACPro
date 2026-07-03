@@ -64,7 +64,8 @@ const API = {
         crear(data) { return API.request('/productos', { method: 'POST', body: JSON.stringify(data) }); },
         actualizar(id, data) { return API.request(`/productos/${id}`, { method: 'PUT', body: JSON.stringify(data) }); },
         eliminar(id) { return API.request(`/productos/${id}`, { method: 'DELETE' }); },
-        listarPopulares() { return API.request('/productos/populares'); }
+        listarPopulares() { return API.request('/productos/populares'); },
+        stockDisponible(id) { return API.request(`/productos/${id}/stock`); }
     },
 
     Usuarios: {

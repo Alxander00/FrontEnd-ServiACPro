@@ -75,7 +75,7 @@
     </div>
 </div>
 
-<!-- ===== MODAL PRODUCTO ===== -->
+<!-- ===== MODAL PRODUCTO (CON IMÁGENES ACTUALES) ===== -->
 <div class="modal fade" id="productoModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
@@ -93,7 +93,21 @@
                         <div class="col-md-6"><label class="form-label fw-bold">Precio ($)</label><input type="number" class="form-control" id="prodPrecio" step="0.01" required /></div>
                         <div class="col-md-6"><label class="form-label fw-bold">BTU</label><input type="number" class="form-control" id="prodBTU" /></div>
                         <div class="col-md-6"><label class="form-label fw-bold">Stock</label><input type="number" class="form-control" id="prodStock" value="10" /></div>
-                        <div class="col-12"><label class="form-label fw-bold">Imagen (opcional)</label><input type="file" class="form-control" id="prodImagenes" accept="image/*" /><small class="text-muted">Selecciona una imagen (JPG, PNG, WEBP).</small></div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Imágenes (puedes seleccionar varias)</label>
+                            <input type="file" class="form-control" id="prodImagenes" accept="image/*" multiple />
+                            <small class="text-muted">Selecciona una o más imágenes (JPG, PNG, WEBP).</small>
+
+                            <!-- 🆕 Contenedor para previsualizar imágenes seleccionadas -->
+                            <div id="nuevasImagenesPreview" class="d-flex flex-wrap gap-2 mt-2" style="display: none;"></div>
+                        </div>
+
+                        <!-- Contenedor para imágenes actuales (al editar) -->
+                        <div id="currentImagesContainer" class="col-12 mt-3" style="display: none;">
+                            <label class="form-label fw-bold">Imágenes actuales</label>
+                            <div id="currentImagesList" class="d-flex flex-wrap gap-2"></div>
+                            <hr />
+                        </div>
                         <div class="col-12"><label class="form-label fw-bold">Descripción</label><textarea class="form-control" id="prodDescripcion" rows="3"></textarea></div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100 fw-bold py-2 mt-4 rounded-pill"><i class="fas fa-save me-2"></i>Guardar Producto</button>
