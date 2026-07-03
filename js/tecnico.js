@@ -1,3 +1,7 @@
+// ==========================================
+// tecnico.js - Panel Técnico con paginación
+// ==========================================
+
 Auth.protectRoute(['TECNICO']);
 
 let bsModalEstado = null;
@@ -8,7 +12,9 @@ let vistaActual = 'tarjetas';
 let todasLasCitas = [];
 let citasFiltradas = [];
 
-// ✅ NUEVAS VARIABLES PARA PAGINACIÓN
+// ==========================================
+// PAGINACIÓN
+// ==========================================
 let currentPage = 0;
 const pageSize = 10;
 let totalPages = 1;
@@ -122,7 +128,6 @@ async function cargarCitas(page = 0) {
 
         const response = await API.Citas.listarPorTecnico(user.idUsuario, page, pageSize);
 
-        // La respuesta es un objeto Page de Spring
         todasLasCitas = response.content || [];
         totalPages = response.totalPages || 1;
         totalElements = response.totalElements || 0;
@@ -488,7 +493,7 @@ window.abrirChatConCliente = async function(idCliente, nombreCliente, idCita) {
     }
 
     try {
-        console.log('📦 Payload a enviar:', { idCliente, idTecnico: user.idUsuario, idCita });
+        console.log('📦 Payload a enviar (tecnico):', { idCliente, idTecnico: user.idUsuario, idCita });
 
         const response = await fetch(`${API_URL}/api/conversaciones/iniciar`, {
             method: 'POST',

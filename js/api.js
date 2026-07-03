@@ -82,18 +82,34 @@ const API = {
         crear(data) { return API.request('/api/pedidos', { method: 'POST', body: JSON.stringify(data) }); },
         listar() { return API.request('/api/pedidos'); },
         listarPorUsuario(idUsuario) { return API.request(`/api/pedidos/usuario/${idUsuario}`); },
+        listarPorUsuarioPaginado(idUsuario, page = 0, size = 6) {
+            return API.request(`/api/pedidos/usuario/${idUsuario}/paginado?page=${page}&size=${size}`);
+        },
         cambiarEstado(id, estado) { return API.request(`/api/pedidos/${id}/estado?estado=${estado}`, { method: 'PATCH' }); }
     },
 
     Citas: {
         listar() { return API.request('/api/citas'); },
-        // ✅ MODIFICADO: ahora acepta page y size
         listarPorTecnico(idTecnico, page = 0, size = 10) {
             return API.request(`/api/citas/tecnico/${idTecnico}?page=${page}&size=${size}`);
         },
         listarPorCliente(idCliente) { return API.request(`/api/citas/cliente/${idCliente}`); },
+        listarPorClientePaginado(idCliente, page = 0, size = 6) {
+            return API.request(`/api/citas/cliente/${idCliente}/paginado?page=${page}&size=${size}`);
+        },
         crear(data) { return API.request('/api/citas', { method: 'POST', body: JSON.stringify(data) }); },
         cambiarEstado(id, estado) { return API.request(`/api/citas/${id}/estado?estado=${estado}`, { method: 'PATCH' }); }
+    },
+
+    Solicitudes: {
+        crear(data) { return API.request('/api/solicitudes', { method: 'POST', body: JSON.stringify(data) }); },
+        listarPendientes() { return API.request('/api/solicitudes/pendientes'); },
+        listarPorCliente(idCliente) { return API.request(`/api/solicitudes/cliente/${idCliente}`); },
+        listarPorClientePaginado(idCliente, page = 0, size = 6) {
+            return API.request(`/api/solicitudes/cliente/${idCliente}/paginado?page=${page}&size=${size}`);
+        },
+        asignarTecnico(id, data) { return API.request(`/api/solicitudes/${id}/asignar`, { method: 'POST', body: JSON.stringify(data) }); },
+        rechazar(id) { return API.request(`/api/solicitudes/${id}/rechazar`, { method: 'POST' }); }
     },
 
     Estadisticas: {
@@ -114,6 +130,9 @@ const API = {
 
     Equipos: {
         listarPorCliente(idCliente) { return API.request(`/api/equipos-cliente/cliente/${idCliente}`); },
+        listarPorClientePaginado(idCliente, page = 0, size = 6) {
+            return API.request(`/api/equipos-cliente/cliente/${idCliente}/paginado?page=${page}&size=${size}`);
+        },
         crear(data) { return API.request('/api/equipos-cliente', { method: 'POST', body: JSON.stringify(data) }); }
     },
 

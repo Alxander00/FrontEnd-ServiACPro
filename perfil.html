@@ -138,6 +138,31 @@
         </div>
     </div>
 
+    <!-- ===== MODAL DE DETALLES MEJORADO ===== -->
+    <div class="modal fade" id="modalDetallesGlobal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header bg-primary text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold" id="detallesModalTitle">
+                        <i class="fas fa-info-circle me-2"></i> Detalles
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4" id="detallesModalBody">
+                    <!-- Se llena dinámicamente con JS -->
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4 fw-bold" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cerrar
+                    </button>
+                    <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold d-none" id="btnArchivarDesdeModal">
+                        <i class="fas fa-archive me-1"></i> Archivar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== FOOTER ===== -->
     <footer class="bg-dark text-white py-4 mt-auto">
         <div class="container text-center">

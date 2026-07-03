@@ -1,16 +1,473 @@
 // ==========================================
-// js/perfil.js - Versión con detalles y selección múltiple
+// js/perfil.js - Versión con paginación, filtros y modal de detalles mejorado
 // ==========================================
 
 Auth.protectRoute(['CLIENTE']);
+
+// ==========================================
+// PAGINACIÓN
+// ==========================================
+const PAGE_SIZE = 6;
+
+const paginas = {
+    pedidos: 0,
+    citas: 0,
+    solicitudes: 0,
+    equipos: 0
+};
+
+// ==========================================
+// FILTROS POR ESTADO
+// ==========================================
+const filtrosEstado = {
+    pedidos: 'todos',
+    citas: 'todos',
+    solicitudes: 'todos'
+};
+
+// ==========================================
+// CAMBIAR PÁGINA (función global)
+// ==========================================
+window.cambiarPaginaPerfil = function(seccion, nuevaPagina) {
+    if (nuevaPagina < 0) return;
+    paginas[seccion] = nuevaPagina;
+    mostrarSeccion(seccion);
+};
+
+// ==========================================
+// CAMBIAR FILTRO (función global)
+// ==========================================
+window.aplicarFiltroEstado = function(seccion, valor) {
+    filtrosEstado[seccion] = valor;
+    // Reiniciar a la primera página al cambiar el filtro
+    paginas[seccion] = 0;
+    mostrarSeccion(seccion);
+};
 
 // Caché para los datos de detalles
 window._detallesData = {
     pedidos: [],
     citas: [],
-    solicitudes: []
+    solicitudes: [],
+    equipos: []
 };
 
+// ==========================================
+// ABRIR DETALLES EN MODAL MEJORADO
+// ==========================================
+let itemActualParaDetalle = null;
+let tipoActualParaDetalle = null;
+
+function abrirDetalleModal(tipo, id) {
+    const data = window._detallesData[tipo] || [];
+    const item = data.find(el => {
+        if (tipo === 'pedidos') return el.idPedido === id;
+        if (tipo === 'citas') return el.idCita === id;
+        if (tipo === 'solicitudes') return el.idSolicitud === id;
+        if (tipo === 'equipos') return el.idEquipo === id;
+        return false;
+    });
+
+    if (!item) {
+        Swal.fire('Error', 'No se encontraron detalles para este registro.', 'error');
+        return;
+    }
+
+    itemActualParaDetalle = item;
+    tipoActualParaDetalle = tipo;
+
+    const modal = new bootstrap.Modal(document.getElementById('modalDetallesGlobal'));
+    const title = document.getElementById('detallesModalTitle');
+    const body = document.getElementById('detallesModalBody');
+    const btnArchivar = document.getElementById('btnArchivarDesdeModal');
+
+    let html = '';
+    let titulo = '';
+
+    if (tipo === 'pedidos') {
+        titulo = `Pedido #${item.idPedido}`;
+        const badgeClass = item.estado === 'Completado' ? 'success' :
+                          item.estado === 'Cancelado' ? 'danger' : 'warning';
+        const badgeIcon = item.estado === 'Completado' ? 'fa-check-circle' :
+                         item.estado === 'Cancelado' ? 'fa-times-circle' : 'fa-clock';
+
+        let productosHtml = '';
+        if (item.detalles && item.detalles.length > 0) {
+            productosHtml = `
+                <div class="mt-3">
+                    <h6 class="fw-bold text-dark mb-2"><i class="fas fa-boxes text-primary me-2"></i>Productos</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
+                            </thead>
+                            <tbody>
+                                ${item.detalles.map(d => `
+                                    <tr>
+                                        <td>${d.nombreProducto || d.producto || 'Producto'}</td>
+                                        <td>${d.cantidad || 1}</td>
+                                        <td>$${(d.precioUnitario || 0).toFixed(2)}</td>
+                                        <td class="fw-bold">$${(d.subtotal || 0).toFixed(2)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="3" class="text-end">Total</th>
+                                    <th class="text-primary">$${item.total.toFixed(2)}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        html = `
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-tag text-primary"></i>
+                            <span class="fw-bold">Estado</span>
+                        </div>
+                        <span class="badge bg-${badgeClass} bg-opacity-10 text-${badgeClass} px-3 py-2 rounded-pill fw-bold border border-${badgeClass} border-opacity-25">
+                            <i class="fas ${badgeIcon} me-1"></i> ${item.estado}
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-calendar-alt text-primary"></i>
+                            <span class="fw-bold">Fecha</span>
+                        </div>
+                        <span>${formatearFecha(item.fechaPedido)}</span>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-map-marker-alt text-danger"></i>
+                            <span class="fw-bold">Dirección de instalación</span>
+                        </div>
+                        <span>${item.direccion_instalacion || 'No especificada'}</span>
+                    </div>
+                </div>
+                ${item.metodoPago ? `
+                <div class="col-12">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-credit-card text-success"></i>
+                            <span class="fw-bold">Método de pago</span>
+                        </div>
+                        <span>${item.metodoPago}</span>
+                    </div>
+                </div>
+                ` : ''}
+                ${productosHtml}
+            </div>
+        `;
+
+        const puedeArchivar = (item.estado === 'Completado' || item.estado === 'Cancelado');
+        btnArchivar.classList.toggle('d-none', !puedeArchivar);
+        btnArchivar.onclick = () => {
+            modal.hide();
+            ocultarItem('pedidos', item.idPedido);
+        };
+
+    } else if (tipo === 'citas') {
+        titulo = `Cita #${item.idCita}`;
+        let badgeClass = '';
+        let badgeIcon = '';
+        if (item.estado === 'PROGRAMADA') { badgeClass = 'primary'; badgeIcon = 'fa-clock'; }
+        else if (item.estado === 'EN_PROCESO') { badgeClass = 'warning'; badgeIcon = 'fa-spinner'; }
+        else if (item.estado === 'COMPLETADA') { badgeClass = 'success'; badgeIcon = 'fa-check-circle'; }
+        else { badgeClass = 'danger'; badgeIcon = 'fa-times-circle'; }
+
+        const esFinalizado = (item.estado === 'COMPLETADA' || item.estado === 'CANCELADA');
+
+        html = `
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-tag text-primary"></i>
+                            <span class="fw-bold">Estado</span>
+                        </div>
+                        <span class="badge bg-${badgeClass} bg-opacity-10 text-${badgeClass} px-3 py-2 rounded-pill fw-bold border border-${badgeClass} border-opacity-25">
+                            <i class="fas ${badgeIcon} me-1"></i> ${item.estado}
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-user-cog text-info"></i>
+                            <span class="fw-bold">Técnico</span>
+                        </div>
+                        <span>${item.nombreTecnico || 'No asignado'}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-calendar-alt text-primary"></i>
+                            <span class="fw-bold">Inicio</span>
+                        </div>
+                        <span>${formatearFecha(item.fechaInicio)}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-calendar-check text-success"></i>
+                            <span class="fw-bold">Fin</span>
+                        </div>
+                        <span>${formatearFecha(item.fechaFin)}</span>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-map-marker-alt text-danger"></i>
+                            <span class="fw-bold">Dirección</span>
+                        </div>
+                        <span>${item.direccionCliente || 'No especificada'}</span>
+                    </div>
+                </div>
+                ${item.notas ? `
+                <div class="col-12">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-sticky-note text-warning"></i>
+                            <span class="fw-bold">Notas</span>
+                        </div>
+                        <span>${item.notas}</span>
+                    </div>
+                </div>
+                ` : ''}
+                ${item.mensajeCliente ? `
+                <div class="col-12">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-comment text-primary"></i>
+                            <span class="fw-bold">Mensaje del cliente</span>
+                        </div>
+                        <span>${item.mensajeCliente}</span>
+                    </div>
+                </div>
+                ` : ''}
+                ${!esFinalizado && item.idTecnico ? `
+                <div class="col-12">
+                    <button class="btn btn-outline-primary w-100 rounded-pill fw-bold" onclick="abrirChatConTecnico(${item.idTecnico}, '${item.nombreTecnico}', ${item.idCita})">
+                        <i class="fas fa-comment-dots me-2"></i> Chatear con el técnico
+                    </button>
+                </div>
+                ` : ''}
+            </div>
+        `;
+
+        btnArchivar.classList.toggle('d-none', !esFinalizado);
+        btnArchivar.onclick = () => {
+            modal.hide();
+            ocultarItem('citas', item.idCita);
+        };
+
+    } else if (tipo === 'solicitudes') {
+        titulo = `Solicitud #${item.idSolicitud}`;
+        const badgeClass = item.estado === 'PENDIENTE' ? 'warning' :
+                          item.estado === 'ASIGNADA' ? 'success' : 'danger';
+        const badgeIcon = item.estado === 'PENDIENTE' ? 'fa-clock' :
+                         item.estado === 'ASIGNADA' ? 'fa-check-circle' : 'fa-times-circle';
+        // ✅ Ahora se puede archivar si es ASIGNADA o RECHAZADA
+        const puedeArchivar = (item.estado === 'ASIGNADA' || item.estado === 'RECHAZADA');
+
+        html = `
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-tag text-primary"></i>
+                            <span class="fw-bold">Estado</span>
+                        </div>
+                        <span class="badge bg-${badgeClass} bg-opacity-10 text-${badgeClass} px-3 py-2 rounded-pill fw-bold border border-${badgeClass} border-opacity-25">
+                            <i class="fas ${badgeIcon} me-1"></i> ${item.estado}
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-tag text-info"></i>
+                            <span class="fw-bold">Tipo de servicio</span>
+                        </div>
+                        <span>${item.tipoServicio ? item.tipoServicio.replace('_', ' ') : 'No especificado'}</span>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-comment text-primary"></i>
+                            <span class="fw-bold">Mensaje</span>
+                        </div>
+                        <span>${item.mensaje || 'Sin mensaje'}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-calendar-alt text-primary"></i>
+                            <span class="fw-bold">Fecha preferida</span>
+                        </div>
+                        <span>${item.fechaPreferida ? new Date(item.fechaPreferida).toLocaleDateString() : 'Cualquier fecha'}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-calendar-check text-success"></i>
+                            <span class="fw-bold">Fecha de creación</span>
+                        </div>
+                        <span>${formatearFecha(item.fechaCreacion || item.createdAt || new Date())}</span>
+                    </div>
+                </div>
+                ${item.respuesta ? `
+                <div class="col-12">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-reply text-success"></i>
+                            <span class="fw-bold">Respuesta del soporte</span>
+                        </div>
+                        <span>${item.respuesta}</span>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+        `;
+
+        btnArchivar.classList.toggle('d-none', !puedeArchivar);
+        btnArchivar.onclick = () => {
+            modal.hide();
+            ocultarItem('solicitudes', item.idSolicitud);
+        };
+
+    } else if (tipo === 'equipos') {
+        titulo = `${item.marca} ${item.modelo || ''}`;
+        const diasMantenimiento = calcularDiasMantenimiento(item);
+
+        html = `
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-building text-primary"></i>
+                            <span class="fw-bold">Marca</span>
+                        </div>
+                        <span>${item.marca}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-microchip text-info"></i>
+                            <span class="fw-bold">Modelo</span>
+                        </div>
+                        <span>${item.modelo || 'No especificado'}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-tachometer-alt text-primary"></i>
+                            <span class="fw-bold">Capacidad</span>
+                        </div>
+                        <span>${item.capacidadBtu || 'N/A'} BTU</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-map-marker-alt text-danger"></i>
+                            <span class="fw-bold">Ubicación</span>
+                        </div>
+                        <span>${item.ubicacionEnCasa || 'No especificada'}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-calendar-alt text-primary"></i>
+                            <span class="fw-bold">Fecha de instalación</span>
+                        </div>
+                        <span>${item.fechaInstalacion ? formatearFecha(item.fechaInstalacion) : 'No registrada'}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-tools text-warning"></i>
+                            <span class="fw-bold">Último mantenimiento</span>
+                        </div>
+                        <span>${item.fechaUltimoMantenimiento ? formatearFecha(item.fechaUltimoMantenimiento) : 'Ninguno'}</span>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="bg-light p-3 rounded-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fas fa-clock text-info"></i>
+                            <span class="fw-bold">Próximo mantenimiento</span>
+                        </div>
+                        ${diasMantenimiento !== null ? `
+                            <span>${diasMantenimiento <= 0 ? '⚠️ ¡Vencido! (hace ' + Math.abs(diasMantenimiento) + ' días)' : 'En ' + diasMantenimiento + ' días'}</span>
+                        ` : '<span>No calculado</span>'}
+                    </div>
+                </div>
+                <div class="col-12">
+                    <a href="contacto.html" class="btn btn-primary w-100 rounded-pill fw-bold">
+                        <i class="fas fa-calendar-plus me-2"></i> Agendar mantenimiento
+                    </a>
+                </div>
+            </div>
+        `;
+
+        btnArchivar.classList.add('d-none');
+        btnArchivar.onclick = null;
+    }
+
+    // Actualizar título y cuerpo del modal
+    title.innerHTML = `<i class="fas fa-info-circle me-2"></i> ${titulo}`;
+    body.innerHTML = html;
+
+    // Abrir el modal
+    modal.show();
+}
+
+// ==========================================
+// CALCULAR DÍAS PARA PRÓXIMO MANTENIMIENTO
+// ==========================================
+function calcularDiasMantenimiento(equipo) {
+    if (!equipo.fechaInstalacion && !equipo.fechaUltimoMantenimiento) return null;
+    let fechaBase = equipo.fechaUltimoMantenimiento
+        ? new Date(equipo.fechaUltimoMantenimiento)
+        : new Date(equipo.fechaInstalacion);
+    let proximaFecha = new Date(fechaBase);
+    proximaFecha.setMonth(proximaFecha.getMonth() + 6);
+    const hoy = new Date();
+    const diffTime = proximaFecha - hoy;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
+
+// ==========================================
+// VER DETALLE (NUEVA VERSIÓN CON MODAL)
+// ==========================================
+window.verDetalle = function(tipo, id) {
+    abrirDetalleModal(tipo, id);
+};
+
+// ==========================================
+// DOCUMENT READY
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     if (!Auth.isAuthenticated()) {
         window.location.href = 'login.html';
@@ -41,7 +498,11 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             document.querySelectorAll('.nav-pills-custom .nav-link').forEach((el) => el.classList.remove('active'));
             btn.classList.add('active');
-            await mostrarSeccion(btn.dataset.seccion);
+            const seccion = btn.dataset.seccion;
+            if (paginas[seccion] !== undefined) {
+                paginas[seccion] = 0;
+            }
+            await mostrarSeccion(seccion);
         });
     });
 });
@@ -73,6 +534,7 @@ window.ocultarItem = function (tipo, id) {
                 timer: 2000,
                 showConfirmButton: false,
             });
+            paginas[tipo] = 0;
             mostrarSeccion(tipo);
             actualizarContadoresCliente();
         }
@@ -97,6 +559,7 @@ function archivarMultiples(tipo, ids) {
         timer: 2000,
         showConfirmButton: false,
     });
+    paginas[tipo] = 0;
     mostrarSeccion(tipo);
     actualizarContadoresCliente();
 }
@@ -109,112 +572,6 @@ function obtenerArchivados(tipo) {
 const formatearFecha = (fechaString) => {
     const opciones = { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
     return new Date(fechaString).toLocaleDateString('es-ES', opciones);
-};
-
-// ==========================================
-// VER DETALLE
-// ==========================================
-window.verDetalle = function(tipo, id) {
-    const data = window._detallesData[tipo] || [];
-    const item = data.find(el => {
-        if (tipo === 'pedidos') return el.idPedido === id;
-        if (tipo === 'citas') return el.idCita === id;
-        if (tipo === 'solicitudes') return el.idSolicitud === id;
-        return false;
-    });
-
-    if (!item) {
-        Swal.fire('Error', 'No se encontraron detalles para este registro.', 'error');
-        return;
-    }
-
-    let titulo = '';
-    let contenido = '';
-
-    if (tipo === 'pedidos') {
-        titulo = `Detalles del Pedido #${item.idPedido}`;
-        const badgeClass = item.estado === 'Completado' ? 'success' :
-                          item.estado === 'Cancelado' ? 'danger' : 'warning';
-        let productosHtml = '';
-        if (item.detalles && item.detalles.length > 0) {
-            productosHtml = `
-                <div style="margin-top: 15px;">
-                    <strong style="color:#1e293b;">Productos:</strong>
-                    <table class="productos-table">
-                        <thead>
-                            <tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
-                        </thead>
-                        <tbody>
-                            ${item.detalles.map(d => `
-                                <tr>
-                                    <td>${d.nombreProducto || d.producto || 'Producto'}</td>
-                                    <td>${d.cantidad || 1}</td>
-                                    <td>$${(d.precioUnitario || 0).toFixed(2)}</td>
-                                    <td>$${(d.subtotal || 0).toFixed(2)}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-        contenido = `
-            <div class="detalle-modal">
-                <div class="row"><span class="label">Estado:</span> <span class="value"><span class="badge-status bg-${badgeClass}">${item.estado}</span></span></div>
-                <div class="row"><span class="label">Fecha:</span> <span class="value">${formatearFecha(item.fechaPedido)}</span></div>
-                <div class="row"><span class="label">Total:</span> <span class="value text-success" style="font-weight:700; font-size:1.2rem;">$${item.total.toFixed(2)}</span></div>
-                <div class="row"><span class="label">Dirección de instalación:</span> <span class="value">${item.direccion_instalacion || 'No especificada'}</span></div>
-                ${item.metodoPago ? `<div class="row"><span class="label">Método de pago:</span> <span class="value">${item.metodoPago}</span></div>` : ''}
-                ${productosHtml}
-            </div>
-        `;
-    } else if (tipo === 'citas') {
-        titulo = `Detalles de la Cita #${item.idCita}`;
-        let badgeClass = '';
-        if (item.estado === 'PROGRAMADA') badgeClass = 'primary';
-        else if (item.estado === 'EN_PROCESO') badgeClass = 'warning';
-        else if (item.estado === 'COMPLETADA') badgeClass = 'success';
-        else badgeClass = 'danger';
-        contenido = `
-            <div class="detalle-modal">
-                <div class="row"><span class="label">Estado:</span> <span class="value"><span class="badge-status bg-${badgeClass}">${item.estado}</span></span></div>
-                <div class="row"><span class="label">Técnico asignado:</span> <span class="value">${item.nombreTecnico || 'No asignado'}</span></div>
-                <div class="row"><span class="label">Fecha de inicio:</span> <span class="value">${formatearFecha(item.fechaInicio)}</span></div>
-                <div class="row"><span class="label">Dirección:</span> <span class="value">${item.direccionCliente || 'No especificada'}</span></div>
-                ${item.notas ? `<div class="row"><span class="label">Notas:</span> <span class="value">${item.notas}</span></div>` : ''}
-                ${item.telefonoCliente ? `<div class="row"><span class="label">Teléfono:</span> <span class="value">${item.telefonoCliente}</span></div>` : ''}
-            </div>
-        `;
-    } else if (tipo === 'solicitudes') {
-        titulo = `Detalles de la Solicitud #${item.idSolicitud}`;
-        const badgeClass = item.estado === 'PENDIENTE' ? 'warning' :
-                          item.estado === 'ASIGNADA' ? 'success' : 'danger';
-        contenido = `
-            <div class="detalle-modal">
-                <div class="row"><span class="label">Estado:</span> <span class="value"><span class="badge-status bg-${badgeClass}">${item.estado}</span></span></div>
-                <div class="row"><span class="label">Tipo de servicio:</span> <span class="value">${item.tipoServicio ? item.tipoServicio.replace('_', ' ') : 'No especificado'}</span></div>
-                <div class="row"><span class="label">Mensaje:</span> <span class="value">${item.mensaje || 'Sin mensaje'}</span></div>
-                <div class="row"><span class="label">Fecha preferida:</span> <span class="value">${item.fechaPreferida ? new Date(item.fechaPreferida).toLocaleDateString() : 'Cualquier fecha'}</span></div>
-                <div class="row"><span class="label">Fecha de creación:</span> <span class="value">${formatearFecha(item.fechaCreacion || item.createdAt || new Date())}</span></div>
-                ${item.respuesta ? `<div class="row"><span class="label">Respuesta del soporte:</span> <span class="value">${item.respuesta}</span></div>` : ''}
-            </div>
-        `;
-    }
-
-    Swal.fire({
-        title: titulo,
-        html: contenido,
-        icon: 'info',
-        confirmButtonText: 'Cerrar',
-        confirmButtonColor: '#0d6efd',
-        width: 700,
-        customClass: {
-            popup: 'swal2-popup',
-            htmlContainer: 'swal2-html-container'
-        },
-        showCloseButton: true,
-        focusConfirm: true,
-    });
 };
 
 // ==========================================
@@ -341,7 +698,7 @@ async function cargarEstadisticasCliente() {
 }
 
 // ==========================================
-// MOSTRAR SECCIÓN
+// MOSTRAR SECCIÓN (con paginación)
 // ==========================================
 async function mostrarSeccion(seccion) {
     const user = Auth.getUser();
@@ -413,36 +770,35 @@ async function mostrarSeccion(seccion) {
             </div>
         `;
 
-        // Cargar estadísticas después de renderizar
         setTimeout(() => {
             cargarEstadisticasCliente();
         }, 100);
     }
 
     // ============================
-    // PEDIDOS
+    // PEDIDOS (con paginación y filtro)
     // ============================
     else if (seccion === 'pedidos') {
         try {
-            const todosLosPedidos = await API.Pedidos.listarPorUsuario(user.idUsuario);
-            const archivados = obtenerArchivados('pedidos');
-            const pedidosVisibles = todosLosPedidos.filter((p) => !archivados.includes(p.idPedido));
+            const response = await API.Pedidos.listarPorUsuarioPaginado(user.idUsuario, paginas.pedidos, PAGE_SIZE);
+            let pedidos = response.content || [];
+            const totalPages = response.totalPages || 1;
+            const currentPage = response.number || 0;
+            const totalElements = response.totalElements || 0;
 
-            window._detallesData.pedidos = pedidosVisibles;
-
-            if (pedidosVisibles.length === 0) {
-                content.innerHTML = `
-                    <div class="section-header"><h4><i class="fas fa-box-open me-2"></i>Mis Pedidos</h4></div>
-                    <div class="empty-state text-center">
-                        <i class="fas fa-shopping-basket"></i>
-                        <h5 class="fw-bold text-dark mt-3">Historial vacío</h5>
-                        <p class="text-muted">No tienes pedidos activos en tu historial.</p>
-                        <a href="catalogo.html" class="btn btn-primary rounded-pill px-4 mt-2 fw-bold">Explorar Catálogo</a>
-                    </div>
-                `;
-                return;
+            // ✅ Aplicar filtro por estado
+            const estadoFiltro = filtrosEstado.pedidos;
+            if (estadoFiltro !== 'todos') {
+                pedidos = pedidos.filter(p => p.estado === estadoFiltro);
             }
 
+            // ✅ Aplicar filtro de archivados
+            const archivados = obtenerArchivados('pedidos');
+            pedidos = pedidos.filter(p => !archivados.includes(p.idPedido));
+
+            window._detallesData.pedidos = pedidos;
+
+            // ✅ Siempre mostrar el filtro, aunque no haya datos
             let html = `
                 <div class="section-header">
                     <h4><i class="fas fa-box-open me-2"></i>Mis Pedidos</h4>
@@ -452,50 +808,88 @@ async function mostrarSeccion(seccion) {
                         <button class="btn btn-accion btn-accion-danger" onclick="eliminarTodos('pedidos')"><i class="fas fa-trash-alt me-1"></i>Eliminar todos</button>
                     </div>
                 </div>
-                <div class="grid-cards" id="grid-pedidos">
+                <!-- ✅ Filtro de estado -->
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <label class="fw-bold text-secondary small text-uppercase mb-0">Filtrar por estado:</label>
+                    <select class="form-select form-select-sm w-auto border-0 bg-light rounded-pill px-3" id="filtroEstadoPedidos" onchange="aplicarFiltroEstado('pedidos', this.value)">
+                        <option value="todos" ${estadoFiltro === 'todos' ? 'selected' : ''}>Todos</option>
+                        <option value="Pendiente" ${estadoFiltro === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                        <option value="En Proceso" ${estadoFiltro === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
+                        <option value="Completado" ${estadoFiltro === 'Completado' ? 'selected' : ''}>Completado</option>
+                        <option value="Cancelado" ${estadoFiltro === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
+                    </select>
+                </div>
             `;
 
-            pedidosVisibles.forEach((pedido) => {
-                const esFinalizado = (pedido.estado === 'Completado' || pedido.estado === 'Cancelado');
-                const badgeClass = 
-                    pedido.estado === 'Completado' ? 'success' :
-                    pedido.estado === 'Cancelado' ? 'danger' : 'warning';
-                const btnArchivar = esFinalizado
-                    ? `<button class="btn-archive-individual" onclick="ocultarItem('pedidos', ${pedido.idPedido})" title="Archivar individual"><i class="fas fa-archive"></i></button>`
-                    : '';
-
+            if (pedidos.length === 0) {
                 html += `
-                    <div class="list-card">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div class="form-check">
-                                    <input class="form-check-input select-item" type="checkbox" value="${pedido.idPedido}" data-tipo="pedidos" id="pedido_${pedido.idPedido}" ${!esFinalizado ? 'disabled' : ''}>
-                                    <label class="form-check-label" for="pedido_${pedido.idPedido}">Pedido #${pedido.idPedido}</label>
-                                </div>
-                                <span class="badge-status bg-${badgeClass}">${pedido.estado}</span>
-                            </div>
-                            <div class="card-info-line">
-                                <i class="fas fa-calendar-alt text-primary"></i>
-                                <span>${formatearFecha(pedido.fechaPedido)}</span>
-                            </div>
-                            <div class="card-info-line">
-                                <i class="fas fa-dollar-sign text-success"></i>
-                                <strong class="text-success">$${pedido.total.toFixed(2)}</strong>
-                            </div>
-                            <div class="card-info-line">
-                                <i class="fas fa-map-marker-alt text-danger"></i>
-                                <span>${pedido.direccion_instalacion || 'Solo entrega'}</span>
-                            </div>
-                            <div class="d-flex justify-content-end mt-2 gap-1">
-                                <button class="btn-detalle" onclick="verDetalle('pedidos', ${pedido.idPedido})" title="Ver detalles"><i class="fas fa-eye"></i></button>
-                                ${btnArchivar}
-                            </div>
-                        </div>
+                    <div class="empty-state text-center py-4">
+                        <i class="fas fa-shopping-basket fa-3x text-muted mb-3"></i>
+                        <h5 class="fw-bold text-dark">No hay pedidos que mostrar</h5>
+                        <p class="text-muted">Intenta cambiar los filtros o archivar algunos registros.</p>
+                        <a href="catalogo.html" class="btn btn-primary rounded-pill px-4 mt-2 fw-bold">Explorar Catálogo</a>
                     </div>
                 `;
-            });
+            } else {
+                html += `<div class="grid-cards" id="grid-pedidos">`;
+                pedidos.forEach((pedido) => {
+                    const esFinalizado = (pedido.estado === 'Completado' || pedido.estado === 'Cancelado');
+                    const badgeClass = 
+                        pedido.estado === 'Completado' ? 'success' :
+                        pedido.estado === 'Cancelado' ? 'danger' : 'warning';
+                    const btnArchivar = esFinalizado
+                        ? `<button class="btn-archive-individual" onclick="ocultarItem('pedidos', ${pedido.idPedido})" title="Archivar individual"><i class="fas fa-archive"></i></button>`
+                        : '';
 
-            html += `</div>`;
+                    html += `
+                        <div class="list-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input select-item" type="checkbox" value="${pedido.idPedido}" data-tipo="pedidos" id="pedido_${pedido.idPedido}" ${!esFinalizado ? 'disabled' : ''}>
+                                        <label class="form-check-label" for="pedido_${pedido.idPedido}">Pedido #${pedido.idPedido}</label>
+                                    </div>
+                                    <span class="badge-status bg-${badgeClass}">${pedido.estado}</span>
+                                </div>
+                                <div class="card-info-line">
+                                    <i class="fas fa-calendar-alt text-primary"></i>
+                                    <span>${formatearFecha(pedido.fechaPedido)}</span>
+                                </div>
+                                <div class="card-info-line">
+                                    <i class="fas fa-dollar-sign text-success"></i>
+                                    <strong class="text-success">$${pedido.total.toFixed(2)}</strong>
+                                </div>
+                                <div class="card-info-line">
+                                    <i class="fas fa-map-marker-alt text-danger"></i>
+                                    <span>${pedido.direccion_instalacion || 'Solo entrega'}</span>
+                                </div>
+                                <div class="d-flex justify-content-end mt-2 gap-1">
+                                    <button class="btn-detalle" onclick="verDetalle('pedidos', ${pedido.idPedido})" title="Ver detalles"><i class="fas fa-eye"></i></button>
+                                    ${btnArchivar}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            // Paginación (siempre visible)
+            html += `
+                <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                    <span class="text-muted small">Mostrando ${pedidos.length} de ${totalElements} pedidos (filtrados)</span>
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" onclick="cambiarPaginaPerfil('pedidos', ${currentPage - 1})" ${currentPage == 0 ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-left me-1"></i> Anterior
+                        </button>
+                        <span class="fw-semibold">Página ${currentPage + 1} de ${totalPages}</span>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" onclick="cambiarPaginaPerfil('pedidos', ${currentPage + 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''}>
+                            Siguiente <i class="fas fa-chevron-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
             content.innerHTML = html;
         } catch (error) {
             content.innerHTML = `<div class="alert alert-danger m-3">Error al cargar pedidos: ${error.message}</div>`;
@@ -503,27 +897,27 @@ async function mostrarSeccion(seccion) {
     }
 
     // ============================
-    // CITAS
+    // CITAS (con paginación y filtro)
     // ============================
     else if (seccion === 'citas') {
         try {
-            const todasLasCitas = await API.request(`/api/citas/cliente/${user.idUsuario}`);
-            const archivados = obtenerArchivados('citas');
-            const citasVisibles = todasLasCitas.filter((c) => !archivados.includes(c.idCita));
+            const response = await API.Citas.listarPorClientePaginado(user.idUsuario, paginas.citas, PAGE_SIZE);
+            let citas = response.content || [];
+            const totalPages = response.totalPages || 1;
+            const currentPage = response.number || 0;
+            const totalElements = response.totalElements || 0;
 
-            window._detallesData.citas = citasVisibles;
-
-            if (citasVisibles.length === 0) {
-                content.innerHTML = `
-                    <div class="section-header"><h4><i class="fas fa-calendar-check me-2"></i>Visitas Técnicas</h4></div>
-                    <div class="empty-state text-center">
-                        <i class="fas fa-tools"></i>
-                        <h5 class="fw-bold text-dark mt-3">No hay citas</h5>
-                        <p class="text-muted">No tienes visitas técnicas programadas.</p>
-                    </div>
-                `;
-                return;
+            // ✅ Aplicar filtro por estado
+            const estadoFiltro = filtrosEstado.citas;
+            if (estadoFiltro !== 'todos') {
+                citas = citas.filter(c => c.estado === estadoFiltro);
             }
+
+            // ✅ Aplicar filtro de archivados
+            const archivados = obtenerArchivados('citas');
+            citas = citas.filter(c => !archivados.includes(c.idCita));
+
+            window._detallesData.citas = citas;
 
             let html = `
                 <div class="section-header">
@@ -534,92 +928,126 @@ async function mostrarSeccion(seccion) {
                         <button class="btn btn-accion btn-accion-danger" onclick="eliminarTodos('citas')"><i class="fas fa-trash-alt me-1"></i>Eliminar todos</button>
                     </div>
                 </div>
-                <div class="grid-cards" id="grid-citas">
+                <!-- ✅ Filtro de estado -->
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <label class="fw-bold text-secondary small text-uppercase mb-0">Filtrar por estado:</label>
+                    <select class="form-select form-select-sm w-auto border-0 bg-light rounded-pill px-3" id="filtroEstadoCitas" onchange="aplicarFiltroEstado('citas', this.value)">
+                        <option value="todos" ${estadoFiltro === 'todos' ? 'selected' : ''}>Todos</option>
+                        <option value="PROGRAMADA" ${estadoFiltro === 'PROGRAMADA' ? 'selected' : ''}>Programada</option>
+                        <option value="EN_PROCESO" ${estadoFiltro === 'EN_PROCESO' ? 'selected' : ''}>En Proceso</option>
+                        <option value="COMPLETADA" ${estadoFiltro === 'COMPLETADA' ? 'selected' : ''}>Completada</option>
+                        <option value="CANCELADA" ${estadoFiltro === 'CANCELADA' ? 'selected' : ''}>Cancelada</option>
+                    </select>
+                </div>
             `;
 
-            citasVisibles.forEach((cita) => {
-                const esFinalizado = (cita.estado === 'COMPLETADA' || cita.estado === 'CANCELADA');
-                let badgeClass = '';
-                if (cita.estado === 'PROGRAMADA') badgeClass = 'primary';
-                else if (cita.estado === 'EN_PROCESO') badgeClass = 'warning';
-                else if (cita.estado === 'COMPLETADA') badgeClass = 'success';
-                else badgeClass = 'danger';
-
-                // 1. Declaramos el botón de archivar (que se había borrado)
-                const btnArchivar = esFinalizado
-                    ? `<button class="btn-archive-individual" onclick="ocultarItem('citas', ${cita.idCita})" title="Archivar individual"><i class="fas fa-archive"></i></button>`
-                    : '';
-
-                // 1. Rediseñamos el botón de Chat para incluir la burbuja de notificación roja (oculta por defecto)
-                const btnChat = (!esFinalizado && cita.idTecnico)
-                    ? `<button class="btn btn-outline-primary btn-sm position-relative fw-bold rounded-pill px-3" 
-                            onclick="abrirChatConTecnico(${cita.idTecnico}, '${cita.nombreTecnico}', ${cita.idCita})">
-                        <i class="fas fa-comment-dots me-1"></i> Chat
-                        <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle" 
-                                id="badge-chat-${cita.idCita}" style="display: none;">
-                            <span class="visually-hidden">Mensajes nuevos</span>
-                        </span>
-                    </button>`
-                    : '';
-
-                // 2. Nuevo diseño de la tarjeta (Más espacio, mejor jerarquía)
+            if (citas.length === 0) {
                 html += `
-                    <div class="card border-0 shadow-sm mb-3 cita-card-premium transition-hover">
-                        <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="bg-light rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                    <i class="fas fa-tools text-primary"></i>
-                                </div>
-                                <div>
-                                    <h6 class="mb-0 fw-bold text-dark">Cita #${cita.idCita}</h6>
-                                    <small class="text-muted">${formatearFecha(cita.fechaInicio)}</small>
-                                </div>
-                            </div>
-                            <span class="badge bg-${badgeClass} bg-opacity-10 text-${badgeClass} px-3 py-2 rounded-pill fw-bold border border-${badgeClass} border-opacity-25">
-                                ${cita.estado}
-                            </span>
-                        </div>
-                        
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <div class="d-flex align-items-start gap-2">
-                                        <i class="fas fa-user-cog text-info mt-1"></i>
-                                        <div>
-                                            <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Técnico Asignado</small>
-                                            <span class="fw-semibold text-dark">${cita.nombreTecnico || 'Pendiente de asignación'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="d-flex align-items-start gap-2">
-                                        <i class="fas fa-map-marker-alt text-danger mt-1"></i>
-                                        <div>
-                                            <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Ubicación</small>
-                                            <span class="text-dark small">${cita.direccionCliente || 'No especificada'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="card-footer bg-white border-top-0 pb-3 pt-0 d-flex justify-content-between align-items-center">
-                            <div class="form-check">
-                                <input class="form-check-input select-item" type="checkbox" value="${cita.idCita}" data-tipo="citas" id="cita_${cita.idCita}" ${!esFinalizado ? 'disabled' : ''}>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-light btn-sm text-secondary rounded-pill px-3 fw-bold border" onclick="verDetalle('citas', ${cita.idCita})" title="Ver detalles completos">
-                                    <i class="fas fa-eye me-1"></i> Detalles
-                                </button>
-                                ${btnChat}
-                                ${btnArchivar}
-                            </div>
-                        </div>
+                    <div class="empty-state text-center py-4">
+                        <i class="fas fa-tools fa-3x text-muted mb-3"></i>
+                        <h5 class="fw-bold text-dark">No hay citas que mostrar</h5>
+                        <p class="text-muted">Intenta cambiar los filtros o archivar algunos registros.</p>
                     </div>
                 `;
-            });
+            } else {
+                html += `<div class="grid-cards" id="grid-citas">`;
+                citas.forEach((cita) => {
+                    const esFinalizado = (cita.estado === 'COMPLETADA' || cita.estado === 'CANCELADA');
+                    let badgeClass = '';
+                    if (cita.estado === 'PROGRAMADA') badgeClass = 'primary';
+                    else if (cita.estado === 'EN_PROCESO') badgeClass = 'warning';
+                    else if (cita.estado === 'COMPLETADA') badgeClass = 'success';
+                    else badgeClass = 'danger';
 
-            html += `</div>`;
+                    const btnArchivar = esFinalizado
+                        ? `<button class="btn-archive-individual" onclick="ocultarItem('citas', ${cita.idCita})" title="Archivar individual"><i class="fas fa-archive"></i></button>`
+                        : '';
+
+                    const btnChat = (!esFinalizado && cita.idTecnico)
+                        ? `<button class="btn btn-outline-primary btn-sm position-relative fw-bold rounded-pill px-3" 
+                                onclick="abrirChatConTecnico(${cita.idTecnico}, '${cita.nombreTecnico}', ${cita.idCita})">
+                            <i class="fas fa-comment-dots me-1"></i> Chat
+                            <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle" 
+                                    id="badge-chat-${cita.idCita}" style="display: none;">
+                                <span class="visually-hidden">Mensajes nuevos</span>
+                            </span>
+                        </button>`
+                        : '';
+
+                    html += `
+                        <div class="card border-0 shadow-sm mb-3 cita-card-premium transition-hover">
+                            <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="bg-light rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-tools text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-bold text-dark">Cita #${cita.idCita}</h6>
+                                        <small class="text-muted">${formatearFecha(cita.fechaInicio)}</small>
+                                    </div>
+                                </div>
+                                <span class="badge bg-${badgeClass} bg-opacity-10 text-${badgeClass} px-3 py-2 rounded-pill fw-bold border border-${badgeClass} border-opacity-25">
+                                    ${cita.estado}
+                                </span>
+                            </div>
+                            
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="fas fa-user-cog text-info mt-1"></i>
+                                            <div>
+                                                <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Técnico Asignado</small>
+                                                <span class="fw-semibold text-dark">${cita.nombreTecnico || 'Pendiente de asignación'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i class="fas fa-map-marker-alt text-danger mt-1"></i>
+                                            <div>
+                                                <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Ubicación</small>
+                                                <span class="text-dark small">${cita.direccionCliente || 'No especificada'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card-footer bg-white border-top-0 pb-3 pt-0 d-flex justify-content-between align-items-center">
+                                <div class="form-check">
+                                    <input class="form-check-input select-item" type="checkbox" value="${cita.idCita}" data-tipo="citas" id="cita_${cita.idCita}" ${!esFinalizado ? 'disabled' : ''}>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-light btn-sm text-secondary rounded-pill px-3 fw-bold border" onclick="verDetalle('citas', ${cita.idCita})" title="Ver detalles completos">
+                                        <i class="fas fa-eye me-1"></i> Detalles
+                                    </button>
+                                    ${btnChat}
+                                    ${btnArchivar}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            // Paginación (siempre visible)
+            html += `
+                <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                    <span class="text-muted small">Mostrando ${citas.length} de ${totalElements} citas (filtrados)</span>
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" onclick="cambiarPaginaPerfil('citas', ${currentPage - 1})" ${currentPage == 0 ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-left me-1"></i> Anterior
+                        </button>
+                        <span class="fw-semibold">Página ${currentPage + 1} de ${totalPages}</span>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" onclick="cambiarPaginaPerfil('citas', ${currentPage + 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''}>
+                            Siguiente <i class="fas fa-chevron-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
             content.innerHTML = html;
         } catch (error) {
             content.innerHTML = `<div class="alert alert-danger m-3">Error al cargar citas.</div>`;
@@ -627,28 +1055,27 @@ async function mostrarSeccion(seccion) {
     }
 
     // ============================
-    // SOLICITUDES
+    // SOLICITUDES (con paginación, filtro y archivar ASIGNADA/RECHAZADA)
     // ============================
     else if (seccion === 'solicitudes') {
         try {
-            const todasLasSol = await API.request(`/api/solicitudes/cliente/${user.idUsuario}`);
-            const archivados = obtenerArchivados('solicitudes');
-            const solVisibles = todasLasSol.filter((s) => !archivados.includes(s.idSolicitud));
+            const response = await API.Solicitudes.listarPorClientePaginado(user.idUsuario, paginas.solicitudes, PAGE_SIZE);
+            let solicitudes = response.content || [];
+            const totalPages = response.totalPages || 1;
+            const currentPage = response.number || 0;
+            const totalElements = response.totalElements || 0;
 
-            window._detallesData.solicitudes = solVisibles;
-
-            if (solVisibles.length === 0) {
-                content.innerHTML = `
-                    <div class="section-header"><h4><i class="fas fa-headset me-2"></i>Mis Solicitudes</h4></div>
-                    <div class="empty-state text-center">
-                        <i class="fas fa-inbox"></i>
-                        <h5 class="fw-bold text-dark mt-3">Bandeja limpia</h5>
-                        <p class="text-muted">No has enviado solicitudes de soporte.</p>
-                        <a href="contacto.html" class="btn btn-outline-primary rounded-pill px-4 mt-2 fw-bold">Crear Solicitud</a>
-                    </div>
-                `;
-                return;
+            // ✅ Aplicar filtro por estado
+            const estadoFiltro = filtrosEstado.solicitudes;
+            if (estadoFiltro !== 'todos') {
+                solicitudes = solicitudes.filter(s => s.estado === estadoFiltro);
             }
+
+            // ✅ Aplicar filtro de archivados
+            const archivados = obtenerArchivados('solicitudes');
+            solicitudes = solicitudes.filter(s => !archivados.includes(s.idSolicitud));
+
+            window._detallesData.solicitudes = solicitudes;
 
             let html = `
                 <div class="section-header">
@@ -659,51 +1086,89 @@ async function mostrarSeccion(seccion) {
                         <button class="btn btn-accion btn-accion-danger" onclick="eliminarTodos('solicitudes')"><i class="fas fa-trash-alt me-1"></i>Eliminar todos</button>
                     </div>
                 </div>
-                <div class="grid-cards" id="grid-solicitudes">
+                <!-- ✅ Filtro de estado -->
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <label class="fw-bold text-secondary small text-uppercase mb-0">Filtrar por estado:</label>
+                    <select class="form-select form-select-sm w-auto border-0 bg-light rounded-pill px-3" id="filtroEstadoSolicitudes" onchange="aplicarFiltroEstado('solicitudes', this.value)">
+                        <option value="todos" ${estadoFiltro === 'todos' ? 'selected' : ''}>Todos</option>
+                        <option value="PENDIENTE" ${estadoFiltro === 'PENDIENTE' ? 'selected' : ''}>Pendiente</option>
+                        <option value="ASIGNADA" ${estadoFiltro === 'ASIGNADA' ? 'selected' : ''}>Asignada</option>
+                        <option value="RECHAZADA" ${estadoFiltro === 'RECHAZADA' ? 'selected' : ''}>Rechazada</option>
+                    </select>
+                </div>
             `;
 
-            solVisibles.forEach((sol) => {
-                const esFinalizado = (sol.estado === 'ASIGNADA' || sol.estado === 'RECHAZADA');
-                const badgeClass =
-                    sol.estado === 'PENDIENTE' ? 'warning' :
-                    sol.estado === 'ASIGNADA' ? 'success' : 'danger';
-
-                const btnArchivar = esFinalizado
-                    ? `<button class="btn-archive-individual" onclick="ocultarItem('solicitudes', ${sol.idSolicitud})" title="Archivar individual"><i class="fas fa-archive"></i></button>`
-                    : '';
-
+            if (solicitudes.length === 0) {
                 html += `
-                    <div class="list-card">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div class="form-check">
-                                    <input class="form-check-input select-item" type="checkbox" value="${sol.idSolicitud}" data-tipo="solicitudes" id="sol_${sol.idSolicitud}" ${!esFinalizado ? 'disabled' : ''}>
-                                    <label class="form-check-label" for="sol_${sol.idSolicitud}">Ticket #${sol.idSolicitud}</label>
-                                </div>
-                                <span class="badge-status bg-${badgeClass}">${sol.estado}</span>
-                            </div>
-                            <div class="card-info-line">
-                                <i class="fas fa-tag text-primary"></i>
-                                <span><strong>${sol.tipoServicio.replace('_', ' ')}</strong></span>
-                            </div>
-                            <div class="card-info-line">
-                                <i class="fas fa-comment text-muted"></i>
-                                <span>${sol.mensaje || 'Sin mensaje'}</span>
-                            </div>
-                            <div class="card-info-line">
-                                <i class="fas fa-calendar-alt text-muted"></i>
-                                <span>Preferencia: ${sol.fechaPreferida ? new Date(sol.fechaPreferida).toLocaleDateString() : 'Cualquier fecha'}</span>
-                            </div>
-                            <div class="d-flex justify-content-end mt-2 gap-1">
-                                <button class="btn-detalle" onclick="verDetalle('solicitudes', ${sol.idSolicitud})" title="Ver detalles"><i class="fas fa-eye"></i></button>
-                                ${btnArchivar}
-                            </div>
-                        </div>
+                    <div class="empty-state text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="fw-bold text-dark">No hay solicitudes que mostrar</h5>
+                        <p class="text-muted">Intenta cambiar los filtros o archivar algunos registros.</p>
+                        <a href="contacto.html" class="btn btn-outline-primary rounded-pill px-4 mt-2 fw-bold">Crear Solicitud</a>
                     </div>
                 `;
-            });
+            } else {
+                html += `<div class="grid-cards" id="grid-solicitudes">`;
+                solicitudes.forEach((sol) => {
+                    // ✅ Ahora se puede archivar si es ASIGNADA o RECHAZADA
+                    const puedeArchivar = (sol.estado === 'ASIGNADA' || sol.estado === 'RECHAZADA');
+                    const badgeClass =
+                        sol.estado === 'PENDIENTE' ? 'warning' :
+                        sol.estado === 'ASIGNADA' ? 'success' : 'danger';
 
-            html += `</div>`;
+                    const btnArchivar = puedeArchivar
+                        ? `<button class="btn-archive-individual" onclick="ocultarItem('solicitudes', ${sol.idSolicitud})" title="Archivar individual"><i class="fas fa-archive"></i></button>`
+                        : '';
+
+                    html += `
+                        <div class="list-card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input select-item" type="checkbox" value="${sol.idSolicitud}" data-tipo="solicitudes" id="sol_${sol.idSolicitud}" ${!puedeArchivar ? 'disabled' : ''}>
+                                        <label class="form-check-label" for="sol_${sol.idSolicitud}">Ticket #${sol.idSolicitud}</label>
+                                    </div>
+                                    <span class="badge-status bg-${badgeClass}">${sol.estado}</span>
+                                </div>
+                                <div class="card-info-line">
+                                    <i class="fas fa-tag text-primary"></i>
+                                    <span><strong>${sol.tipoServicio.replace('_', ' ')}</strong></span>
+                                </div>
+                                <div class="card-info-line">
+                                    <i class="fas fa-comment text-muted"></i>
+                                    <span>${sol.mensaje || 'Sin mensaje'}</span>
+                                </div>
+                                <div class="card-info-line">
+                                    <i class="fas fa-calendar-alt text-muted"></i>
+                                    <span>Preferencia: ${sol.fechaPreferida ? new Date(sol.fechaPreferida).toLocaleDateString() : 'Cualquier fecha'}</span>
+                                </div>
+                                <div class="d-flex justify-content-end mt-2 gap-1">
+                                    <button class="btn-detalle" onclick="verDetalle('solicitudes', ${sol.idSolicitud})" title="Ver detalles"><i class="fas fa-eye"></i></button>
+                                    ${btnArchivar}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            // Paginación
+            html += `
+                <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                    <span class="text-muted small">Mostrando ${solicitudes.length} de ${totalElements} solicitudes (filtrados)</span>
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" onclick="cambiarPaginaPerfil('solicitudes', ${currentPage - 1})" ${currentPage == 0 ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-left me-1"></i> Anterior
+                        </button>
+                        <span class="fw-semibold">Página ${currentPage + 1} de ${totalPages}</span>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" onclick="cambiarPaginaPerfil('solicitudes', ${currentPage + 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''}>
+                            Siguiente <i class="fas fa-chevron-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
             content.innerHTML = html;
         } catch (error) {
             content.innerHTML = `<div class="alert alert-danger m-3">Error al cargar solicitudes.</div>`;
@@ -845,13 +1310,23 @@ async function mostrarSeccion(seccion) {
     }
 
     // ============================
-    // EQUIPOS
+    // EQUIPOS (con paginación, sin filtro de estado)
     // ============================
     else if (seccion === 'equipos') {
         try {
-            const equipos = await API.Equipos.listarPorCliente(user.idUsuario);
+            const response = await API.Equipos.listarPorClientePaginado(user.idUsuario, paginas.equipos, PAGE_SIZE);
+            let equipos = response.content || [];
+            const totalPages = response.totalPages || 1;
+            const currentPage = response.number || 0;
+            const totalElements = response.totalElements || 0;
 
-            if (!equipos || equipos.length === 0) {
+            // Los equipos no tienen estado, solo mostramos todos (no filtramos)
+            // Pero aplicamos archivar solo si se implementa (opcional)
+            // Por ahora no se archivan equipos
+
+            window._detallesData.equipos = equipos;
+
+            if (equipos.length === 0) {
                 content.innerHTML = `
                     <div class="section-header"><h4><i class="fas fa-snowflake me-2"></i>Mis Equipos Instalados</h4></div>
                     <div class="empty-state text-center">
@@ -938,6 +1413,23 @@ async function mostrarSeccion(seccion) {
             });
 
             html += `</div>`;
+
+            // Paginación
+            html += `
+                <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                    <span class="text-muted small">Mostrando ${equipos.length} de ${totalElements} equipos</span>
+                    <div class="d-flex align-items-center gap-3">
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" onclick="cambiarPaginaPerfil('equipos', ${currentPage - 1})" ${currentPage == 0 ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-left me-1"></i> Anterior
+                        </button>
+                        <span class="fw-semibold">Página ${currentPage + 1} de ${totalPages}</span>
+                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" onclick="cambiarPaginaPerfil('equipos', ${currentPage + 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''}>
+                            Siguiente <i class="fas fa-chevron-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
             content.innerHTML = html;
 
             const badgeEquipos = document.getElementById('badgeEquiposCliente');
@@ -1094,8 +1586,15 @@ window.abrirChatConTecnico = async function(idTecnico, nombreTecnico, idCita) {
         return;
     }
 
+    if (!idCita) {
+        console.error('❌ idCita es nulo o indefinido');
+        Swal.fire('Error', 'No se pudo identificar la cita para el chat.', 'error');
+        return;
+    }
+
     try {
-        // 1. Obtener o crear la conversación con idCita
+        console.log('📦 Payload a enviar (perfil):', { idCliente: user.idUsuario, idTecnico, idCita });
+
         const response = await fetch(`${API_URL}/api/conversaciones/iniciar`, {
             method: 'POST',
             headers: {
@@ -1105,28 +1604,27 @@ window.abrirChatConTecnico = async function(idTecnico, nombreTecnico, idCita) {
             body: JSON.stringify({
                 idCliente: user.idUsuario,
                 idTecnico: idTecnico,
-                idCita: idCita  // AHORA ENVÍA EL ID DE LA CITA
+                idCita: idCita
             })
         });
 
         if (!response.ok) {
-            throw new Error('Error al iniciar conversación');
+            const errorText = await response.text();
+            console.error('❌ Respuesta del servidor (error):', errorText);
+            throw new Error(`Error al iniciar conversación: ${response.status} - ${errorText}`);
         }
 
         const conversacion = await response.json();
         const conversacionId = conversacion.id;
 
-        // 2. Mostrar modal
         const modal = new bootstrap.Modal(document.getElementById('modalChat'));
         modal.show();
 
-        // 3. Inicializar chat
         modal._element.addEventListener('shown.bs.modal', function onShown() {
             modal._element.removeEventListener('shown.bs.modal', onShown);
             Chat.init(conversacionId, 'chatContainer', nombreTecnico || 'Técnico');
         });
 
-        // 4. Limpiar al cerrar
         modal._element.addEventListener('hidden.bs.modal', function onHidden() {
             modal._element.removeEventListener('hidden.bs.modal', onHidden);
             Chat.destroy();
@@ -1135,7 +1633,7 @@ window.abrirChatConTecnico = async function(idTecnico, nombreTecnico, idCita) {
         });
 
     } catch (error) {
-        console.error('Error al abrir chat:', error);
+        console.error('❌ Error al abrir chat:', error);
         Swal.fire('Error', 'No se pudo iniciar la conversación.', 'error');
     }
 };
