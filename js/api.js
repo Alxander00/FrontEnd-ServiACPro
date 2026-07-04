@@ -60,14 +60,23 @@ const API = {
         }
     },
 
+    // ===== MÉTODOS EXISTENTES =====
     Productos: {
-        listarActivos() { return API.request('/productos'); },
+        listarActivos(page = 0, size = 10) {
+            return API.request(`/productos?page=${page}&size=${size}`);
+        },
         obtenerPorId(id) { return API.request(`/productos/${id}`); },
         crear(data) { return API.request('/productos', { method: 'POST', body: JSON.stringify(data) }); },
         actualizar(id, data) { return API.request(`/productos/${id}`, { method: 'PUT', body: JSON.stringify(data) }); },
         eliminar(id) { return API.request(`/productos/${id}`, { method: 'DELETE' }); },
         listarPopulares() { return API.request('/productos/populares'); },
-        stockDisponible(id) { return API.request(`/productos/${id}/stock`); }
+        stockDisponible(id) { return API.request(`/productos/${id}/stock`); },
+        
+        // Método listarPaginado con filtros
+        listarPaginado(page = 0, size = 8, filters = {}) {
+            const { search = '', categoria = '' } = filters;
+            return API.request(`/productos/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search)}&categoria=${categoria}`);
+        }
     },
 
     Usuarios: {
@@ -75,7 +84,12 @@ const API = {
         obtenerPorEmail(email) { return API.request(`/usuarios/email/${email}`); },
         actualizar(id, data) { return API.request(`/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(data) }); },
         listar() { return API.request('/usuarios'); },
-        cambiarEstado(id, activo) { return API.request(`/usuarios/${id}/estado?activo=${activo}`, { method: 'PATCH' }); }
+        cambiarEstado(id, activo) { return API.request(`/usuarios/${id}/estado?activo=${activo}`, { method: 'PATCH' }); },
+        // Método paginado
+        listarPaginado(page = 0, size = 8, filters = {}) {
+            const { search = '', rol = '' } = filters;
+            return API.request(`/usuarios/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search)}&rol=${rol}`);
+        }
     },
 
     Pedidos: {
@@ -85,7 +99,12 @@ const API = {
         listarPorUsuarioPaginado(idUsuario, page = 0, size = 6) {
             return API.request(`/api/pedidos/usuario/${idUsuario}/paginado?page=${page}&size=${size}`);
         },
-        cambiarEstado(id, estado) { return API.request(`/api/pedidos/${id}/estado?estado=${estado}`, { method: 'PATCH' }); }
+        cambiarEstado(id, estado) { return API.request(`/api/pedidos/${id}/estado?estado=${estado}`, { method: 'PATCH' }); },
+        // Método paginado con filtros
+        listarPaginado(page = 0, size = 8, filters = {}) {
+            const { search = '', estado = '' } = filters;
+            return API.request(`/api/pedidos/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search)}&estado=${estado}`);
+        }
     },
 
     Citas: {
@@ -98,7 +117,23 @@ const API = {
             return API.request(`/api/citas/cliente/${idCliente}/paginado?page=${page}&size=${size}`);
         },
         crear(data) { return API.request('/api/citas', { method: 'POST', body: JSON.stringify(data) }); },
-        cambiarEstado(id, estado) { return API.request(`/api/citas/${id}/estado?estado=${estado}`, { method: 'PATCH' }); }
+        cambiarEstado(id, estado) { return API.request(`/api/citas/${id}/estado?estado=${estado}`, { method: 'PATCH' }); },
+        guardarReporte(id, formData) {
+            return API.request(`/api/citas/${id}/reporte`, {
+                method: 'POST',
+                body: formData,
+                headers: {} // Importante: no usar 'Content-Type' para FormData
+            });
+        },
+        // Método paginado con filtros
+        listarPaginado(page = 0, size = 8, filters = {}) {
+            const { estado = '', nombreCliente = '', idTecnico = '' } = filters;
+            let url = `/api/citas/reportes/paginado?page=${page}&size=${size}`;
+            if (estado) url += `&estado=${encodeURIComponent(estado)}`;
+            if (nombreCliente) url += `&nombreCliente=${encodeURIComponent(nombreCliente)}`;
+            if (idTecnico) url += `&idTecnico=${encodeURIComponent(idTecnico)}`;
+            return API.request(url);
+        }
     },
 
     Solicitudes: {
@@ -109,11 +144,22 @@ const API = {
             return API.request(`/api/solicitudes/cliente/${idCliente}/paginado?page=${page}&size=${size}`);
         },
         asignarTecnico(id, data) { return API.request(`/api/solicitudes/${id}/asignar`, { method: 'POST', body: JSON.stringify(data) }); },
-        rechazar(id) { return API.request(`/api/solicitudes/${id}/rechazar`, { method: 'POST' }); }
+        rechazar(id) { return API.request(`/api/solicitudes/${id}/rechazar`, { method: 'POST' }); },
+        // Método paginado con filtros
+        listarPaginado(page = 0, size = 8, filters = {}) {
+            const { estado = '', nombreCliente = '', fechaInicio = '', fechaFin = '' } = filters;
+            let url = `/api/solicitudes/paginado?page=${page}&size=${size}`;
+            if (estado) url += `&estado=${encodeURIComponent(estado)}`;
+            if (nombreCliente) url += `&nombreCliente=${encodeURIComponent(nombreCliente)}`;
+            if (fechaInicio) url += `&fechaInicio=${encodeURIComponent(fechaInicio)}`;
+            if (fechaFin) url += `&fechaFin=${encodeURIComponent(fechaFin)}`;
+            return API.request(url);
+        }
     },
 
     Estadisticas: {
-        obtenerDashboard() { return API.request('/api/estadisticas/dashboard'); }
+        obtenerDashboard() { return API.request('/api/estadisticas/dashboard'); },
+        obtenerCliente(idCliente) { return API.request(`/api/estadisticas/cliente/${idCliente}`); }
     },
 
     Auth: {
@@ -138,6 +184,26 @@ const API = {
 
     Repuestos: {
         listarActivos() { return API.request('/api/repuestos'); },
-        crear(data) { return API.request('/api/repuestos', { method: 'POST', body: JSON.stringify(data) }); }
+        crear(data) { return API.request('/api/repuestos', { method: 'POST', body: JSON.stringify(data) }); },
+        // Método paginado con filtros
+        listarPaginado(page = 0, size = 8, filters = {}) {
+            const { nombre = '' } = filters;
+            let url = `/api/repuestos/paginado?page=${page}&size=${size}`;
+            if (nombre) url += `&nombre=${encodeURIComponent(nombre)}`;
+            return API.request(url);
+        }
     },
+
+    // Método para actualizar usuario (avatar)
+    UsuariosAvanzado: {
+        actualizarAvatar(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            return API.request('/usuarios/actualizar-avatar', {
+                method: 'POST',
+                body: formData,
+                headers: {}
+            });
+        }
+    }
 };

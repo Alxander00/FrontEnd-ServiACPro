@@ -110,7 +110,8 @@ const adminState = {
     usuarios: { page: 0, size: 8, search: '', rol: '' },
     inventario: { page: 0, size: 8, search: '' },
     solicitudes: { page: 0, size: 8, search: '', estado: '' },
-    reportes: { page: 0, size: 8, search: '' }
+    reportes: { page: 0, size: 8, search: '' },
+    cotizador: { page: 0, size: 8, search: '' }
 };
 
 // ==========================================
@@ -160,6 +161,7 @@ window.cambiarPagina = function(modulo, nuevaPagina) {
     if (modulo === 'inventario') renderInventario();
     if (modulo === 'solicitudes') renderSolicitudes();
     if (modulo === 'reportes') renderReportes();
+    if (modulo === 'cotizador') renderCotizador();
 };
 
 window.aplicarFiltro = function(modulo) {
@@ -178,6 +180,25 @@ window.aplicarFiltro = function(modulo) {
         adminState.productos.search = document.getElementById('searchProductos').value;
         adminState.productos.categoria = document.getElementById('filterCategoriaProductos').value;
         renderProductos();
+    }
+    if (modulo === 'solicitudes') {
+        adminState.solicitudes.search = document.getElementById('filtroSolCliente').value;
+        adminState.solicitudes.estado = document.getElementById('filtroSolEstado').value;
+        renderSolicitudes();
+    }
+    if (modulo === 'reportes') {
+        adminState.reportes.search = document.getElementById('filtroRepCliente').value;
+        adminState.reportes.estado = document.getElementById('filtroRepEstado').value;
+        // No necesita fechas porque las pasa desde renderReportes
+        renderReportes();
+    }
+    if (modulo === 'inventario') {
+        adminState.inventario.search = document.getElementById('buscadorInventario').value;
+        renderInventario();
+    }
+    if (modulo === 'cotizador') {
+        adminState.cotizador.search = document.getElementById('cotSearchProducto').value;
+        renderCotizador();
     }
 };
 
@@ -684,28 +705,78 @@ async function guardarProducto(event) {
     }
 
     try {
-        let response;
-        if (idProducto) {
-            response = await fetch(`${API_BASE_URL}/productos/${idProducto}`, { method: 'PUT', body: formData });
-        } else {
-            response = await fetch(`${API_BASE_URL}/productos`, { method: 'POST', body: formData });
-        }
+        const url = idProducto 
+            ? `${API_URL}/productos/${idProducto}` 
+            : `${API_URL}/productos`;
+        const method = idProducto ? 'PUT' : 'POST';
+
+        const response = await fetchWithAuth(url, {
+            method: method,
+            body: formData
+            // No pongas 'Content-Type', fetch lo pondrá automáticamente
+        });
+
         if (!response.ok) {
-            const errorText = await response.text();
             let errorMessage = 'Error al guardar';
-            try { const errorData = JSON.parse(errorText); errorMessage = errorData.message || errorData.error || errorMessage; } catch(e) { errorMessage = errorText || errorMessage; }
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorData.error || errorMessage;
+            } catch(e) {
+                errorMessage = await response.text() || errorMessage;
+            }
             throw new Error(errorMessage);
         }
+
+        const result = await response.json();
         Swal.fire('Éxito', idProducto ? 'Equipo actualizado correctamente.' : 'Equipo registrado con éxito.', 'success');
         bsModalProducto.hide();
         renderProductos();
     } catch (error) {
         console.error("Error en guardarProducto:", error);
-        Swal.fire('Error', error.message, 'error');
+        if (error.message.includes('403')) {
+            Swal.fire('Error de permisos', 'No tienes permisos para realizar esta acción. Verifica tu rol.', 'error');
+        } else {
+            Swal.fire('Error', error.message, 'error');
+        }
     } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
     }
+}
+
+// Función auxiliar para peticiones con FormData y refresh automático
+async function fetchWithAuth(url, options) {
+    let token = Auth.getToken();
+    if (!token) throw new Error('No autenticado');
+
+    const makeRequest = async (token) => {
+        return fetch(url, {
+            ...options,
+            headers: {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`
+            }
+        });
+    };
+
+    let response = await makeRequest(token);
+
+    if (response.status === 401) {
+        try {
+            const newToken = await Auth.refreshAccessToken();
+            token = newToken;
+            response = await makeRequest(token);
+        } catch (refreshError) {
+            Auth.logout();
+            throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+        }
+    }
+
+    if (response.status === 403) {
+        throw new Error('403: No tienes permisos suficientes');
+    }
+
+    return response;
 }
 
 async function eliminarProducto(id) {
@@ -1188,27 +1259,148 @@ window.toggleUsuarioEstado = async (id, nuevoEstado) => {
 async function renderSolicitudes() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        const solicitudes = await API.request('/api/solicitudes/pendientes');
+        const { page, size, search, estado } = adminState.solicitudes;
+
+        // ✅ Obtener fechas de los inputs si existen
+        const fechaInicioInput = document.getElementById('filtroSolFechaInicio');
+        const fechaFinInput = document.getElementById('filtroSolFechaFin');
+        const fechaInicio = fechaInicioInput ? fechaInicioInput.value : '';
+        const fechaFin = fechaFinInput ? fechaFinInput.value : '';
+
+        // ✅ Usamos el endpoint existente que devuelve SOLO las PENDIENTES
+        let solicitudes = await API.Solicitudes.listarPendientes();
+
+        // ✅ Aplicar filtro de búsqueda por nombre de cliente (search)
+        if (search && search.trim() !== '') {
+            const busqueda = search.toLowerCase().trim();
+            solicitudes = solicitudes.filter(s =>
+                s.nombreCliente.toLowerCase().includes(busqueda)
+            );
+        }
+
+        // ✅ Filtro por estado (aunque solo hay PENDIENTE, pero lo dejamos por si acaso)
+        if (estado && estado !== '') {
+            solicitudes = solicitudes.filter(s => s.estado === estado);
+        }
+
+        // ✅ Filtro por fecha (si los inputs tienen valor)
+        if (fechaInicio) {
+            const fechaInicioObj = new Date(fechaInicio);
+            solicitudes = solicitudes.filter(s => new Date(s.fechaCreacion) >= fechaInicioObj);
+        }
+        if (fechaFin) {
+            const fechaFinObj = new Date(fechaFin);
+            solicitudes = solicitudes.filter(s => new Date(s.fechaCreacion) <= fechaFinObj);
+        }
+
+        // ✅ Paginación manual
+        const start = page * size;
+        const end = start + size;
+        const solicitudesPaginadas = solicitudes.slice(start, end);
+        const totalPages = Math.ceil(solicitudes.length / size) || 1;
+
+        // Obtener técnicos para asignar
         const todos = await API.Usuarios.listar();
         const tecnicos = todos.filter(u => u.rol === 'TECNICO' && u.activo);
-        if (solicitudes.length === 0) {
+
+        if (solicitudes.length === 0 && page === 0 && !estado && !search) {
             contentDiv.innerHTML = `<div class="card border-0 shadow-sm py-5 text-center"><div class="card-body"><div class="stat-icon bg-success bg-opacity-10 text-success mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2.5rem;"><i class="fas fa-check-double"></i></div><h4 class="fw-bold text-dark">Todo al día</h4><p class="text-muted">No hay solicitudes técnicas pendientes de asignación.</p></div></div>`;
             return;
         }
-        let html = `<div class="card border-0 shadow-sm"><div class="card-header bg-white pt-4 px-4"><h5 class="fw-bold mb-0 text-dark"><i class="fas fa-hard-hat text-warning me-2"></i>Centro de Asignación de Tareas</h5></div><div class="card-body p-0"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="bg-light"><tr><th class="ps-4">Ticket / Cliente</th><th>Labor Requerida</th><th style="min-width: 320px;">Despacho de Técnico</th><th class="text-end pe-4" style="width: 130px;">Decisión</th></tr></thead><tbody>`;
-        for (const sol of solicitudes) {
-            html += `<tr>
-                <td class="ps-4"><h6 class="fw-bold text-dark mb-1">Ticket #${sol.idSolicitud}</h6><span class="text-primary fw-semibold"><i class="fas fa-user-circle me-1"></i> ${sol.nombreCliente}</span><small class="text-muted fw-bold d-block mt-2 bg-light p-1 rounded"><i class="far fa-calendar-alt text-warning me-1"></i> Preferencia: ${sol.fechaPreferida ? new Date(sol.fechaPreferida).toLocaleString() : 'Abierto a sugerencias'}</small></td>
-                <td><span class="badge bg-gradient-warning shadow-sm mb-2 px-3 py-2">${sol.tipoServicio.replace('_', ' ')}</span><div class="bg-light p-2 rounded-3 border"><p class="small text-muted mb-0 fst-italic" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" title="${sol.mensaje || 'Sin detalles extra'}"><i class="fas fa-quote-left text-primary opacity-50 me-1"></i> ${sol.mensaje || 'Cliente no proporcionó detalles extras.'}</p></div></td>
-                <td><div class="bg-white p-3 rounded-4 border shadow-sm"><select id="tecnicoSelect_${sol.idSolicitud}" class="form-select mb-2 border-primary border-opacity-25 bg-light text-primary fw-bold"><option value="">👤 Asignar Profesional...</option>${tecnicos.map(t => `<option value="${t.idUsuario}">${t.nombre} ${t.apellido || ''}</option>`).join('')}</select><div class="d-flex gap-2"><div class="input-group input-group-sm w-50"><span class="input-group-text bg-success bg-opacity-10 border-0 text-success"><i class="fas fa-play"></i></span><input type="datetime-local" id="fechaInicio_${sol.idSolicitud}" class="form-control border-0 bg-light text-muted fw-semibold"></div><div class="input-group input-group-sm w-50"><span class="input-group-text bg-danger bg-opacity-10 border-0 text-danger"><i class="fas fa-stop"></i></span><input type="datetime-local" id="fechaFin_${sol.idSolicitud}" class="form-control border-0 bg-light text-muted fw-semibold"></div></div></div></td>
-                <td class="text-end pe-4"><button class="btn btn-success fw-bold shadow-sm mb-2 w-100" onclick="asignarTecnico(${sol.idSolicitud})"><i class="fas fa-check me-1"></i> Asignar</button><button class="btn btn-light text-danger fw-bold border-danger border-opacity-25 w-100" onclick="rechazarSolicitud(${sol.idSolicitud})"><i class="fas fa-times me-1"></i> Descartar</button></td>
-            </tr>`;
-        }
-        html += `</tbody></table></div></div></div>`;
+
+        const currentSearchValue = search;
+
+        let html = `
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-hard-hat text-warning me-2"></i>Centro de Asignación de Tareas</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Filtros -->
+                    <div class="row g-2 mb-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small text-secondary text-uppercase">Buscar cliente</label>
+                            <input type="text" class="form-control form-control-sm bg-light" id="filtroSolCliente" placeholder="Nombre..." value="${currentSearchValue}" oninput="filtrarEnTiempoReal('solicitudes', this.value)">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-secondary text-uppercase">Estado</label>
+                            <select class="form-select form-select-sm bg-light" id="filtroSolEstado" onchange="aplicarFiltro('solicitudes')">
+                                <option value="" ${estado === '' ? 'selected' : ''}>Todos</option>
+                                <option value="PENDIENTE" ${estado === 'PENDIENTE' ? 'selected' : ''}>Pendiente</option>
+                                <!-- Los demás estados no se mostrarán porque solo traemos pendientes, pero los dejamos por si acaso -->
+                                <option value="ASIGNADA" ${estado === 'ASIGNADA' ? 'selected' : ''}>Asignada</option>
+                                <option value="RECHAZADA" ${estado === 'RECHAZADA' ? 'selected' : ''}>Rechazada</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-secondary text-uppercase">Desde</label>
+                            <input type="datetime-local" class="form-control form-control-sm bg-light" id="filtroSolFechaInicio" value="${fechaInicio}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-secondary text-uppercase">Hasta</label>
+                            <input type="datetime-local" class="form-control form-control-sm bg-light" id="filtroSolFechaFin" value="${fechaFin}">
+                        </div>
+                        <div class="col-md-1 d-flex gap-1">
+                            <button class="btn btn-primary btn-sm w-100" onclick="aplicarFiltro('solicitudes')"><i class="fas fa-search"></i></button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="limpiarFiltrosSolicitudes()"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light"><tr><th class="ps-4">Ticket / Cliente</th><th>Labor Requerida</th><th style="min-width: 320px;">Despacho de Técnico</th><th class="text-end pe-4" style="width: 130px;">Decisión</th></tr></thead>
+                            <tbody>
+                                ${solicitudesPaginadas.length === 0 ? '<tr><td colspan="4" class="text-center py-4 text-muted">No hay solicitudes que coincidan con los filtros.</td></tr>' : ''}
+                                ${solicitudesPaginadas.map(sol => {
+                                    const esPendiente = sol.estado === 'PENDIENTE';
+                                    return `<tr>
+                                        <td class="ps-4"><h6 class="fw-bold text-dark mb-1">Ticket #${sol.idSolicitud}</h6><span class="text-primary fw-semibold"><i class="fas fa-user-circle me-1"></i> ${sol.nombreCliente}</span><small class="text-muted fw-bold d-block mt-2 bg-light p-1 rounded"><i class="far fa-calendar-alt text-warning me-1"></i> Preferencia: ${sol.fechaPreferida ? new Date(sol.fechaPreferida).toLocaleString() : 'Abierto a sugerencias'}</small></td>
+                                        <td><span class="badge bg-gradient-warning shadow-sm mb-2 px-3 py-2">${sol.tipoServicio.replace('_', ' ')}</span><div class="bg-light p-2 rounded-3 border"><p class="small text-muted mb-0 fst-italic" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" title="${sol.mensaje || 'Sin detalles extra'}"><i class="fas fa-quote-left text-primary opacity-50 me-1"></i> ${sol.mensaje || 'Cliente no proporcionó detalles extras.'}</p></div></td>
+                                        <td>
+                                            ${esPendiente ? `
+                                            <div class="bg-white p-3 rounded-4 border shadow-sm">
+                                                <select id="tecnicoSelect_${sol.idSolicitud}" class="form-select mb-2 border-primary border-opacity-25 bg-light text-primary fw-bold">
+                                                    <option value="">👤 Asignar Profesional...</option>
+                                                    ${tecnicos.map(t => `<option value="${t.idUsuario}">${t.nombre} ${t.apellido || ''}</option>`).join('')}
+                                                </select>
+                                                <div class="d-flex gap-2">
+                                                    <div class="input-group input-group-sm w-50"><span class="input-group-text bg-success bg-opacity-10 border-0 text-success"><i class="fas fa-play"></i></span><input type="datetime-local" id="fechaInicio_${sol.idSolicitud}" class="form-control border-0 bg-light text-muted fw-semibold"></div>
+                                                    <div class="input-group input-group-sm w-50"><span class="input-group-text bg-danger bg-opacity-10 border-0 text-danger"><i class="fas fa-stop"></i></span><input type="datetime-local" id="fechaFin_${sol.idSolicitud}" class="form-control border-0 bg-light text-muted fw-semibold"></div>
+                                                </div>
+                                            </div>
+                                            ` : `<span class="badge ${sol.estado === 'ASIGNADA' ? 'bg-success' : 'bg-danger'}">${sol.estado}</span>`}
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            ${esPendiente ? `
+                                            <button class="btn btn-success fw-bold shadow-sm mb-2 w-100" onclick="asignarTecnico(${sol.idSolicitud})"><i class="fas fa-check me-1"></i> Asignar</button>
+                                            <button class="btn btn-light text-danger fw-bold border-danger border-opacity-25 w-100" onclick="rechazarSolicitud(${sol.idSolicitud})"><i class="fas fa-times me-1"></i> Descartar</button>
+                                            ` : `<span class="text-muted small">Procesada</span>`}
+                                        </td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    ${renderPagination(totalPages, page, 'solicitudes')}
+                </div>
+            </div>
+        `;
         contentDiv.innerHTML = html;
     } catch (error) {
+        console.error('Error en renderSolicitudes:', error);
         contentDiv.innerHTML = `<div class="alert alert-danger shadow-sm rounded-4 m-3"><i class="fas fa-exclamation-circle me-2"></i> Error de conexión: ${error.message}</div>`;
     }
+}
+
+// Función auxiliar para limpiar filtros de solicitudes
+function limpiarFiltrosSolicitudes() {
+    document.getElementById('filtroSolCliente').value = '';
+    document.getElementById('filtroSolEstado').value = '';
+    document.getElementById('filtroSolFechaInicio').value = '';
+    document.getElementById('filtroSolFechaFin').value = '';
+    adminState.solicitudes.search = '';
+    adminState.solicitudes.estado = '';
+    adminState.solicitudes.page = 0;
+    renderSolicitudes();
 }
 
 window.asignarTecnico = async function(idSolicitud) {
@@ -1270,20 +1462,97 @@ let listaCitasGlobal = [];
 async function renderReportes() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        listaCitasGlobal = await API.Citas.listar();
-        if (!listaCitasGlobal || listaCitasGlobal.length === 0) {
+        const { page, size, search, estado } = adminState.reportes;
+        const idTecnico = document.getElementById('filtroRepTecnico')?.value || '';
+        const fechaInicio = document.getElementById('filtroRepFechaInicio')?.value || '';
+        const fechaFin = document.getElementById('filtroRepFechaFin')?.value || '';
+
+        // ✅ Usamos el endpoint existente que devuelve TODAS las citas
+        let citas = await API.Citas.listar();
+
+        // ✅ Aplicar filtros en memoria
+        if (estado && estado !== '') {
+            citas = citas.filter(c => c.estado === estado);
+        }
+        if (search && search.trim() !== '') {
+            const busqueda = search.toLowerCase().trim();
+            citas = citas.filter(c =>
+                c.nombreCliente.toLowerCase().includes(busqueda)
+            );
+        }
+        if (idTecnico && idTecnico.trim() !== '') {
+            citas = citas.filter(c =>
+                c.nombreTecnico && c.nombreTecnico.toLowerCase().includes(idTecnico.toLowerCase())
+            );
+        }
+        if (fechaInicio) {
+            const fechaInicioObj = new Date(fechaInicio);
+            citas = citas.filter(c => new Date(c.fechaInicio) >= fechaInicioObj);
+        }
+        if (fechaFin) {
+            const fechaFinObj = new Date(fechaFin);
+            citas = citas.filter(c => new Date(c.fechaInicio) <= fechaFinObj);
+        }
+
+        // ✅ Paginación manual
+        const start = page * size;
+        const end = start + size;
+        const citasPaginadas = citas.slice(start, end);
+        const totalPages = Math.ceil(citas.length / size) || 1;
+        listaCitasGlobal = citas;
+
+        if (citas.length === 0 && page === 0 && !estado && !search) {
             contentDiv.innerHTML = `<div class="alert alert-info shadow-sm m-4">No hay historial de citas o reportes en el sistema.</div>`;
             return;
         }
+
+        const currentSearchValue = search;
+
         contentDiv.innerHTML = `
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white pt-4 px-4"><h5 class="fw-bold mb-0 text-dark"><i class="fas fa-clipboard-list text-primary me-2"></i>Historial de Trabajos</h5></div>
-                <div class="card-body p-0">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-clipboard-list text-primary me-2"></i>Historial de Trabajos</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Filtros -->
+                    <div class="row g-2 mb-3 align-items-end">
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-secondary text-uppercase">Estado</label>
+                            <select class="form-select form-select-sm bg-light" id="filtroRepEstado" onchange="aplicarFiltro('reportes')">
+                                <option value="" ${estado === '' ? 'selected' : ''}>Todos</option>
+                                <option value="PROGRAMADA" ${estado === 'PROGRAMADA' ? 'selected' : ''}>Programada</option>
+                                <option value="EN_PROCESO" ${estado === 'EN_PROCESO' ? 'selected' : ''}>En Proceso</option>
+                                <option value="COMPLETADA" ${estado === 'COMPLETADA' ? 'selected' : ''}>Completada</option>
+                                <option value="CANCELADA" ${estado === 'CANCELADA' ? 'selected' : ''}>Cancelada</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-secondary text-uppercase">Cliente</label>
+                            <input type="text" class="form-control form-control-sm bg-light" id="filtroRepCliente" placeholder="Nombre..." value="${currentSearchValue}" oninput="filtrarEnTiempoReal('reportes', this.value)">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-secondary text-uppercase">Técnico</label>
+                            <input type="text" class="form-control form-control-sm bg-light" id="filtroRepTecnico" placeholder="Nombre..." value="${idTecnico}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-secondary text-uppercase">Desde</label>
+                            <input type="datetime-local" class="form-control form-control-sm bg-light" id="filtroRepFechaInicio" value="${fechaInicio}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold small text-secondary text-uppercase">Hasta</label>
+                            <input type="datetime-local" class="form-control form-control-sm bg-light" id="filtroRepFechaFin" value="${fechaFin}">
+                        </div>
+                        <div class="col-md-1 d-flex gap-1">
+                            <button class="btn btn-primary btn-sm w-100" onclick="aplicarFiltro('reportes')"><i class="fas fa-search"></i></button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="limpiarFiltrosReportes()"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="bg-light"><tr><th class="ps-4">Ticket</th><th>Cliente</th><th>Técnico</th><th>Fecha</th><th>Estado</th><th class="text-end pe-4">Evidencia</th></tr></thead>
                             <tbody>
-                                ${listaCitasGlobal.map(cita => {
+                                ${citasPaginadas.length === 0 ? '<tr><td colspan="6" class="text-center py-4 text-muted">No hay reportes que coincidan con los filtros.</td></tr>' : ''}
+                                ${citasPaginadas.map(cita => {
                                     const badgeClass = cita.estado === 'COMPLETADA' ? 'bg-success' : (cita.estado === 'CANCELADA' ? 'bg-danger' : 'bg-warning text-dark');
                                     const tieneEvidencia = cita.estado === 'COMPLETADA' && (cita.urlFirmaCliente || cita.urlsFotosAntes || cita.urlsFotosDespues);
                                     const btnEvidencia = tieneEvidencia ? `<button class="btn btn-sm btn-primary shadow-sm rounded-pill px-3 fw-bold" onclick="abrirVisorEvidencia(${cita.idCita})"><i class="fas fa-camera me-1"></i> Ver Reporte</button>` : `<span class="text-muted small">No disponible</span>`;
@@ -1298,12 +1567,26 @@ async function renderReportes() {
                             </tbody>
                         </table>
                     </div>
+                    ${renderPagination(totalPages, page, 'reportes')}
                 </div>
             </div>
         `;
     } catch (error) {
+        console.error('Error en renderReportes:', error);
         contentDiv.innerHTML = `<div class="alert alert-danger shadow-sm m-4">Error al cargar reportes: ${error.message}</div>`;
     }
+}
+
+function limpiarFiltrosReportes() {
+    document.getElementById('filtroRepEstado').value = '';
+    document.getElementById('filtroRepCliente').value = '';
+    document.getElementById('filtroRepTecnico').value = '';
+    document.getElementById('filtroRepFechaInicio').value = '';
+    document.getElementById('filtroRepFechaFin').value = '';
+    adminState.reportes.search = '';
+    adminState.reportes.estado = '';
+    adminState.reportes.page = 0;
+    renderReportes();
 }
 
 window.abrirVisorEvidencia = function(idCita) {
@@ -1389,9 +1672,74 @@ let listaInventarioGlobal = [];
 async function renderInventario() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        listaInventarioGlobal = await API.Repuestos.listarActivos();
-        dibujarTablaInventario(listaInventarioGlobal);
+        const { page, size, search } = adminState.inventario;
+
+        // ✅ Usamos el endpoint existente que devuelve TODOS los repuestos activos
+        const repuestos = await API.Repuestos.listarActivos();
+
+        // ✅ Aplicar filtro de búsqueda por nombre (search)
+        let repuestosFiltrados = repuestos;
+        if (search && search.trim() !== '') {
+            const busqueda = search.toLowerCase().trim();
+            repuestosFiltrados = repuestos.filter(r =>
+                r.nombre.toLowerCase().includes(busqueda)
+            );
+        }
+
+        // ✅ Paginación manual (slice)
+        const start = page * size;
+        const end = start + size;
+        const repuestosPaginados = repuestosFiltrados.slice(start, end);
+        const totalPages = Math.ceil(repuestosFiltrados.length / size) || 1;
+
+        listaInventarioGlobal = repuestosFiltrados; // Para usar en editar/eliminar
+
+        const inversionTotal = repuestosFiltrados.reduce((acc, rep) => acc + (rep.stockActual * rep.costoUnitario), 0);
+        const currentSearchValue = search;
+
+        let html = `
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                <h5 class="fw-bold mb-0">Existencias Actuales</h5>
+                <div class="d-flex gap-2 align-items-center">
+                    <div class="input-group input-group-sm shadow-sm rounded-pill overflow-hidden border bg-white" style="max-width: 250px;">
+                        <span class="input-group-text bg-white border-0 text-muted ps-3"><i class="fas fa-search"></i></span>
+                        <input type="text" id="buscadorInventario" class="form-control border-0 bg-white" placeholder="Buscar material..." value="${currentSearchValue}" oninput="filtrarInventario()">
+                    </div>
+                    <button class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm text-nowrap" onclick="abrirModalRepuesto()"><i class="fas fa-plus me-2"></i>Nuevo</button>
+                </div>
+            </div>
+            <div class="row mb-4">
+                <div class="col-md-4"><div class="card border-0 shadow-sm bg-primary text-white rounded-4"><div class="card-body p-4"><h6 class="opacity-75 mb-1">Inversión en Almacén (filtrado)</h6><h2 class="fw-bold mb-0">$${inversionTotal.toFixed(2)}</h2></div></div></div>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light"><tr><th class="ps-4">Material</th><th>Unidad</th><th>Costo Unit.</th><th>Stock</th><th class="text-end pe-4">Acciones</th></tr></thead>
+                        <tbody>
+                            ${repuestosPaginados.length === 0 ? '<tr><td colspan="5" class="text-center py-4 text-muted">No hay materiales que coincidan con los filtros.</td></tr>' : ''}
+                            ${repuestosPaginados.map(rep => {
+                                const badgeStock = rep.stockActual <= 5 ? 'bg-danger' : 'bg-success';
+                                return `
+                                <tr>
+                                    <td class="ps-4 fw-bold text-dark">${rep.nombre}</td>
+                                    <td><span class="badge bg-secondary bg-opacity-10 text-secondary border">${rep.unidadMedida}</span></td>
+                                    <td>$${rep.costoUnitario.toFixed(2)}</td>
+                                    <td><span class="badge ${badgeStock} px-3 py-2 fs-6">${rep.stockActual}</span></td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-light text-primary me-2 shadow-sm" onclick="editarRepuesto(${rep.idRepuesto})" title="Editar"><i class="fas fa-edit"></i></button>
+                                        <button class="btn btn-sm btn-light text-danger shadow-sm rounded-circle" onclick="eliminarRepuesto(${rep.idRepuesto})" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                ${renderPagination(totalPages, page, 'inventario')}
+            </div>
+        `;
+        contentDiv.innerHTML = html;
     } catch (error) {
+        console.error('Error en renderInventario:', error);
         contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error al cargar inventario: ${error.message}</div>`;
     }
 }
@@ -1441,14 +1789,10 @@ function dibujarTablaInventario(repuestos) {
 }
 
 window.filtrarInventario = function() {
-    const texto = document.getElementById('buscadorInventario').value.toLowerCase();
-    const filtrados = listaInventarioGlobal.filter(rep => rep.nombre.toLowerCase().includes(texto));
-    dibujarTablaInventario(filtrados);
-    const inputBuscador = document.getElementById('buscadorInventario');
-    if(inputBuscador) {
-        inputBuscador.value = texto;
-        inputBuscador.focus();
-    }
+    const texto = document.getElementById('buscadorInventario').value;
+    adminState.inventario.search = texto;
+    adminState.inventario.page = 0;
+    renderInventario();
 };
 
 window.abrirModalRepuesto = function(id = null) {
@@ -1533,9 +1877,16 @@ let productosCatalogoCotizador = [];
 async function renderCotizador() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        const response = await API.Productos.listarActivos();
-        productosCatalogoCotizador = response.content || response || [];
+        const { page, size, search } = adminState.cotizador;
+        // Usamos API.request con el endpoint de productos paginado
+        const response = await API.request(`/productos/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search)}&categoria=`);
+        const productos = response.content || [];
+        const totalPages = response.totalPages || 1;
+        productosCatalogoCotizador = productos;
         itemsCotizacion = [];
+
+        const currentSearchValue = search;
+
         contentDiv.innerHTML = `
             <div class="row g-4">
                 <div class="col-lg-4">
@@ -1549,9 +1900,29 @@ async function renderCotizador() {
                     <div class="card border-0 shadow-sm rounded-4">
                         <div class="card-header bg-white pt-4 px-4 border-0"><h6 class="fw-bold text-dark mb-0"><i class="fas fa-plus-circle text-success me-2"></i>Agregar Conceptos</h6></div>
                         <div class="card-body p-4">
-                            <div class="mb-4"><label class="form-label small fw-bold text-primary">1. Seleccionar de Catálogo</label><select id="cotSelectorProducto" class="form-select bg-light border-0 mb-2"><option value="" selected disabled>Seleccionar equipo...</option>${productosCatalogoCotizador.map(p => `<option value="${p.idProducto}" data-precio="${p.precio}">${p.nombre} - $${p.precio.toFixed(2)}</option>`).join('')}</select><button class="btn btn-sm btn-outline-primary w-100 fw-bold" onclick="agregarItemCotizacion('producto')"><i class="fas fa-cart-plus me-1"></i> Agregar Equipo</button></div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-primary">1. Buscar producto</label>
+                                <input type="text" id="cotSearchProducto" class="form-control form-control-sm bg-light border-0 mb-2" placeholder="Buscar equipo..." value="${currentSearchValue}" oninput="filtrarCotizadorProductos(this.value)">
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-primary">Seleccionar de Catálogo</label>
+                                <select id="cotSelectorProducto" class="form-select bg-light border-0 mb-2">
+                                    <option value="" selected disabled>Seleccionar equipo...</option>
+                                    ${productos.map(p => `<option value="${p.idProducto}" data-precio="${p.precio}">${p.nombre} - $${p.precio.toFixed(2)}</option>`).join('')}
+                                </select>
+                                <button class="btn btn-sm btn-outline-primary w-100 fw-bold" onclick="agregarItemCotizacion('producto')"><i class="fas fa-cart-plus me-1"></i> Agregar Equipo</button>
+                            </div>
                             <hr class="opacity-25">
-                            <div class="mb-2"><label class="form-label small fw-bold text-success">2. Concepto Libre (Ej. Mano de obra)</label><input type="text" id="cotConceptoExtra" class="form-control bg-light border-0 mb-2" placeholder="Descripción..."><div class="input-group input-group-sm mb-2"><span class="input-group-text bg-light border-0">$</span><input type="number" id="cotPrecioExtra" class="form-control bg-light border-0" placeholder="0.00" step="0.01"></div><button class="btn btn-sm btn-outline-success w-100 fw-bold" onclick="agregarItemCotizacion('extra')"><i class="fas fa-plus me-1"></i> Agregar Concepto</button></div>
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold text-success">2. Concepto Libre (Ej. Mano de obra)</label>
+                                <input type="text" id="cotConceptoExtra" class="form-control bg-light border-0 mb-2" placeholder="Descripción...">
+                                <div class="input-group input-group-sm mb-2">
+                                    <span class="input-group-text bg-light border-0">$</span>
+                                    <input type="number" id="cotPrecioExtra" class="form-control bg-light border-0" placeholder="0.00" step="0.01">
+                                </div>
+                                <button class="btn btn-sm btn-outline-success w-100 fw-bold" onclick="agregarItemCotizacion('extra')"><i class="fas fa-plus me-1"></i> Agregar Concepto</button>
+                            </div>
+                            ${renderPagination(totalPages, page, 'cotizador')}
                         </div>
                     </div>
                 </div>
@@ -1571,6 +1942,13 @@ async function renderCotizador() {
         contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error al cargar el cotizador: ${error.message}</div>`;
     }
 }
+
+// Función para filtrar productos en el cotizador (tiempo real)
+window.filtrarCotizadorProductos = function(valor) {
+    adminState.cotizador.search = valor;
+    adminState.cotizador.page = 0;
+    renderCotizador();
+};
 
 function actualizarTablaCotizacion() {
     const tbody = document.getElementById('tablaCotizacionBody');
