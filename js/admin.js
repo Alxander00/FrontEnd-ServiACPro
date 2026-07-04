@@ -15,8 +15,303 @@ const contentDiv = document.getElementById('dynamicContent');
 
 let bsModalProducto = null;
 let bsModalCategoria = null;
+let bsModalRepuesto = null;
 let categoriasCargadas = false;
 let currentImageUrls = [];
+let usuariosCache = [];
+
+// ==========================================
+// ARCHIVADO DE PEDIDOS (LOCALSTORAGE)
+// ==========================================
+function obtenerArchivados() {
+    const archivados = JSON.parse(localStorage.getItem('pedidos_archivados') || '[]');
+    return archivados;
+}
+
+window.archivarPedido = async function(id) {
+    const confirm = await Swal.fire({
+        title: '¿Archivar pedido?',
+        text: 'El pedido desaparecerá de tu lista principal pero seguirá contando en las estadísticas.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, archivar',
+        cancelButtonText: 'Cancelar'
+    });
+    if (confirm.isConfirmed) {
+        archivarPedido(id);
+        Swal.fire({
+            icon: 'success',
+            title: 'Pedido archivado',
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        renderPedidos();
+    }
+};
+
+window.archivarTodosCompletados = async function() {
+    // Obtener los pedidos de la página actual
+    const { page, size, search, estado } = adminState.pedidos;
+    const response = await API.request(`/api/pedidos/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search)}&estado=${estado}`);
+    let pedidos = response.content || [];
+    const archivados = obtenerArchivados();
+    // Filtrar los que NO están archivados y que están Completados o Cancelados
+    const completadosCancelados = pedidos.filter(p => 
+        !archivados.includes(p.idPedido) && 
+        (p.estado === 'Completado' || p.estado === 'Cancelado')
+    );
+
+    if (completadosCancelados.length === 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Sin pedidos',
+            text: 'No hay pedidos completados o cancelados para archivar.',
+            confirmButtonColor: '#0d6efd'
+        });
+        return;
+    }
+
+    const confirm = await Swal.fire({
+        title: `Archivar ${completadosCancelados.length} pedidos`,
+        text: 'Estos pedidos desaparecerán de tu lista principal pero seguirán contando en las estadísticas.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, archivar todos',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (confirm.isConfirmed) {
+        let ids = completadosCancelados.map(p => p.idPedido);
+        let archivadosActuales = obtenerArchivados();
+        let nuevosArchivados = [...new Set([...archivadosActuales, ...ids])];
+        localStorage.setItem('pedidos_archivados', JSON.stringify(nuevosArchivados));
+        Swal.fire({
+            icon: 'success',
+            title: `${ids.length} pedidos archivados`,
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        renderPedidos();
+    }
+};
+
+// ==========================================
+// ESTADO GLOBAL DE PAGINACIÓN Y FILTROS
+// ==========================================
+const adminState = {
+    productos: { page: 0, size: 8, search: '', categoria: '' },
+    pedidos: { page: 0, size: 8, search: '', estado: '' },
+    usuarios: { page: 0, size: 8, search: '', rol: '' },
+    inventario: { page: 0, size: 8, search: '' },
+    solicitudes: { page: 0, size: 8, search: '', estado: '' },
+    reportes: { page: 0, size: 8, search: '' }
+};
+
+// ==========================================
+// DEBOUNCE POR MÓDULO (SIN SPINNER VISUAL)
+// ==========================================
+const debounceTimers = {};
+
+// Generador del Avatar
+const getAvatarUrl = (usuario) => {
+    if (usuario && usuario.fotoUrl) return usuario.fotoUrl;
+    const nombre = usuario && (usuario.nombres || usuario.nombre) ? (usuario.nombres || usuario.nombre) : 'Usuario';
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(nombre)}&background=0d6efd&color=fff&bold=true`;
+};
+
+// Generador Visual de Paginación
+function renderPagination(totalPages, currentPage, modulo) {
+    if (totalPages <= 1) return '';
+    let html = '<nav class="mt-4"><ul class="pagination justify-content-center shadow-sm">';
+    
+    html += `<li class="page-item ${currentPage === 0 ? 'disabled' : ''}">
+                <button class="page-link border-0" onclick="cambiarPagina('${modulo}', ${currentPage - 1})"><i class="fas fa-chevron-left"></i></button>
+             </li>`;
+             
+    for (let i = 0; i < totalPages; i++) {
+        if (i === 0 || i === totalPages - 1 || (i >= currentPage - 1 && i <= currentPage + 1)) {
+            html += `<li class="page-item ${currentPage === i ? 'active' : ''}">
+                        <button class="page-link border-0 ${currentPage === i ? 'fw-bold' : ''}" onclick="cambiarPagina('${modulo}', ${i})">${i + 1}</button>
+                     </li>`;
+        } else if (i === currentPage - 2 || i === currentPage + 2) {
+            html += `<li class="page-item disabled"><span class="page-link border-0">...</span></li>`;
+        }
+    }
+    
+    html += `<li class="page-item ${currentPage === totalPages - 1 ? 'disabled' : ''}">
+                <button class="page-link border-0" onclick="cambiarPagina('${modulo}', ${currentPage + 1})"><i class="fas fa-chevron-right"></i></button>
+             </li>`;
+             
+    html += '</ul></nav>';
+    return html;
+}
+
+window.cambiarPagina = function(modulo, nuevaPagina) {
+    adminState[modulo].page = nuevaPagina;
+    if (modulo === 'usuarios') renderUsuarios();
+    if (modulo === 'pedidos') renderPedidos();
+    if (modulo === 'productos') renderProductos();
+    if (modulo === 'inventario') renderInventario();
+    if (modulo === 'solicitudes') renderSolicitudes();
+    if (modulo === 'reportes') renderReportes();
+};
+
+window.aplicarFiltro = function(modulo) {
+    adminState[modulo].page = 0;
+    if (modulo === 'usuarios') {
+        adminState.usuarios.search = document.getElementById('searchUsuarios').value;
+        adminState.usuarios.rol = document.getElementById('filterRolUsuarios').value;
+        renderUsuarios();
+    }
+    if (modulo === 'pedidos') {
+        adminState.pedidos.search = document.getElementById('searchPedidos').value;
+        adminState.pedidos.estado = document.getElementById('filterEstadoPedidos').value;
+        renderPedidos();
+    }
+    if (modulo === 'productos') {
+        adminState.productos.search = document.getElementById('searchProductos').value;
+        adminState.productos.categoria = document.getElementById('filterCategoriaProductos').value;
+        renderProductos();
+    }
+};
+
+window.filtrarEnTiempoReal = function(modulo, valor) {
+    if (debounceTimers[modulo]) {
+        clearTimeout(debounceTimers[modulo]);
+    }
+    adminState[modulo].search = valor;
+    adminState[modulo].page = 0;
+    if (valor === '') {
+        if (modulo === 'productos') renderProductos();
+        if (modulo === 'pedidos') renderPedidos();
+        if (modulo === 'usuarios') renderUsuarios();
+        if (modulo === 'inventario') renderInventario();
+        if (modulo === 'solicitudes') renderSolicitudes();
+        if (modulo === 'reportes') renderReportes();
+        return;
+    }
+    debounceTimers[modulo] = setTimeout(() => {
+        if (modulo === 'productos') renderProductos();
+        if (modulo === 'pedidos') renderPedidos();
+        if (modulo === 'usuarios') renderUsuarios();
+        if (modulo === 'inventario') renderInventario();
+        if (modulo === 'solicitudes') renderSolicitudes();
+        if (modulo === 'reportes') renderReportes();
+    }, 300);
+};
+
+window.mostrarArchivados = async function() {
+    const archivados = obtenerArchivados();
+    if (archivados.length === 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Sin archivados',
+            text: 'No hay pedidos archivados.',
+            confirmButtonColor: '#0d6efd'
+        });
+        return;
+    }
+
+    try {
+        const response = await API.request(`/api/pedidos/paginado?page=0&size=1000&search=&estado=`);
+        const allPedidos = response.content || [];
+        const archivadosPedidos = allPedidos.filter(p => archivados.includes(p.idPedido));
+
+        if (archivadosPedidos.length === 0) {
+            Swal.fire('Sin resultados', 'Los IDs archivados no coinciden con ningún pedido actual.', 'info');
+            return;
+        }
+
+        archivadosPedidos.sort((a, b) => a.idPedido - b.idPedido);
+
+        let tableRows = '';
+        archivadosPedidos.forEach(p => {
+            const avatar = getAvatarUrl({ nombre: p.nombreCliente, fotoUrl: p.fotoUrl });
+            const badgeClass = p.estado === 'Completado' ? 'bg-success' : 'bg-secondary';
+            tableRows += `
+                <tr>
+                    <td class="ps-4 fw-bold text-primary">#${p.idPedido}</td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <img src="${avatar}" class="rounded-circle me-3 border shadow-sm" style="width: 35px; height: 35px; object-fit: cover;">
+                            <span class="fw-bold text-dark d-block">${p.nombreCliente || 'Cliente'}</span>
+                        </div>
+                    </td>
+                    <td>${formatearFecha(p.fechaPedido)}</td>
+                    <td class="fw-bold text-success">$${p.total.toFixed(2)}</td>
+                    <td><span class="badge ${badgeClass}">${p.estado}</span></td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-outline-primary rounded-circle" onclick="desarchivarPedido(${p.idPedido})" title="Restaurar (quitar de archivados)">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        Swal.fire({
+            title: '📦 Pedidos Archivados',
+            html: `
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4">Factura</th>
+                                <th>Cliente</th>
+                                <th>Fecha</th>
+                                <th>Total</th>
+                                <th>Estado</th>
+                                <th class="text-end pe-4">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                </div>
+                <small class="text-muted d-block mt-2">Total: ${archivadosPedidos.length} pedidos archivados.</small>
+            `,
+            icon: 'info',
+            confirmButtonText: 'Cerrar',
+            confirmButtonColor: '#0d6efd',
+            width: 900,
+            customClass: {
+                popup: 'swal2-popup',
+                htmlContainer: 'swal2-html-container'
+            }
+        });
+
+    } catch (error) {
+        Swal.fire('Error', 'No se pudieron cargar los pedidos archivados.', 'error');
+    }
+};
+
+window.desarchivarPedido = function(id) {
+    let archivados = obtenerArchivados();
+    archivados = archivados.filter(pid => pid !== id);
+    localStorage.setItem('pedidos_archivados', JSON.stringify(archivados));
+    
+    Swal.close();
+    setTimeout(() => {
+        mostrarArchivados();
+    }, 200);
+    
+    renderPedidos();
+    
+    Swal.fire({
+        icon: 'success',
+        title: 'Pedido restaurado',
+        text: `El pedido #${id} ya no está archivado.`,
+        toast: true,
+        position: 'top-end',
+        timer: 2000,
+        showConfirmButton: false
+    });
+};
 
 const formatearFecha = (fechaString) => {
     const opciones = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
@@ -29,22 +324,20 @@ const formatearFecha = (fechaString) => {
 document.addEventListener('DOMContentLoaded', () => {
     bsModalProducto = new bootstrap.Modal(document.getElementById('productoModal'));
     bsModalCategoria = new bootstrap.Modal(document.getElementById('categoriaModal'));
+    bsModalRepuesto = new bootstrap.Modal(document.getElementById('repuestoModal'));
 
     document.getElementById('productoForm').addEventListener('submit', guardarProducto);
     document.getElementById('categoriaForm').addEventListener('submit', guardarCategoriaEdicion);
     document.getElementById('repuestoForm').addEventListener('submit', guardarRepuesto);
 
-    // Previsualización de imágenes seleccionadas
     document.getElementById('prodImagenes').addEventListener('change', function(e) {
         const previewContainer = document.getElementById('nuevasImagenesPreview');
         previewContainer.innerHTML = '';
         const files = this.files;
-
         if (files.length === 0) {
             previewContainer.style.display = 'none';
             return;
         }
-
         previewContainer.style.display = 'flex';
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
@@ -71,7 +364,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Limpiar previsualización al cerrar el modal
     document.getElementById('productoModal').addEventListener('hidden.bs.modal', function () {
         document.getElementById('prodImagenes').value = '';
         document.getElementById('nuevasImagenesPreview').innerHTML = '';
@@ -96,12 +388,10 @@ window.eliminarImagenSeleccionada = function(btn, index) {
     const input = document.getElementById('prodImagenes');
     const dt = new DataTransfer();
     const files = input.files;
-
     for (let i = 0; i < files.length; i++) {
         if (i !== index) dt.items.add(files[i]);
     }
     input.files = dt.files;
-
     input.dispatchEvent(new Event('change'));
 };
 
@@ -177,27 +467,74 @@ async function renderDashboard() {
 async function renderProductos() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        const response = await API.Productos.listarActivos();
-        const productos = response.content || response || [];
-        if (!Array.isArray(productos)) throw new Error('La respuesta no contiene un arreglo de productos');
+        const { page, size, search, categoria } = adminState.productos;
+        const response = await API.request(`/productos/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search)}&categoria=${categoria}`);
+        const productos = response.content || [];
+        const totalPages = response.totalPages || 1;
+
+        let opcionesCategoria = '<option value="">Todas las Categorías</option>';
+        try {
+            const categorias = await API.request('/categorias');
+            categorias.forEach(c => {
+                opcionesCategoria += `<option value="${c.idCategoria}" ${parseInt(categoria) === c.idCategoria ? 'selected' : ''}>${c.nombre}</option>`;
+            });
+        } catch (e) {}
+
+        const currentSearchValue = search;
 
         contentDiv.innerHTML = `
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-box text-primary me-2"></i>Inventario de Equipos</h5>
-                    <button class="btn btn-primary fw-bold shadow-sm" onclick="openProductoModal()"><i class="fas fa-plus me-2"></i>Nuevo Equipo</button>
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header bg-white pt-4 px-4 border-0">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-4">
+                            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-box text-primary me-2"></i>Inventario de Equipos</h5>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="d-flex gap-2 justify-content-md-end">
+                                <select id="filterCategoriaProductos" class="form-select bg-light border-0 w-auto" onchange="aplicarFiltro('productos')">
+                                    ${opcionesCategoria}
+                                </select>
+                                <div class="input-group w-50">
+                                    <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
+                                    <input type="text" 
+                                        id="searchProductos" 
+                                        class="form-control bg-light border-0" 
+                                        placeholder="Buscar equipo..." 
+                                        value="${currentSearchValue}" 
+                                        oninput="filtrarEnTiempoReal('productos', this.value)">
+                                </div>
+                                <button class="btn btn-primary fw-bold shadow-sm ms-2 text-nowrap" onclick="openProductoModal()">
+                                    <i class="fas fa-plus"></i> Nuevo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-0 mt-3">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light"><tr><th class="ps-4">Equipo y Detalles</th><th>Categoría</th><th>Precio Base</th><th>Disponibilidad</th><th class="text-end pe-4">Acciones</th></tr></thead>
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Equipo y Detalles</th>
+                                    <th>Categoría</th>
+                                    <th>Precio Base</th>
+                                    <th>Disponibilidad</th>
+                                    <th class="text-end pe-4">Acciones</th>
+                                </tr>
+                            </thead>
                             <tbody>
-                                ${productos.map(p => `
+                                ${productos.length === 0 ? '<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron productos.</td></tr>' : ''}
+                                ${productos.map(p => {
+                                    const avatar = (p.imagenesUrls && p.imagenesUrls.length > 0) ? p.imagenesUrls[0] : 'https://via.placeholder.com/45?text=A/C';
+                                    return `
                                     <tr>
                                         <td class="ps-4">
                                             <div class="d-flex align-items-center">
-                                                <div class="avatar-circle bg-light text-primary border me-3"><i class="fas fa-fan"></i></div>
-                                                <div><h6 class="mb-0 fw-bold text-dark">${p.nombre}</h6><small class="text-muted fw-semibold">ID: #${p.idProducto} | ${p.capacidadBTU} BTU</small></div>
+                                                <img src="${avatar}" class="rounded me-3 border shadow-sm" style="width: 45px; height: 45px; object-fit: cover;">
+                                                <div>
+                                                    <h6 class="mb-0 fw-bold text-dark">${p.nombre}</h6>
+                                                    <small class="text-muted fw-semibold">ID: #${p.idProducto} | ${p.capacidadBTU} BTU</small>
+                                                </div>
                                             </div>
                                         </td>
                                         <td><span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2">${p.nombreCategoria || 'Sin categoría'}</span></td>
@@ -205,15 +542,25 @@ async function renderProductos() {
                                         <td><span class="badge ${p.stock > 5 ? 'bg-success' : (p.stock > 0 ? 'bg-warning' : 'bg-danger')} bg-opacity-10 text-${p.stock > 5 ? 'success' : (p.stock > 0 ? 'warning text-dark' : 'danger')} border-0 px-3 py-2"><i class="fas ${p.stock > 5 ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-1"></i> ${p.stock} unid.</span></td>
                                         <td class="text-end pe-4">
                                             <button class="btn btn-sm btn-light text-primary me-2 shadow-sm" onclick="openProductoModal(${p.idProducto})" title="Editar"><i class="fas fa-edit"></i></button>
-                                            <button class="btn btn-sm btn-light text-danger shadow-sm" onclick="eliminarProducto(${p.idProducto})" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                            <button class="btn btn-sm btn-light text-danger shadow-sm rounded-circle" onclick="eliminarProducto(${p.idProducto})" title="Eliminar"><i class="fas fa-trash"></i></button>
                                         </td>
-                                    </tr>`).join('')}
+                                    </tr>`;
+                                }).join('')}
                             </tbody>
                         </table>
                     </div>
+                    ${renderPagination(totalPages, page, 'productos')}
                 </div>
             </div>
         `;
+
+        const newInput = document.getElementById('searchProductos');
+        if (newInput) {
+            newInput.focus();
+            const length = newInput.value.length;
+            newInput.setSelectionRange(length, length);
+        }
+
     } catch (error) {
         console.error('Error en renderProductos:', error);
         contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error al cargar productos: ${error.message}</div>`;
@@ -221,7 +568,7 @@ async function renderProductos() {
 }
 
 // ==========================================
-// ABRIR MODAL PRODUCTO (CON IMÁGENES)
+// ABRIR MODAL PRODUCTO
 // ==========================================
 async function openProductoModal(id = null) {
     document.getElementById('productoForm').reset();
@@ -238,13 +585,11 @@ async function openProductoModal(id = null) {
     if (id) {
         try {
             const prod = await API.Productos.obtenerPorId(id);
-
             document.getElementById('prodNombre').value = prod.nombre || '';
             document.getElementById('prodPrecio').value = prod.precio || '';
             document.getElementById('prodBTU').value = prod.capacidadBTU || '';
             document.getElementById('prodStock').value = prod.stock || 0;
             document.getElementById('prodCategoria').value = prod.idCategoria || '';
-
             const desc = prod.descripcion || '';
             const marcaMatch = desc.match(/Marca: ([^-]+)-(.*)/);
             if (marcaMatch) {
@@ -254,14 +599,10 @@ async function openProductoModal(id = null) {
                 document.getElementById('prodMarca').value = prod.marca || '';
                 document.getElementById('prodDescripcion').value = desc;
             }
-
             document.getElementById('productoId').value = prod.idProducto;
             document.getElementById('modalTitle').textContent = 'Modificar Equipo';
-
-            // Guardar URLs actuales y mostrarlas
             currentImageUrls = prod.imagenesUrls || [];
             mostrarImagenesActuales(currentImageUrls);
-
         } catch (error) {
             Swal.fire('Error', 'No se pudo cargar el producto', 'error');
             return;
@@ -270,18 +611,13 @@ async function openProductoModal(id = null) {
     bsModalProducto.show();
 }
 
-// ==========================================
-// MOSTRAR IMÁGENES ACTUALES CON BOTÓN ELIMINAR
-// ==========================================
 function mostrarImagenesActuales(imagenes) {
     const container = document.getElementById('currentImagesContainer');
     const list = document.getElementById('currentImagesList');
-
     if (!imagenes || imagenes.length === 0) {
         container.style.display = 'none';
         return;
     }
-
     container.style.display = 'block';
     list.innerHTML = imagenes.map((url, index) => `
         <div style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #e9edf4; flex-shrink: 0; position: relative;">
@@ -295,9 +631,6 @@ function mostrarImagenesActuales(imagenes) {
     `).join('');
 }
 
-// ==========================================
-// CARGAR CATEGORÍAS EN SELECT
-// ==========================================
 async function cargarCategoriasEnSelect() {
     const select = document.getElementById('prodCategoria');
     select.innerHTML = '<option value="">Cargando...</option>';
@@ -311,9 +644,6 @@ async function cargarCategoriasEnSelect() {
     }
 }
 
-// ==========================================
-// GUARDAR PRODUCTO (CON URLs Y NUEVAS IMÁGENES)
-// ==========================================
 async function guardarProducto(event) {
     event.preventDefault();
     const submitBtn = event.target.querySelector('button[type="submit"]');
@@ -378,9 +708,6 @@ async function guardarProducto(event) {
     }
 }
 
-// ==========================================
-// ELIMINAR PRODUCTO
-// ==========================================
 async function eliminarProducto(id) {
     const result = await Swal.fire({ title: '¿Eliminar equipo?', text: "Esta acción lo borrará del catálogo permanentemente.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, eliminar' });
     if (result.isConfirmed) {
@@ -395,7 +722,7 @@ async function eliminarProducto(id) {
 }
 
 // ==========================================
-// CATEGORÍAS (con edición)
+// CATEGORÍAS
 // ==========================================
 async function renderCategorias() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
@@ -496,44 +823,132 @@ async function eliminarCategoria(id) {
 async function renderPedidos() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        const [pedidos, usuarios] = await Promise.all([API.Pedidos.listar(), API.Usuarios.listar()]);
-        const mapUsuarios = {};
-        usuarios.forEach(u => { mapUsuarios[u.idUsuario] = `${u.nombre} ${u.apellido || ''}`.trim(); });
+        const { page, size, search, estado } = adminState.pedidos;
+        const response = await API.request(`/api/pedidos/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search)}&estado=${estado}`);
+        let pedidos = response.content || [];
+        const archivados = obtenerArchivados();
+        pedidos = pedidos.filter(p => !archivados.includes(p.idPedido));
+        const totalPages = response.totalPages || 1;
+        pedidos.sort((a, b) => a.idPedido - b.idPedido);
+        const currentSearchValue = search;
+
         contentDiv.innerHTML = `
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center pt-4 px-4">
-                    <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-file-invoice-dollar text-success me-2"></i>Historial de Transacciones</h5>
-                    <button class="btn btn-success fw-bold bg-success bg-opacity-10 border-0" onclick="abrirModalFiltrosExcel()">
-                        <i class="fas fa-file-excel me-2"></i>Exportar Excel
-                    </button>
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white pt-4 px-4 border-0">
+                    <!-- Fila 1: Título y botones de acción -->
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-6">
+                            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-file-invoice-dollar text-success me-2"></i>Historial de Transacciones</h5>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <div class="d-flex gap-2 justify-content-md-end flex-wrap">
+                                <button class="btn btn-outline-danger btn-sm" onclick="archivarTodosCompletados()" title="Archivar todos los completados/cancelados">
+                                    <i class="fas fa-check-double me-1"></i> Archivar todos
+                                </button>
+                                <button class="btn btn-outline-success btn-sm" onclick="abrirModalFiltrosExcel()">
+                                    <i class="fas fa-file-excel me-1"></i> Exportar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Fila 2: Filtros y buscador -->
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <select id="filterEstadoPedidos" class="form-select form-select-sm bg-light border-0 w-auto" style="min-width: 140px;" onchange="aplicarFiltro('pedidos')">
+                                    <option value="" ${estado === '' ? 'selected' : ''}>Todos los Estados</option>
+                                    <option value="Pendiente" ${estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                                    <option value="En Proceso" ${estado === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
+                                    <option value="Completado" ${estado === 'Completado' ? 'selected' : ''}>Completado</option>
+                                    <option value="Cancelado" ${estado === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
+                                </select>
+                                <div class="input-group" style="max-width: 280px;">
+                                    <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
+                                    <input type="text" id="searchPedidos" class="form-control form-control-sm bg-light border-0" placeholder="Buscar por ID..." value="${currentSearchValue}" oninput="filtrarEnTiempoReal('pedidos', this.value)">
+                                    <button class="btn btn-primary btn-sm" onclick="aplicarFiltro('pedidos')">Buscar</button>
+                                </div>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="mostrarArchivados()" title="Ver pedidos archivados">
+                                    <i class="fas fa-archive me-1"></i> Archivados
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-2 mt-md-0">
+                            <span class="text-muted small">Mostrando ${pedidos.length} pedidos</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body p-0 mt-3">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light"><tr><th class="ps-4">Factura</th><th>Comprador</th><th>Fechas</th><th>Monto Total</th><th>Estado Actual</th><th class="text-end pe-4">Limpiar</th></tr></thead>
+                            <thead class="bg-light"><tr><th class="ps-4">Factura</th><th>Comprador</th><th>Fecha</th><th>Monto Total</th><th>Estado Actual</th><th class="text-end pe-4">Limpiar</th></tr></thead>
                             <tbody>
+                                ${pedidos.length === 0 ? '<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron pedidos.</td></tr>' : ''}
                                 ${pedidos.map(p => {
                                     const selectClass = p.estado === 'Completado' ? 'text-success border-success bg-success bg-opacity-10' : (p.estado === 'Cancelado' ? 'text-danger border-danger bg-danger bg-opacity-10' : 'text-warning border-warning bg-warning bg-opacity-10');
-                                    const nombreCliente = mapUsuarios[p.idUsuario] || 'Cliente Desconocido';
-                                    return `<tr><td class="ps-4 fw-bold text-primary">#${p.idPedido}</td>
-                                    <td><div class="d-flex align-items-center"><div class="avatar-circle bg-primary bg-opacity-10 text-primary me-3 border border-primary border-opacity-25" style="width: 38px; height: 38px; font-size: 0.9rem;"><i class="fas fa-user"></i></div><div><span class="fw-bold text-dark d-block">${nombreCliente}</span><small class="text-muted fw-semibold">ID: #${p.idUsuario}</small></div></div></td>
+                                    const avatar = getAvatarUrl({ nombre: p.nombreCliente, fotoUrl: p.fotoUrl });
+                                    // 🔥 Mostrar botón de archivar solo si está completado o cancelado
+                                    const puedeArchivar = (p.estado === 'Completado' || p.estado === 'Cancelado');
+                                    const btnArchivar = puedeArchivar
+                                        ? `<button class="btn btn-sm btn-light text-secondary shadow-sm rounded-circle" onclick="archivarPedido(${p.idPedido})" title="Archivar"><i class="fas fa-archive"></i></button>`
+                                        : `<span class="text-muted small">-</span>`;
+                                    return `<tr>
+                                    <td class="ps-4 fw-bold text-primary">#${p.idPedido}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <img src="${avatar}" class="rounded-circle me-3 border shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
+                                            <div>
+                                                <span class="fw-bold text-dark d-block">${p.nombreCliente || 'Cliente'}</span>
+                                                <small class="text-muted fw-semibold">ID: #${p.idUsuario}</small>
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td class="text-muted fw-semibold small"><i class="far fa-calendar-check text-primary me-1"></i> ${formatearFecha(p.fechaPedido)}</td>
                                     <td class="fw-bold text-success fs-5">$${p.total.toFixed(2)}</td>
                                     <td><select class="form-select form-select-sm fw-bold shadow-sm ${selectClass}" style="width: 150px;" onchange="cambiarEstadoPedido(${p.idPedido}, this.value)"><option value="Pendiente" ${p.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option><option value="En Proceso" ${p.estado === 'En Proceso' ? 'selected' : ''}>En Proceso</option><option value="Completado" ${p.estado === 'Completado' ? 'selected' : ''}>Completado</option><option value="Cancelado" ${p.estado === 'Cancelado' ? 'selected' : ''}>Cancelado</option></select></td>
-                                    <td class="text-end pe-4"><button class="btn btn-sm btn-light text-danger shadow-sm rounded-circle" onclick="eliminarPedido(${p.idPedido})"><i class="fas fa-trash"></i></button></td>
+                                    <td class="text-end pe-4">${btnArchivar}</td>
                                 </tr>`}).join('')}
                             </tbody>
                         </table>
                     </div>
+                    ${renderPagination(totalPages, page, 'pedidos')}
                 </div>
             </div>
         `;
+
+        const newInput = document.getElementById('searchPedidos');
+        if (newInput) {
+            newInput.focus();
+            const length = newInput.value.length;
+            newInput.setSelectionRange(length, length);
+        }
+
     } catch (error) {
         contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error: ${error.message}</div>`;
     }
 }
 
-// ===== FUNCIONES PARA EXPORTAR EXCEL CON FILTROS =====
+window.cambiarEstadoPedido = async function(id, nuevoEstado) {
+    try {
+        await API.Pedidos.cambiarEstado(id, nuevoEstado);
+        Swal.fire({
+            icon: 'success',
+            title: 'Estado actualizado',
+            text: `Pedido #${id} → "${nuevoEstado}"`,
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        renderPedidos();
+    } catch (error) {
+        Swal.fire('Error', error.message, 'error');
+    }
+};
+
+
+// ==========================================
+// EXPORTAR EXCEL
+// ==========================================
 function abrirModalFiltrosExcel() {
     document.getElementById('formFiltrosExcel').reset();
     const modal = new bootstrap.Modal(document.getElementById('modalFiltrosExcel'));
@@ -559,20 +974,15 @@ async function exportarPedidosConFiltros() {
     try {
         Swal.fire({
             title: 'Generando reporte...',
-            text: 'Por favor espera mientras se procesa la información.',
+            text: 'Por favor espera.',
             allowOutsideClick: false,
             didOpen: () => { Swal.showLoading(); }
         });
-
         const token = Auth.getToken();
         const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
-
-        if (!response.ok) {
-            throw new Error('Error al generar el reporte');
-        }
-
+        if (!response.ok) throw new Error('Error al generar el reporte');
         const blob = await response.blob();
         const downloadUrl = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -582,20 +992,16 @@ async function exportarPedidosConFiltros() {
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(downloadUrl);
-
         Swal.close();
         Swal.fire({
             icon: 'success',
             title: 'Reporte generado',
-            text: 'La descarga ha comenzado.',
             toast: true,
             position: 'top-end',
             timer: 3000,
             showConfirmButton: false
         });
-
         bootstrap.Modal.getInstance(document.getElementById('modalFiltrosExcel')).hide();
-
     } catch (error) {
         Swal.close();
         Swal.fire('Error', error.message, 'error');
@@ -608,35 +1014,159 @@ async function exportarPedidosConFiltros() {
 async function renderUsuarios() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        const usuarios = await API.Usuarios.listar();
+        const { page, size, search, rol } = adminState.usuarios;
+        const response = await API.request(`/usuarios/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search)}&rol=${rol}`);
+        const usuarios = response.content || [];
+        usuariosCache = usuarios;
+        const totalPages = response.totalPages || 1;
+
+        const currentSearchValue = search;
+
         contentDiv.innerHTML = `
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white pt-4 px-4"><h5 class="fw-bold mb-0 text-dark"><i class="fas fa-users-cog text-primary me-2"></i>Directorio de Accesos</h5></div>
-                <div class="card-body p-0">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header bg-white pt-4 px-4 border-0">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-4"><h5 class="fw-bold mb-0 text-dark"><i class="fas fa-users-cog text-primary me-2"></i>Directorio de Accesos</h5></div>
+                        <div class="col-md-8">
+                            <div class="d-flex gap-2 justify-content-md-end flex-wrap">
+                                <select id="filterRolUsuarios" class="form-select bg-light border-0 w-auto" onchange="aplicarFiltro('usuarios')">
+                                    <option value="" ${rol === '' ? 'selected' : ''}>Todos</option>
+                                    <option value="ADMIN" ${rol === 'ADMIN' ? 'selected' : ''}>Admins</option>
+                                    <option value="TECNICO" ${rol === 'TECNICO' ? 'selected' : ''}>Técnicos</option>
+                                    <option value="CLIENTE" ${rol === 'CLIENTE' ? 'selected' : ''}>Clientes</option>
+                                </select>
+                                <div class="input-group w-50">
+                                    <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
+                                    <input type="text" id="searchUsuarios" class="form-control bg-light border-0" placeholder="Buscar..." value="${currentSearchValue}" oninput="filtrarEnTiempoReal('usuarios', this.value)">
+                                    <button class="btn btn-primary fw-bold" onclick="aplicarFiltro('usuarios')">Buscar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0 mt-3">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light"><tr><th class="ps-4">Perfil</th><th>Contacto</th><th>Permisos</th><th>Estado Cuenta</th><th class="text-end pe-4">Bloqueo</th></tr></thead>
+                            <thead class="bg-light"><tr><th class="ps-4">Perfil</th><th>Contacto</th><th>Permisos</th><th>Estado</th><th class="text-end pe-4">Acción</th></tr></thead>
                             <tbody>
+                                ${usuarios.length === 0 ? '<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron usuarios.</td></tr>' : ''}
                                 ${usuarios.map(u => {
-                                    const rolBadge = u.rol === 'ADMIN' ? 'bg-danger' : (u.rol === 'TECNICO' ? 'bg-info' : 'bg-secondary');
                                     const statusBadge = u.activo ? 'bg-success text-success' : 'bg-secondary text-secondary';
-                                    const initial = u.nombre ? u.nombre.charAt(0).toUpperCase() : 'U';
-                                    return `<tr><td class="ps-4"><div class="d-flex align-items-center"><div class="avatar-circle ${rolBadge} bg-opacity-10 text-dark me-3 fw-bold border border-2 border-opacity-25">${initial}</div><div><h6 class="mb-0 fw-bold text-dark">${u.nombre} ${u.apellido || ''}</h6><small class="text-muted fw-semibold">User ID: #${u.idUsuario}</small></div></div></td>
-                                    <td><a href="mailto:${u.email}" class="text-decoration-none text-muted fw-semibold"><i class="fas fa-envelope text-primary me-1"></i> ${u.email}</a></td>
-                                    <td><span class="badge ${rolBadge} text-white shadow-sm px-3 py-2">${u.rol}</span></td>
-                                    <td><span class="badge ${statusBadge.split(' ')[0]} bg-opacity-10 ${statusBadge.split(' ')[1]} border-0 px-3 py-2"><i class="fas fa-circle me-1" style="font-size: 8px;"></i> ${u.activo ? 'Operativo' : 'Restringido'}</span></td>
-                                    <td class="text-end pe-4"><button class="btn btn-sm ${u.activo ? 'btn-outline-danger' : 'btn-outline-success'} fw-bold px-3 shadow-sm" onclick="toggleUsuarioEstado(${u.idUsuario}, ${!u.activo})"><i class="fas ${u.activo ? 'fa-user-lock' : 'fa-user-check'} me-1"></i> ${u.activo ? 'Suspender' : 'Reactivar'}</button></td>
-                                </tr>`}).join('')}
+                                    const avatar = getAvatarUrl(u);
+                                    
+                                    const rolesOptions = ['CLIENTE', 'TECNICO', 'ADMIN'];
+                                    const selectRol = `
+                                        <select class="form-select form-select-sm bg-light border-0 w-auto d-inline-block" 
+                                                style="width: auto; min-width: 100px; font-size: 0.75rem; padding: 0.2rem 0.5rem;"
+                                                onchange="cambiarRolUsuario(${u.idUsuario}, this.value)">
+                                            ${rolesOptions.map(r => `<option value="${r}" ${u.rol === r ? 'selected' : ''}>${r}</option>`).join('')}
+                                        </select>
+                                    `;
+
+                                    return `<tr>
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center">
+                                                <img src="${avatar}" class="rounded-circle me-3 border shadow-sm" style="width: 45px; height: 45px; object-fit: cover;">
+                                                <div>
+                                                    <h6 class="mb-0 fw-bold text-dark">${u.nombre || 'Usuario'} ${u.apellido || ''}</h6>
+                                                    <small class="text-muted fw-semibold">ID: #${u.idUsuario}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><a href="mailto:${u.email}" class="text-decoration-none text-muted fw-semibold"><i class="fas fa-envelope text-primary me-1"></i> ${u.email}</a></td>
+                                        <td>${selectRol}</td>
+                                        <td><span class="badge ${statusBadge.split(' ')[0]} bg-opacity-10 ${statusBadge.split(' ')[1]} border-0 px-3 py-2"><i class="fas fa-circle me-1" style="font-size: 8px;"></i> ${u.activo ? 'Operativo' : 'Restringido'}</span></td>
+                                        <td class="text-end pe-4"><button class="btn btn-sm ${u.activo ? 'btn-outline-danger' : 'btn-outline-success'} fw-bold px-3 shadow-sm" onclick="toggleUsuarioEstado(${u.idUsuario}, ${!u.activo})"><i class="fas ${u.activo ? 'fa-user-lock' : 'fa-user-check'} me-1"></i> ${u.activo ? 'Suspender' : 'Reactivar'}</button></td>
+                                    </tr>`;
+                                }).join('')}
                             </tbody>
                         </table>
                     </div>
+                    ${renderPagination(totalPages, page, 'usuarios')}
                 </div>
             </div>
         `;
+
+        const newInput = document.getElementById('searchUsuarios');
+        if (newInput) {
+            newInput.focus();
+            const length = newInput.value.length;
+            newInput.setSelectionRange(length, length);
+        }
+
     } catch (error) {
-        contentDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error: ${error.message}</div>`;
     }
 }
+
+window.cambiarRolUsuario = async function(idUsuario, nuevoRol) {
+    // 1. Buscar el usuario en la caché
+    const usuario = usuariosCache.find(u => u.idUsuario === idUsuario);
+    if (!usuario) {
+        Swal.fire('Error', 'Usuario no encontrado.', 'error');
+        return;
+    }
+
+    // 2. Validar que no se esté cambiando a sí mismo
+    const user = Auth.getUser();
+    if (user && user.idUsuario === idUsuario) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Acción no permitida',
+            text: 'No puedes cambiar tu propio rol.',
+            confirmButtonColor: '#d33'
+        });
+        renderUsuarios();
+        return;
+    }
+
+    // 3. Confirmar el cambio
+    const confirm = await Swal.fire({
+        title: 'Cambiar rol',
+        text: `¿Estás seguro de cambiar el rol de "${usuario.nombre || usuario.nombres || 'Usuario'}" de "${usuario.rol}" a "${nuevoRol}"?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#0d6efd',
+        confirmButtonText: 'Sí, cambiar',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!confirm.isConfirmed) {
+        renderUsuarios(); // Resetear el select
+        return;
+    }
+
+    try {
+        // 4. Construir el payload
+        const payload = {
+            nombre: usuario.nombre || usuario.nombres || '',
+            apellido: usuario.apellido || '',
+            email: usuario.email,
+            dui: usuario.dui || '',
+            telefono: usuario.telefono || '',
+            direccion: usuario.direccion || '',
+            rol: nuevoRol,
+            activo: usuario.activo,
+            password: null
+        };
+
+        await API.Usuarios.actualizar(idUsuario, payload);
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Rol actualizado',
+            text: `El usuario ahora es "${nuevoRol}".`,
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        renderUsuarios();
+    } catch (error) {
+        Swal.fire('Error', error.message, 'error');
+        renderUsuarios();
+    }
+};
 
 window.toggleUsuarioEstado = async (id, nuevoEstado) => {
     const action = nuevoEstado ? 'Reactivar' : 'Suspender';
@@ -686,12 +1216,12 @@ window.asignarTecnico = async function(idSolicitud) {
     const fechaInicio = document.getElementById(`fechaInicio_${idSolicitud}`).value;
     const fechaFin = document.getElementById(`fechaFin_${idSolicitud}`).value;
     if (!idTecnico || !fechaInicio || !fechaFin) {
-        Swal.fire('Datos Incompletos', 'Asegúrate de seleccionar al técnico y ambos rangos de hora.', 'warning');
+        Swal.fire('Datos Incompletos', 'Selecciona técnico y ambos rangos de hora.', 'warning');
         return;
     }
     try {
         await API.request(`/api/solicitudes/${idSolicitud}/asignar`, { method: 'POST', body: JSON.stringify({ idTecnico, fechaInicio, fechaFin }) });
-        Swal.fire('¡Misión Asignada!', 'El técnico ha recibido la programación en su agenda.', 'success');
+        Swal.fire('¡Misión Asignada!', 'El técnico ha recibido la programación.', 'success');
         renderSolicitudes();
         actualizarContadoresAdmin();
     } catch (error) {
@@ -808,7 +1338,7 @@ window.abrirVisorEvidencia = function(idCita) {
 window.descargarReportePDF = async function() {
     const cita = window.citaActualParaPDF;
     if (!cita) { Swal.fire('Error', 'No hay datos de reporte seleccionados.', 'error'); return; }
-    Swal.fire({ title: 'Generando Documento...', text: 'Estructurando reporte profesional, por favor espera.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+    Swal.fire({ title: 'Generando Documento...', text: 'Por favor espera.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
     const fotosAntes = cita.urlsFotosAntes ? cita.urlsFotosAntes.split(',') : [];
     const fotosDespues = cita.urlsFotosDespues ? cita.urlsFotosDespues.split(',') : [];
     const divTemporal = document.createElement('div');
@@ -844,9 +1374,8 @@ window.descargarReportePDF = async function() {
     try {
         await html2pdf().set(opciones).from(divTemporal).save();
         Swal.close();
-        Swal.fire({ icon: 'success', title: '¡Documento Generado!', text: 'El reporte profesional se descargó en tu equipo.', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: '¡Documento Generado!', text: 'El reporte profesional se descargó.', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
     } catch (error) {
-        console.error('Error generando PDF:', error);
         Swal.close();
         Swal.fire('Error', 'No se pudo generar el documento PDF.', 'error');
     }
@@ -869,30 +1398,26 @@ async function renderInventario() {
 
 function dibujarTablaInventario(repuestos) {
     const inversionTotal = repuestos.reduce((acc, rep) => acc + (rep.stockActual * rep.costoUnitario), 0);
-    
     let html = `
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
             <h5 class="fw-bold mb-0">Existencias Actuales</h5>
             <div class="d-flex gap-2 align-items-center">
                 <div class="input-group input-group-sm shadow-sm rounded-pill overflow-hidden border bg-white">
                     <span class="input-group-text bg-white border-0 text-muted ps-3"><i class="fas fa-search"></i></span>
-                    <input type="text" id="buscadorInventario" class="form-control border-0 bg-white" placeholder="Buscar material..." onkeyup="filtrarInventario()">
+                    <input type="text" id="buscadorInventario" class="form-control border-0 bg-white" placeholder="Buscar material..." oninput="filtrarInventario()">
                 </div>
                 <button class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm text-nowrap" onclick="abrirModalRepuesto()"><i class="fas fa-plus me-2"></i>Nuevo</button>
             </div>
         </div>
-        
         <div class="row mb-4">
             <div class="col-md-4"><div class="card border-0 shadow-sm bg-primary text-white rounded-4"><div class="card-body p-4"><h6 class="opacity-75 mb-1">Inversión en Almacén</h6><h2 class="fw-bold mb-0">$${inversionTotal.toFixed(2)}</h2></div></div></div>
         </div>
-        
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light"><tr><th class="ps-4">Material</th><th>Unidad</th><th>Costo Unit.</th><th>Stock</th><th class="text-end pe-4">Acciones</th></tr></thead>
                     <tbody>
     `;
-    
     if (repuestos.length === 0) {
         html += `<tr><td colspan="5" class="text-center py-4 text-muted">No hay materiales registrados.</td></tr>`;
     } else {
@@ -915,12 +1440,10 @@ function dibujarTablaInventario(repuestos) {
     contentDiv.innerHTML = html;
 }
 
-// Función del Buscador en tiempo real
 window.filtrarInventario = function() {
     const texto = document.getElementById('buscadorInventario').value.toLowerCase();
     const filtrados = listaInventarioGlobal.filter(rep => rep.nombre.toLowerCase().includes(texto));
     dibujarTablaInventario(filtrados);
-    // Para no perder lo que escribió el usuario al redibujar
     const inputBuscador = document.getElementById('buscadorInventario');
     if(inputBuscador) {
         inputBuscador.value = texto;
@@ -931,28 +1454,26 @@ window.filtrarInventario = function() {
 window.abrirModalRepuesto = function(id = null) {
     const form = document.getElementById('repuestoForm');
     form.reset();
-    // Reutilizamos el modal agregando un input oculto al vuelo si no existe
     if (!document.getElementById('repuestoIdActual')) {
         form.insertAdjacentHTML('afterbegin', '<input type="hidden" id="repuestoIdActual">');
     }
-    
     const idInput = document.getElementById('repuestoIdActual');
     const title = document.querySelector('#repuestoModal .modal-title');
-    
     if (id) {
         const rep = listaInventarioGlobal.find(r => r.idRepuesto === id);
-        idInput.value = rep.idRepuesto;
-        document.getElementById('repNombre').value = rep.nombre;
-        document.getElementById('repUnidad').value = rep.unidadMedida;
-        document.getElementById('repStock').value = rep.stockActual;
-        document.getElementById('repCosto').value = rep.costoUnitario;
-        title.innerHTML = '<i class="fas fa-edit me-2"></i>Editar Material';
+        if (rep) {
+            idInput.value = rep.idRepuesto;
+            document.getElementById('repNombre').value = rep.nombre;
+            document.getElementById('repUnidad').value = rep.unidadMedida;
+            document.getElementById('repStock').value = rep.stockActual;
+            document.getElementById('repCosto').value = rep.costoUnitario;
+            title.innerHTML = '<i class="fas fa-edit me-2"></i>Editar Material';
+        }
     } else {
         idInput.value = '';
         title.innerHTML = '<i class="fas fa-tools me-2"></i>Registrar Material';
     }
-    
-    new bootstrap.Modal(document.getElementById('repuestoModal')).show();
+    bsModalRepuesto.show();
 };
 
 window.editarRepuesto = function(id) {
@@ -964,7 +1485,7 @@ window.eliminarRepuesto = async function(id) {
     if (result.isConfirmed) {
         try {
             await API.request(`/api/repuestos/${id}`, { method: 'DELETE' });
-            Swal.fire('Eliminado', 'Material retirado del almacén.', 'success');
+            Swal.fire('Eliminado', 'Material retirado.', 'success');
             renderInventario();
         } catch (error) {
             Swal.fire('Error', error.message, 'error');
@@ -977,30 +1498,23 @@ async function guardarRepuesto(event) {
     const btn = event.target.querySelector('button[type="submit"]');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
-    
     const idInput = document.getElementById('repuestoIdActual');
     const idRepuesto = idInput ? idInput.value : '';
-    
     const payload = {
         nombre: document.getElementById('repNombre').value,
         unidadMedida: document.getElementById('repUnidad').value,
         stockActual: parseInt(document.getElementById('repStock').value),
         costoUnitario: parseFloat(document.getElementById('repCosto').value)
     };
-    
     try {
         if (idRepuesto) {
-            await API.request(`/api/repuestos/${idRepuesto}`, { 
-                method: 'PUT', 
-                body: JSON.stringify(payload) 
-            });
-            Swal.fire({ icon: 'success', title: 'Actualizado', text: 'Material editado correctamente.', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+            await API.request(`/api/repuestos/${idRepuesto}`, { method: 'PUT', body: JSON.stringify(payload) });
+            Swal.fire({ icon: 'success', title: 'Actualizado', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
         } else {
             await API.Repuestos.crear(payload);
-            Swal.fire({ icon: 'success', title: 'Registrado', text: 'Nuevo material en almacén.', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+            Swal.fire({ icon: 'success', title: 'Registrado', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
         }
-        
-        bootstrap.Modal.getInstance(document.getElementById('repuestoModal')).hide();
+        bsModalRepuesto.hide();
         renderInventario();
     } catch (error) {
         Swal.fire('Error', error.message, 'error');
@@ -1037,7 +1551,7 @@ async function renderCotizador() {
                         <div class="card-body p-4">
                             <div class="mb-4"><label class="form-label small fw-bold text-primary">1. Seleccionar de Catálogo</label><select id="cotSelectorProducto" class="form-select bg-light border-0 mb-2"><option value="" selected disabled>Seleccionar equipo...</option>${productosCatalogoCotizador.map(p => `<option value="${p.idProducto}" data-precio="${p.precio}">${p.nombre} - $${p.precio.toFixed(2)}</option>`).join('')}</select><button class="btn btn-sm btn-outline-primary w-100 fw-bold" onclick="agregarItemCotizacion('producto')"><i class="fas fa-cart-plus me-1"></i> Agregar Equipo</button></div>
                             <hr class="opacity-25">
-                            <div class="mb-2"><label class="form-label small fw-bold text-success">2. Concepto Libre (Ej. Mano de obra)</label><input type="text" id="cotConceptoExtra" class="form-control bg-light border-0 mb-2" placeholder="Descripción de mano de obra o material..."><div class="input-group input-group-sm mb-2"><span class="input-group-text bg-light border-0">$</span><input type="number" id="cotPrecioExtra" class="form-control bg-light border-0" placeholder="0.00" step="0.01"></div><button class="btn btn-sm btn-outline-success w-100 fw-bold" onclick="agregarItemCotizacion('extra')"><i class="fas fa-plus me-1"></i> Agregar Concepto</button></div>
+                            <div class="mb-2"><label class="form-label small fw-bold text-success">2. Concepto Libre (Ej. Mano de obra)</label><input type="text" id="cotConceptoExtra" class="form-control bg-light border-0 mb-2" placeholder="Descripción..."><div class="input-group input-group-sm mb-2"><span class="input-group-text bg-light border-0">$</span><input type="number" id="cotPrecioExtra" class="form-control bg-light border-0" placeholder="0.00" step="0.01"></div><button class="btn btn-sm btn-outline-success w-100 fw-bold" onclick="agregarItemCotizacion('extra')"><i class="fas fa-plus me-1"></i> Agregar Concepto</button></div>
                         </div>
                     </div>
                 </div>
@@ -1120,12 +1634,12 @@ window.generarPDFCotizacion = async function() {
     const inputNombre = document.getElementById('cotNombreCliente');
     const nombreCliente = inputNombre.value.trim();
     if (!nombreCliente) {
-        Swal.fire({ icon: 'warning', title: 'Falta el Cliente', text: 'El nombre del prospecto es obligatorio para emitir la cotización.', confirmButtonColor: '#0d6efd' }).then(() => { inputNombre.focus(); });
+        Swal.fire({ icon: 'warning', title: 'Falta el Cliente', text: 'El nombre del prospecto es obligatorio.', confirmButtonColor: '#0d6efd' }).then(() => { inputNombre.focus(); });
         return;
     }
     const validez = document.getElementById('cotValidez').value;
     if (itemsCotizacion.length === 0) {
-        Swal.fire('Atención', 'Agrega al menos un concepto a la cotización.', 'warning');
+        Swal.fire('Atención', 'Agrega al menos un concepto.', 'warning');
         return;
     }
     Swal.fire({ title: 'Generando Presupuesto...', text: 'Estructurando documento formal.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
@@ -1173,80 +1687,18 @@ window.generarPDFCotizacion = async function() {
     try {
         await html2pdf().set(opciones).from(divTemporal).save();
         Swal.close();
-        Swal.fire({ icon: 'success', title: '¡Presupuesto Generado!', text: 'El PDF se ha descargado en tu equipo.', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+        Swal.fire({ icon: 'success', title: '¡Presupuesto Generado!', text: 'El PDF se ha descargado.', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
     } catch (error) {
         Swal.close();
-        Swal.fire('Error', 'No se pudo generar el presupuesto en PDF.', 'error');
+        Swal.fire('Error', 'No se pudo generar el presupuesto.', 'error');
     }
 };
 
 // ==========================================
-// EXPORTAR EXCEL CON FILTROS
+// LIMPIEZA DE TIMERS
 // ==========================================
-function abrirModalFiltrosExcel() {
-    document.getElementById('formFiltrosExcel').reset();
-    const modal = new bootstrap.Modal(document.getElementById('modalFiltrosExcel'));
-    modal.show();
-}
-
-async function exportarPedidosConFiltros() {
-    const fechaInicio = document.getElementById('filtroFechaInicio').value;
-    const fechaFin = document.getElementById('filtroFechaFin').value;
-    const estado = document.getElementById('filtroEstado').value;
-    const idCliente = document.getElementById('filtroIdCliente').value;
-    const emailCliente = document.getElementById('filtroEmailCliente').value.trim();
-
-    let url = `${API_BASE_URL}/api/pedidos/exportar/excel?`;
-    const params = [];
-    if (fechaInicio) params.push(`fechaInicio=${encodeURIComponent(fechaInicio)}`);
-    if (fechaFin) params.push(`fechaFin=${encodeURIComponent(fechaFin)}`);
-    if (estado) params.push(`estado=${encodeURIComponent(estado)}`);
-    if (idCliente) params.push(`idCliente=${encodeURIComponent(idCliente)}`);
-    if (emailCliente) params.push(`emailCliente=${encodeURIComponent(emailCliente)}`);
-    url += params.join('&');
-
-    try {
-        Swal.fire({
-            title: 'Generando reporte...',
-            text: 'Por favor espera mientras se procesa la información.',
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
-        });
-
-        const token = Auth.getToken();
-        const response = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (!response.ok) {
-            throw new Error('Error al generar el reporte');
-        }
-
-        const blob = await response.blob();
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = 'Reporte_Pedidos_Filtrado.xlsx';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(downloadUrl);
-
-        Swal.close();
-        Swal.fire({
-            icon: 'success',
-            title: 'Reporte generado',
-            text: 'La descarga ha comenzado.',
-            toast: true,
-            position: 'top-end',
-            timer: 3000,
-            showConfirmButton: false
-        });
-
-        bootstrap.Modal.getInstance(document.getElementById('modalFiltrosExcel')).hide();
-
-    } catch (error) {
-        Swal.close();
-        Swal.fire('Error', error.message, 'error');
-    }
-}
+window.addEventListener('beforeunload', function() {
+    Object.keys(debounceTimers).forEach(key => {
+        clearTimeout(debounceTimers[key]);
+    });
+});

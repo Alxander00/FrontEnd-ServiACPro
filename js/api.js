@@ -53,7 +53,7 @@ const API = {
                 throw new Error(errorData.message || 'Error de conexión');
             }
             if (response.status === 204) return null;
-            return await response.json();
+            return await response.json().catch(() => null);
         } catch (error) {
             console.error(`Error en API (${endpoint}):`, error);
             throw error;
