@@ -102,16 +102,38 @@ window.archivarTodosCompletados = async function() {
 };
 
 // ==========================================
+// ARCHIVADO DE REPORTES (CITAS)
+// ==========================================
+function obtenerReportesArchivados() {
+    return JSON.parse(localStorage.getItem('reportes_archivados') || '[]');
+}
+
+function archivarReporte(id) {
+    let archivados = obtenerReportesArchivados();
+    if (!archivados.includes(id)) {
+        archivados.push(id);
+        localStorage.setItem('reportes_archivados', JSON.stringify(archivados));
+    }
+}
+
+function desarchivarReporte(id) {
+    let archivados = obtenerReportesArchivados();
+    archivados = archivados.filter(pid => pid !== id);
+    localStorage.setItem('reportes_archivados', JSON.stringify(archivados));
+}
+
+// ==========================================
 // ESTADO GLOBAL DE PAGINACIÓN Y FILTROS
 // ==========================================
 const adminState = {
     productos: { page: 0, size: 8, search: '', categoria: '' },
     pedidos: { page: 0, size: 8, search: '', estado: '' },
     usuarios: { page: 0, size: 8, search: '', rol: '' },
-    inventario: { page: 0, size: 8, search: '' },
+    inventario: { page: 0, size: 8, search: '', unidad: '' },
     solicitudes: { page: 0, size: 8, search: '', estado: '' },
     reportes: { page: 0, size: 8, search: '' },
-    cotizador: { page: 0, size: 8, search: '' }
+    cotizador: { page: 0, size: 8, search: '' },
+    categorias: { page: 0, size: 5, search: '' }
 };
 
 // ==========================================
@@ -162,6 +184,7 @@ window.cambiarPagina = function(modulo, nuevaPagina) {
     if (modulo === 'solicitudes') renderSolicitudes();
     if (modulo === 'reportes') renderReportes();
     if (modulo === 'cotizador') renderCotizador();
+    if (modulo === 'categorias') renderCategorias();
 };
 
 window.aplicarFiltro = function(modulo) {
@@ -193,7 +216,8 @@ window.aplicarFiltro = function(modulo) {
         renderReportes();
     }
     if (modulo === 'inventario') {
-        adminState.inventario.search = document.getElementById('buscadorInventario').value;
+        adminState.inventario.search = document.getElementById('buscadorInventario')?.value || '';
+        adminState.inventario.unidad = document.getElementById('filtroUnidadInventario')?.value || '';
         renderInventario();
     }
     if (modulo === 'cotizador') {
@@ -483,6 +507,34 @@ async function renderDashboard() {
 }
 
 // ==========================================
+// PRODUCTOS (BÚSQUEDA SILENCIOSA Y FLUIDA)
+// ==========================================
+
+// 1. Función auxiliar para dibujar una sola fila
+function generarFilaProducto(p) {
+    const avatar = (p.imagenesUrls && p.imagenesUrls.length > 0) ? p.imagenesUrls[0] : 'https://via.placeholder.com/45?text=A/C';
+    return `
+    <tr>
+        <td class="ps-4">
+            <div class="d-flex align-items-center">
+                <img src="${avatar}" class="rounded me-3 border shadow-sm" style="width: 45px; height: 45px; object-fit: cover;">
+                <div>
+                    <h6 class="mb-0 fw-bold text-dark">${p.nombre}</h6>
+                    <small class="text-muted fw-semibold">ID: #${p.idProducto} | ${p.capacidadBTU} BTU</small>
+                </div>
+            </div>
+        </td>
+        <td><span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2">${p.nombreCategoria || 'Sin categoría'}</span></td>
+        <td class="fw-bold text-dark fs-5">$${p.precio.toFixed(2)}</td>
+        <td><span class="badge ${p.stock > 5 ? 'bg-success' : (p.stock > 0 ? 'bg-warning' : 'bg-danger')} bg-opacity-10 text-${p.stock > 5 ? 'success' : (p.stock > 0 ? 'warning text-dark' : 'danger')} border-0 px-3 py-2"><i class="fas ${p.stock > 5 ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-1"></i> ${p.stock} unid.</span></td>
+        <td class="text-end pe-4">
+            <button class="btn btn-sm btn-light text-primary me-2 shadow-sm" onclick="openProductoModal(${p.idProducto})" title="Editar"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-light text-danger shadow-sm rounded-circle" onclick="eliminarProducto(${p.idProducto})" title="Eliminar"><i class="fas fa-trash"></i></button>
+        </td>
+    </tr>`;
+}
+
+// ==========================================
 // PRODUCTOS
 // ==========================================
 async function renderProductos() {
@@ -516,14 +568,13 @@ async function renderProductos() {
                                     ${opcionesCategoria}
                                 </select>
                                 <div class="input-group w-50">
-                                    <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
+                                    <span class="input-group-text bg-light border-0" id="searchIconProductos"><i class="fas fa-search text-muted"></i></span>
                                     <input type="text" 
                                         id="searchProductos" 
                                         class="form-control bg-light border-0" 
                                         placeholder="Buscar equipo..." 
                                         value="${currentSearchValue}" 
-                                        oninput="filtrarEnTiempoReal('productos', this.value)">
-                                </div>
+                                        oninput="filtrarProductosSilencioso(this.value)"> </div>
                                 <button class="btn btn-primary fw-bold shadow-sm ms-2 text-nowrap" onclick="openProductoModal()">
                                     <i class="fas fa-plus"></i> Nuevo
                                 </button>
@@ -543,40 +594,22 @@ async function renderProductos() {
                                     <th class="text-end pe-4">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tablaProductosBody" style="transition: opacity 0.3s ease;">
                                 ${productos.length === 0 ? '<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron productos.</td></tr>' : ''}
-                                ${productos.map(p => {
-                                    const avatar = (p.imagenesUrls && p.imagenesUrls.length > 0) ? p.imagenesUrls[0] : 'https://via.placeholder.com/45?text=A/C';
-                                    return `
-                                    <tr>
-                                        <td class="ps-4">
-                                            <div class="d-flex align-items-center">
-                                                <img src="${avatar}" class="rounded me-3 border shadow-sm" style="width: 45px; height: 45px; object-fit: cover;">
-                                                <div>
-                                                    <h6 class="mb-0 fw-bold text-dark">${p.nombre}</h6>
-                                                    <small class="text-muted fw-semibold">ID: #${p.idProducto} | ${p.capacidadBTU} BTU</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td><span class="badge bg-secondary bg-opacity-10 text-secondary border px-3 py-2">${p.nombreCategoria || 'Sin categoría'}</span></td>
-                                        <td class="fw-bold text-dark fs-5">$${p.precio.toFixed(2)}</td>
-                                        <td><span class="badge ${p.stock > 5 ? 'bg-success' : (p.stock > 0 ? 'bg-warning' : 'bg-danger')} bg-opacity-10 text-${p.stock > 5 ? 'success' : (p.stock > 0 ? 'warning text-dark' : 'danger')} border-0 px-3 py-2"><i class="fas ${p.stock > 5 ? 'fa-check-circle' : 'fa-exclamation-triangle'} me-1"></i> ${p.stock} unid.</span></td>
-                                        <td class="text-end pe-4">
-                                            <button class="btn btn-sm btn-light text-primary me-2 shadow-sm" onclick="openProductoModal(${p.idProducto})" title="Editar"><i class="fas fa-edit"></i></button>
-                                            <button class="btn btn-sm btn-light text-danger shadow-sm rounded-circle" onclick="eliminarProducto(${p.idProducto})" title="Eliminar"><i class="fas fa-trash"></i></button>
-                                        </td>
-                                    </tr>`;
-                                }).join('')}
+                                ${productos.map(p => generarFilaProducto(p)).join('')}
                             </tbody>
                         </table>
                     </div>
-                    ${renderPagination(totalPages, page, 'productos')}
+                    <div id="paginacionProductosContainer">
+                        ${renderPagination(totalPages, page, 'productos')}
+                    </div>
                 </div>
             </div>
         `;
 
+        // Mantener el foco solo si recargamos la página entera por usar la paginación o el filtro de categorías
         const newInput = document.getElementById('searchProductos');
-        if (newInput) {
+        if (newInput && document.activeElement.id === 'searchProductos') {
             newInput.focus();
             const length = newInput.value.length;
             newInput.setSelectionRange(length, length);
@@ -587,6 +620,56 @@ async function renderProductos() {
         contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error al cargar productos: ${error.message}</div>`;
     }
 }
+
+// 3. La nueva función de búsqueda silenciosa
+window.filtrarProductosSilencioso = async function(valor) {
+    if (debounceTimers['productos']) {
+        clearTimeout(debounceTimers['productos']);
+    }
+
+    adminState.productos.search = valor;
+    adminState.productos.page = 0; // Al buscar, regresamos a la página 1
+
+    const icon = document.getElementById('searchIconProductos');
+    const tbody = document.getElementById('tablaProductosBody');
+
+    // 1. Feedback visual INMEDIATO: Ponemos el spinner y atenuamos la tabla
+    if (icon) icon.innerHTML = '<i class="fas fa-spinner fa-spin text-primary"></i>';
+    if (tbody) tbody.style.opacity = '0.5'; 
+
+    debounceTimers['productos'] = setTimeout(async () => {
+        try {
+            const { page, size, search, categoria } = adminState.productos;
+            
+            // Hacemos la consulta al backend
+            const response = await API.request(`/productos/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search)}&categoria=${categoria}`);
+            const productos = response.content || [];
+            const totalPages = response.totalPages || 1;
+
+            // 2. Actualizamos SOLO el cuerpo de la tabla (sin recargar la pantalla entera)
+            if (tbody) {
+                tbody.innerHTML = productos.length === 0
+                    ? '<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron equipos que coincidan con tu búsqueda.</td></tr>'
+                    : productos.map(p => generarFilaProducto(p)).join('');
+                tbody.style.opacity = '1'; // Restaurar el color normal
+            }
+
+            // 3. Actualizamos los botones de paginación
+            const pagContainer = document.getElementById('paginacionProductosContainer');
+            if (pagContainer) {
+                pagContainer.innerHTML = renderPagination(totalPages, page, 'productos');
+            }
+
+            // 4. Devolvemos el ícono de la lupa a la normalidad
+            if (icon) icon.innerHTML = '<i class="fas fa-search text-muted"></i>';
+
+        } catch (error) {
+            console.error("Error al buscar productos:", error);
+            if (icon) icon.innerHTML = '<i class="fas fa-exclamation-triangle text-danger" title="Error de conexión"></i>';
+            if (tbody) tbody.style.opacity = '1';
+        }
+    }, 400); // 400ms de espera mientras teclea
+};
 
 // ==========================================
 // ABRIR MODAL PRODUCTO
@@ -798,8 +881,27 @@ async function eliminarProducto(id) {
 async function renderCategorias() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
+        // Obtener todas las categorías
         const categorias = await API.request('/categorias');
-        contentDiv.innerHTML = `
+        
+        // Aplicar filtro de búsqueda
+        const { search, page, size } = adminState.categorias;
+        let categoriasFiltradas = categorias;
+        if (search && search.trim() !== '') {
+            const busqueda = search.toLowerCase().trim();
+            categoriasFiltradas = categorias.filter(c =>
+                c.nombre.toLowerCase().includes(busqueda)
+            );
+        }
+        
+        // Paginación manual
+        const start = page * size;
+        const end = start + size;
+        const categoriasPaginadas = categoriasFiltradas.slice(start, end);
+        const totalPages = Math.ceil(categoriasFiltradas.length / size) || 1;
+        
+        // Generar HTML
+        let html = `
             <div class="row g-4">
                 <div class="col-lg-4">
                     <div class="card border-0 bg-gradient-primary text-white h-100 shadow-sm">
@@ -814,13 +916,22 @@ async function renderCategorias() {
                 </div>
                 <div class="col-lg-8">
                     <div class="card border-0 h-100 shadow-sm">
-                        <div class="card-header bg-white pt-4 px-4"><h5 class="fw-bold mb-0 text-dark"><i class="fas fa-tags text-primary me-2"></i>Clasificaciones Registradas</h5></div>
+                        <div class="card-header bg-white pt-4 px-4 border-0">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-tags text-primary me-2"></i>Clasificaciones Registradas</h5>
+                                <div class="input-group input-group-sm" style="max-width: 250px;">
+                                    <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
+                                    <input type="text" id="searchCategorias" class="form-control bg-light border-0" placeholder="Buscar categoría..." value="${search}" oninput="filtrarCategorias()">
+                                </div>
+                            </div>
+                        </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle mb-0">
                                     <thead class="bg-light"><tr><th class="ps-4">ID</th><th>Nombre</th><th class="text-end pe-4">Acciones</th></tr></thead>
                                     <tbody>
-                                        ${categorias.map(c => `
+                                        ${categoriasPaginadas.length === 0 ? '<tr><td colspan="3" class="text-center py-4 text-muted">No se encontraron categorías.</td></tr>' : ''}
+                                        ${categoriasPaginadas.map(c => `
                                             <tr>
                                                 <td class="ps-4 fw-bold text-muted">#${c.idCategoria}</td>
                                                 <td class="fw-bold text-dark fs-6">${c.nombre}</td>
@@ -832,15 +943,34 @@ async function renderCategorias() {
                                     </tbody>
                                 </table>
                             </div>
+                            ${renderPagination(totalPages, page, 'categorias')}
                         </div>
                     </div>
                 </div>
             </div>
         `;
+        contentDiv.innerHTML = html;
+        
+        // Enfocar el buscador
+        const searchInput = document.getElementById('searchCategorias');
+        if (searchInput) {
+            searchInput.focus();
+            const length = searchInput.value.length;
+            searchInput.setSelectionRange(length, length);
+        }
     } catch (error) {
         contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error al cargar categorías: ${error.message}</div>`;
     }
 }
+
+window.filtrarCategorias = function() {
+    const input = document.getElementById('searchCategorias');
+    if (!input) return;
+    const valor = input.value;
+    adminState.categorias.search = valor;
+    adminState.categorias.page = 0;
+    renderCategorias();
+};
 
 async function guardarCategoria(event) {
     event.preventDefault();
@@ -1385,6 +1515,12 @@ async function renderSolicitudes() {
             </div>
         `;
         contentDiv.innerHTML = html;
+        const inputSol = document.getElementById('filtroSolCliente');
+        if (inputSol && document.activeElement.id !== 'filtroSolEstado' && document.activeElement.id !== 'filtroSolFechaInicio' && document.activeElement.id !== 'filtroSolFechaFin') {
+            inputSol.focus();
+            const length = inputSol.value.length;
+            inputSol.setSelectionRange(length, length);
+        }
     } catch (error) {
         console.error('Error en renderSolicitudes:', error);
         contentDiv.innerHTML = `<div class="alert alert-danger shadow-sm rounded-4 m-3"><i class="fas fa-exclamation-circle me-2"></i> Error de conexión: ${error.message}</div>`;
@@ -1459,6 +1595,173 @@ async function actualizarContadoresAdmin() {
 // ==========================================
 let listaCitasGlobal = [];
 
+window.mostrarArchivadosReportes = async function() {
+    const archivados = obtenerReportesArchivados();
+    if (archivados.length === 0) {
+        Swal.fire({ icon: 'info', title: 'Sin archivados', text: 'No hay reportes archivados.', confirmButtonColor: '#0d6efd' });
+        return;
+    }
+
+    try {
+        const todas = await API.Citas.listar();
+        const citasArchivadas = todas.filter(c => archivados.includes(c.idCita));
+
+        if (citasArchivadas.length === 0) {
+            Swal.fire('Sin resultados', 'Los IDs archivados no coinciden con ninguna cita actual.', 'info');
+            return;
+        }
+
+        citasArchivadas.sort((a, b) => a.idCita - b.idCita);
+
+        let tableRows = '';
+        citasArchivadas.forEach(c => {
+            const badgeClass = c.estado === 'COMPLETADA' ? 'bg-success' : 'bg-danger';
+            tableRows += `
+                <tr>
+                    <td class="ps-4 fw-bold text-primary">#${c.idCita}</td>
+                    <td><span class="fw-bold text-dark">${c.nombreCliente}</span></td>
+                    <td>${c.nombreTecnico || 'N/A'}</td>
+                    <td>${formatearFecha(c.fechaInicio)}</td>
+                    <td><span class="badge ${badgeClass}">${c.estado}</span></td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-outline-primary rounded-circle" onclick="desarchivarReporte(${c.idCita})" title="Restaurar">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        Swal.fire({
+            title: '📦 Reportes Archivados',
+            html: `
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light">
+                            <tr><th class="ps-4">Ticket</th><th>Cliente</th><th>Técnico</th><th>Fecha</th><th>Estado</th><th class="text-end pe-4">Acción</th></tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                </div>
+                <small class="text-muted d-block mt-2">Total: ${citasArchivadas.length} reportes archivados.</small>
+            `,
+            icon: 'info',
+            confirmButtonText: 'Cerrar',
+            confirmButtonColor: '#0d6efd',
+            width: 900,
+        });
+    } catch (error) {
+        Swal.fire('Error', 'No se pudieron cargar los reportes archivados.', 'error');
+    }
+};
+
+// ===== DESARCHIVAR UN REPORTE =====
+window.desarchivarReporte = function(id) {
+    // 1. Quitar de localStorage
+    let archivados = obtenerReportesArchivados();
+    archivados = archivados.filter(pid => pid !== id);
+    localStorage.setItem('reportes_archivados', JSON.stringify(archivados));
+    console.log('🔄 Desarchivar ID:', id);
+    console.log('🔄 Archivados actuales:', obtenerReportesArchivados());
+
+    // 2. REINICIAR PAGINACIÓN
+    adminState.reportes.page = 0;
+
+    // 3. CERRAR MODAL Y RECARGAR
+    Swal.close();
+    renderReportes();
+
+    // 4. Si el modal de archivados estaba abierto, actualizarlo
+    setTimeout(() => {
+        mostrarArchivadosReportes();
+    }, 300);
+
+    Swal.fire({
+        icon: 'success',
+        title: 'Reporte restaurado',
+        text: `El reporte #${id} ya no está archivado.`,
+        toast: true,
+        position: 'top-end',
+        timer: 2000,
+        showConfirmButton: false
+    });
+};
+
+// ===== DESARCHIVAR TODOS LOS REPORTES =====
+window.desarchivarTodosReportes = async function() {
+    const archivados = obtenerReportesArchivados();
+    if (archivados.length === 0) {
+        Swal.fire({ icon: 'info', title: 'Sin archivados', text: 'No hay reportes archivados.' });
+        return;
+    }
+
+    const confirm = await Swal.fire({
+        title: `Restaurar ${archivados.length} reportes`,
+        text: 'Todos los reportes archivados volverán a aparecer en la lista principal.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#198754',
+        confirmButtonText: 'Sí, restaurar todos',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (confirm.isConfirmed) {
+        localStorage.setItem('reportes_archivados', JSON.stringify([]));
+        console.log('🔄 Restaurar todos los reportes');
+        adminState.reportes.page = 0;
+        renderReportes();
+
+        Swal.fire({
+            icon: 'success',
+            title: '¡Restaurados!',
+            text: `${archivados.length} reportes restaurados.`,
+            toast: true,
+            position: 'top-end',
+            timer: 3000,
+            showConfirmButton: false
+        });
+    }
+};
+
+// ===== ARCHIVAR UN REPORTE (desde la tabla) =====
+window.archivarReporte = async function(id) {
+    const confirm = await Swal.fire({
+        title: '¿Archivar reporte?',
+        text: 'El reporte desaparecerá de la lista principal pero seguirá existiendo en el sistema.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, archivar',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (confirm.isConfirmed) {
+        // 1. Obtener la lista actual, agregar el ID y guardar en localStorage
+        let archivados = obtenerReportesArchivados();
+        if (!archivados.includes(id)) {
+            archivados.push(id);
+            localStorage.setItem('reportes_archivados', JSON.stringify(archivados));
+        }
+
+        // 2. Reiniciar paginación a la página 1
+        adminState.reportes.page = 0;
+
+        Swal.fire({
+            icon: 'success',
+            title: 'Reporte archivado',
+            toast: true,
+            position: 'top-end',
+            timer: 2000,
+            showConfirmButton: false
+        });
+
+        // 3. Forzar el recargado de la tabla DESPUÉS de guardar
+        setTimeout(() => {
+            renderReportes();
+        }, 100); 
+    }
+};
+
 async function renderReportes() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
@@ -1467,10 +1770,10 @@ async function renderReportes() {
         const fechaInicio = document.getElementById('filtroRepFechaInicio')?.value || '';
         const fechaFin = document.getElementById('filtroRepFechaFin')?.value || '';
 
-        // ✅ Usamos el endpoint existente que devuelve TODAS las citas
+        // ✅ Obtener TODAS las citas
         let citas = await API.Citas.listar();
 
-        // ✅ Aplicar filtros en memoria
+        // ✅ Aplicar filtros de búsqueda
         if (estado && estado !== '') {
             citas = citas.filter(c => c.estado === estado);
         }
@@ -1494,24 +1797,45 @@ async function renderReportes() {
             citas = citas.filter(c => new Date(c.fechaInicio) <= fechaFinObj);
         }
 
-        // ✅ Paginación manual
-        const start = page * size;
-        const end = start + size;
-        const citasPaginadas = citas.slice(start, end);
-        const totalPages = Math.ceil(citas.length / size) || 1;
+        // ✅ Guardar copia completa para el visor de evidencia
         listaCitasGlobal = citas;
 
-        if (citas.length === 0 && page === 0 && !estado && !search) {
-            contentDiv.innerHTML = `<div class="alert alert-info shadow-sm m-4">No hay historial de citas o reportes en el sistema.</div>`;
+        // ✅ Filtrar archivados (asegurar que los IDs sean números)
+        const archivados = obtenerReportesArchivados();
+        console.log('🔍 Archivados desde localStorage:', archivados);
+        let citasVisibles = citas.filter(c => !archivados.includes(Number(c.idCita)));
+        console.log('🔍 Citas visibles después del filtro:', citasVisibles.length);
+
+        // ✅ Paginación
+        const start = page * size;
+        const end = start + size;
+        const citasPaginadas = citasVisibles.slice(start, end);
+        const totalPages = Math.ceil(citasVisibles.length / size) || 1;
+
+        // Si no hay citas visibles y no hay filtros activos, mostrar mensaje
+        if (citasVisibles.length === 0 && page === 0 && !estado && !search) {
+            contentDiv.innerHTML = `
+                <div class="alert alert-info shadow-sm m-4">
+                    No hay historial de citas o reportes en el sistema.
+                    ${archivados.length > 0 ? `<br><button class="btn btn-outline-secondary btn-sm mt-2" onclick="mostrarArchivadosReportes()">Ver ${archivados.length} archivados</button>` : ''}
+                </div>
+            `;
             return;
         }
 
         const currentSearchValue = search;
 
-        contentDiv.innerHTML = `
+        // ===== GENERAR HTML DE LA TABLA =====
+        let html = `
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-clipboard-list text-primary me-2"></i>Historial de Trabajos</h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="mostrarArchivadosReportes()" title="Ver reportes archivados">
+                            <i class="fas fa-archive me-1"></i> Archivados (${archivados.length})
+                        </button>
+                        ${archivados.length > 0 ? `<button class="btn btn-outline-danger btn-sm" onclick="desarchivarTodosReportes()" title="Restaurar todos los archivados"><i class="fas fa-undo me-1"></i> Restaurar todos</button>` : ''}
+                    </div>
                 </div>
                 <div class="card-body">
                     <!-- Filtros -->
@@ -1549,19 +1873,28 @@ async function renderReportes() {
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light"><tr><th class="ps-4">Ticket</th><th>Cliente</th><th>Técnico</th><th>Fecha</th><th>Estado</th><th class="text-end pe-4">Evidencia</th></tr></thead>
+                            <thead class="bg-light"><tr><th class="ps-4">Ticket</th><th>Cliente</th><th>Técnico</th><th>Fecha</th><th>Estado</th><th class="text-end pe-4">Acciones</th></tr></thead>
                             <tbody>
                                 ${citasPaginadas.length === 0 ? '<tr><td colspan="6" class="text-center py-4 text-muted">No hay reportes que coincidan con los filtros.</td></tr>' : ''}
                                 ${citasPaginadas.map(cita => {
                                     const badgeClass = cita.estado === 'COMPLETADA' ? 'bg-success' : (cita.estado === 'CANCELADA' ? 'bg-danger' : 'bg-warning text-dark');
                                     const tieneEvidencia = cita.estado === 'COMPLETADA' && (cita.urlFirmaCliente || cita.urlsFotosAntes || cita.urlsFotosDespues);
                                     const btnEvidencia = tieneEvidencia ? `<button class="btn btn-sm btn-primary shadow-sm rounded-pill px-3 fw-bold" onclick="abrirVisorEvidencia(${cita.idCita})"><i class="fas fa-camera me-1"></i> Ver Reporte</button>` : `<span class="text-muted small">No disponible</span>`;
+                                    const esFinalizado = (cita.estado === 'COMPLETADA' || cita.estado === 'CANCELADA');
+                                    const btnArchivar = esFinalizado
+                                        ? `<button class="btn btn-sm btn-light text-secondary shadow-sm rounded-circle" onclick="archivarReporte(${cita.idCita})" title="Archivar"><i class="fas fa-archive"></i></button>`
+                                        : `<span class="text-muted small">-</span>`;
                                     return `<tr><td class="ps-4 fw-bold text-primary">#${cita.idCita}</td>
                                         <td><div class="fw-bold text-dark">${cita.nombreCliente}</div><small class="text-muted"><i class="fas fa-map-marker-alt text-danger me-1"></i>${cita.direccionCliente || 'Sin dirección'}</small></td>
                                         <td><span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 p-2"><i class="fas fa-hard-hat me-1"></i> ${cita.nombreTecnico}</span></td>
                                         <td class="small fw-semibold text-secondary">${formatearFecha(cita.fechaInicio)}</td>
                                         <td><span class="badge ${badgeClass} shadow-sm px-3 py-2">${cita.estado}</span></td>
-                                        <td class="text-end pe-4">${btnEvidencia}</td>
+                                        <td class="text-end pe-4">
+                                            <div class="d-flex gap-1 justify-content-end flex-wrap">
+                                                ${btnEvidencia}
+                                                ${btnArchivar}
+                                            </div>
+                                        </td>
                                     </tr>`;
                                 }).join('')}
                             </tbody>
@@ -1571,6 +1904,13 @@ async function renderReportes() {
                 </div>
             </div>
         `;
+        contentDiv.innerHTML = html;
+        const inputRepCliente = document.getElementById('filtroRepCliente');
+        if (inputRepCliente && adminState.reportes.search !== '') {
+            inputRepCliente.focus();
+            const length = inputRepCliente.value.length;
+            inputRepCliente.setSelectionRange(length, length);
+        }
     } catch (error) {
         console.error('Error en renderReportes:', error);
         contentDiv.innerHTML = `<div class="alert alert-danger shadow-sm m-4">Error al cargar reportes: ${error.message}</div>`;
@@ -1672,44 +2012,51 @@ let listaInventarioGlobal = [];
 async function renderInventario() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        const { page, size, search } = adminState.inventario;
-
-        // ✅ Usamos el endpoint existente que devuelve TODOS los repuestos activos
         const repuestos = await API.Repuestos.listarActivos();
+        const { page, size, search, unidad } = adminState.inventario;
 
-        // ✅ Aplicar filtro de búsqueda por nombre (search)
         let repuestosFiltrados = repuestos;
         if (search && search.trim() !== '') {
             const busqueda = search.toLowerCase().trim();
-            repuestosFiltrados = repuestos.filter(r =>
+            repuestosFiltrados = repuestosFiltrados.filter(r =>
                 r.nombre.toLowerCase().includes(busqueda)
             );
         }
+        if (unidad && unidad !== '') {
+            repuestosFiltrados = repuestosFiltrados.filter(r => r.unidadMedida === unidad);
+        }
 
-        // ✅ Paginación manual (slice)
         const start = page * size;
         const end = start + size;
         const repuestosPaginados = repuestosFiltrados.slice(start, end);
         const totalPages = Math.ceil(repuestosFiltrados.length / size) || 1;
 
-        listaInventarioGlobal = repuestosFiltrados; // Para usar en editar/eliminar
+        listaInventarioGlobal = repuestosFiltrados;
 
         const inversionTotal = repuestosFiltrados.reduce((acc, rep) => acc + (rep.stockActual * rep.costoUnitario), 0);
-        const currentSearchValue = search;
+        const currentSearch = search || '';
+        const currentUnidad = unidad || '';
 
         let html = `
             <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
                 <h5 class="fw-bold mb-0">Existencias Actuales</h5>
-                <div class="d-flex gap-2 align-items-center">
-                    <div class="input-group input-group-sm shadow-sm rounded-pill overflow-hidden border bg-white" style="max-width: 250px;">
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <div class="input-group input-group-sm shadow-sm rounded-pill overflow-hidden border bg-white" style="max-width: 200px;">
                         <span class="input-group-text bg-white border-0 text-muted ps-3"><i class="fas fa-search"></i></span>
-                        <input type="text" id="buscadorInventario" class="form-control border-0 bg-white" placeholder="Buscar material..." value="${currentSearchValue}" oninput="filtrarInventario()">
+                        <input type="text" id="buscadorInventario" class="form-control border-0 bg-white" placeholder="Buscar material..." value="${currentSearch}" oninput="filtrarInventario()">
                     </div>
+                    <select id="filtroUnidadInventario" class="form-select form-select-sm bg-light border-0 rounded-pill" style="width: auto;" onchange="filtrarInventario()">
+                        <option value="">Todas las unidades</option>
+                        <option value="Unidades" ${currentUnidad === 'Unidades' ? 'selected' : ''}>Unidades (Pzas)</option>
+                        <option value="Libras" ${currentUnidad === 'Libras' ? 'selected' : ''}>Libras (lbs)</option>
+                        <option value="Metros" ${currentUnidad === 'Metros' ? 'selected' : ''}>Metros (m)</option>
+                    </select>
                     <button class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm text-nowrap" onclick="abrirModalRepuesto()"><i class="fas fa-plus me-2"></i>Nuevo</button>
                 </div>
             </div>
             <div class="row mb-4">
                 <div class="col-md-4"><div class="card border-0 shadow-sm bg-primary text-white rounded-4"><div class="card-body p-4"><h6 class="opacity-75 mb-1">Inversión en Almacén (filtrado)</h6><h2 class="fw-bold mb-0">$${inversionTotal.toFixed(2)}</h2></div></div></div>
+                <div class="col-md-4"><div class="card border-0 shadow-sm bg-info text-white rounded-4"><div class="card-body p-4"><h6 class="opacity-75 mb-1">Total de materiales</h6><h2 class="fw-bold mb-0">${repuestosFiltrados.length}</h2></div></div></div>
             </div>
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
                 <div class="table-responsive">
@@ -1724,7 +2071,11 @@ async function renderInventario() {
                                     <td class="ps-4 fw-bold text-dark">${rep.nombre}</td>
                                     <td><span class="badge bg-secondary bg-opacity-10 text-secondary border">${rep.unidadMedida}</span></td>
                                     <td>$${rep.costoUnitario.toFixed(2)}</td>
-                                    <td><span class="badge ${badgeStock} px-3 py-2 fs-6">${rep.stockActual}</span></td>
+                                    <td>
+                                        <span class="badge ${badgeStock} px-3 py-2 fs-6">
+                                            ${rep.stockActual % 1 === 0 ? rep.stockActual : rep.stockActual.toFixed(2)}
+                                        </span>
+                                    </td>
                                     <td class="text-end pe-4">
                                         <button class="btn btn-sm btn-light text-primary me-2 shadow-sm" onclick="editarRepuesto(${rep.idRepuesto})" title="Editar"><i class="fas fa-edit"></i></button>
                                         <button class="btn btn-sm btn-light text-danger shadow-sm rounded-circle" onclick="eliminarRepuesto(${rep.idRepuesto})" title="Eliminar"><i class="fas fa-trash"></i></button>
@@ -1738,60 +2089,27 @@ async function renderInventario() {
             </div>
         `;
         contentDiv.innerHTML = html;
+
+        const searchInput = document.getElementById('buscadorInventario');
+        if (searchInput) {
+            searchInput.focus();
+            const length = searchInput.value.length;
+            searchInput.setSelectionRange(length, length);
+        }
     } catch (error) {
         console.error('Error en renderInventario:', error);
         contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error al cargar inventario: ${error.message}</div>`;
     }
 }
 
-function dibujarTablaInventario(repuestos) {
-    const inversionTotal = repuestos.reduce((acc, rep) => acc + (rep.stockActual * rep.costoUnitario), 0);
-    let html = `
-        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
-            <h5 class="fw-bold mb-0">Existencias Actuales</h5>
-            <div class="d-flex gap-2 align-items-center">
-                <div class="input-group input-group-sm shadow-sm rounded-pill overflow-hidden border bg-white">
-                    <span class="input-group-text bg-white border-0 text-muted ps-3"><i class="fas fa-search"></i></span>
-                    <input type="text" id="buscadorInventario" class="form-control border-0 bg-white" placeholder="Buscar material..." oninput="filtrarInventario()">
-                </div>
-                <button class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm text-nowrap" onclick="abrirModalRepuesto()"><i class="fas fa-plus me-2"></i>Nuevo</button>
-            </div>
-        </div>
-        <div class="row mb-4">
-            <div class="col-md-4"><div class="card border-0 shadow-sm bg-primary text-white rounded-4"><div class="card-body p-4"><h6 class="opacity-75 mb-1">Inversión en Almacén</h6><h2 class="fw-bold mb-0">$${inversionTotal.toFixed(2)}</h2></div></div></div>
-        </div>
-        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light"><tr><th class="ps-4">Material</th><th>Unidad</th><th>Costo Unit.</th><th>Stock</th><th class="text-end pe-4">Acciones</th></tr></thead>
-                    <tbody>
-    `;
-    if (repuestos.length === 0) {
-        html += `<tr><td colspan="5" class="text-center py-4 text-muted">No hay materiales registrados.</td></tr>`;
-    } else {
-        repuestos.forEach(rep => {
-            const badgeStock = rep.stockActual <= 5 ? 'bg-danger' : 'bg-success';
-            html += `
-            <tr>
-                <td class="ps-4 fw-bold text-dark">${rep.nombre}</td>
-                <td><span class="badge bg-secondary bg-opacity-10 text-secondary border">${rep.unidadMedida}</span></td>
-                <td>$${rep.costoUnitario.toFixed(2)}</td>
-                <td><span class="badge ${badgeStock} px-3 py-2 fs-6">${rep.stockActual}</span></td>
-                <td class="text-end pe-4">
-                    <button class="btn btn-sm btn-light text-primary me-2 shadow-sm" onclick="editarRepuesto(${rep.idRepuesto})" title="Editar"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-sm btn-light text-danger shadow-sm rounded-circle" onclick="eliminarRepuesto(${rep.idRepuesto})" title="Eliminar"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>`;
-        });
-    }
-    html += `</tbody></table></div></div>`;
-    contentDiv.innerHTML = html;
-}
-
 window.filtrarInventario = function() {
-    const texto = document.getElementById('buscadorInventario').value;
-    adminState.inventario.search = texto;
+    const search = document.getElementById('buscadorInventario').value || '';
+    const unidad = document.getElementById('filtroUnidadInventario').value || '';
+
+    adminState.inventario.search = search;
+    adminState.inventario.unidad = unidad;
     adminState.inventario.page = 0;
+
     renderInventario();
 };
 
@@ -1817,6 +2135,7 @@ window.abrirModalRepuesto = function(id = null) {
         idInput.value = '';
         title.innerHTML = '<i class="fas fa-tools me-2"></i>Registrar Material';
     }
+    cambiarStepStock();
     bsModalRepuesto.show();
 };
 
@@ -1847,7 +2166,7 @@ async function guardarRepuesto(event) {
     const payload = {
         nombre: document.getElementById('repNombre').value,
         unidadMedida: document.getElementById('repUnidad').value,
-        stockActual: parseInt(document.getElementById('repStock').value),
+        stockActual: parseFloat(document.getElementById('repStock').value) || 0,
         costoUnitario: parseFloat(document.getElementById('repCosto').value)
     };
     try {
@@ -1865,6 +2184,18 @@ async function guardarRepuesto(event) {
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar en Almacén';
+    }
+}
+
+function cambiarStepStock() {
+    const unidad = document.getElementById('repUnidad').value;
+    const stockInput = document.getElementById('repStock');
+    if (unidad === 'Unidades') {
+        stockInput.step = '1';
+        stockInput.placeholder = 'Ej. 5';
+    } else {
+        stockInput.step = 'any';
+        stockInput.placeholder = 'Ej. 3.5';
     }
 }
 
@@ -1944,12 +2275,60 @@ async function renderCotizador() {
 }
 
 // Función para filtrar productos en el cotizador (tiempo real)
-window.filtrarCotizadorProductos = function(valor) {
+window.filtrarCotizadorProductos = async function(valor) {
+    if (debounceTimers['cotizador']) {
+        clearTimeout(debounceTimers['cotizador']);
+    }
+    
     adminState.cotizador.search = valor;
-    adminState.cotizador.page = 0;
-    renderCotizador();
+    
+    const select = document.getElementById('cotSelectorProducto');
+    
+    // 1. Dar feedback visual INMEDIATO de que el sistema está trabajando
+    if (select) {
+        select.innerHTML = `<option value="" selected disabled>Buscando...</option>`;
+    }
+    
+    debounceTimers['cotizador'] = setTimeout(async () => {
+        try {
+            // Hacemos la petición silenciosa al backend
+            const response = await API.request(`/productos/paginado?page=0&size=50&search=${encodeURIComponent(valor)}&categoria=`);
+            const productos = response.content || [];
+            
+            // Actualizamos la variable global
+            productosCatalogoCotizador = productos;
+            
+            // 2. Mostrar el resultado de forma clara
+            if (select) {
+                if (productos.length === 0) {
+                    select.innerHTML = `<option value="" selected disabled>❌ No se encontró "${valor}"</option>`;
+                } else {
+                    const textoAyuda = valor.trim() === '' 
+                        ? 'Seleccionar equipo...' 
+                        : `👇 Elija entre ${productos.length} resultados...`;
+                        
+                    select.innerHTML = `
+                        <option value="" selected disabled>${textoAyuda}</option>
+                        ${productos.map(p => `<option value="${p.idProducto}" data-precio="${p.precio}">${p.nombre} - $${p.precio.toFixed(2)}</option>`).join('')}
+                    `;
+                }
+                
+                // 3. Pequeño efecto visual (destello) para que el ojo del usuario sepa que la lista cambió
+                select.style.transition = 'box-shadow 0.3s ease, border-color 0.3s ease';
+                select.style.boxShadow = '0 0 0 0.25rem rgba(13, 110, 253, 0.25)';
+                select.style.borderColor = '#0d6efd';
+                
+                setTimeout(() => {
+                    select.style.boxShadow = 'none';
+                    select.style.borderColor = ''; // Vuelve a la normalidad
+                }, 800);
+            }
+        } catch (error) {
+            console.error("Error al buscar productos para cotizar:", error);
+            if (select) select.innerHTML = `<option value="" selected disabled>Error de conexión</option>`;
+        }
+    }, 400);
 };
-
 function actualizarTablaCotizacion() {
     const tbody = document.getElementById('tablaCotizacionBody');
     const divTotales = document.getElementById('totalesCotizacion');

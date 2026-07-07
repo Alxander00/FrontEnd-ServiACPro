@@ -121,19 +121,31 @@
             </div>
             <div class="modal-body p-4">
                 <form id="repuestoForm">
-                    <div class="mb-3"><label class="form-label fw-bold">Nombre del Material</label><input type="text" class="form-control" id="repNombre" required placeholder="Ej. Gas R-410A" /></div>
-                    <div class="mb-3"><label class="form-label fw-bold">Unidad de Medida</label>
-                        <select class="form-select" id="repUnidad" required>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre del Material</label>
+                        <input type="text" class="form-control" id="repNombre" required placeholder="Ej. Gas R-410A" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Unidad de Medida</label>
+                        <select class="form-select" id="repUnidad" required onchange="cambiarStepStock()">
                             <option value="Unidades">Unidades (Pzas)</option>
                             <option value="Libras">Libras (lbs)</option>
                             <option value="Metros">Metros (m)</option>
                         </select>
                     </div>
                     <div class="row g-3">
-                        <div class="col-6"><label class="form-label fw-bold">Stock Inicial</label><input type="number" class="form-control" id="repStock" step="1" min="0" required /></div>
-                        <div class="col-6"><label class="form-label fw-bold">Costo Unitario ($)</label><input type="number" class="form-control" id="repCosto" step="0.01" required /></div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Stock Inicial</label>
+                            <input type="number" class="form-control" id="repStock" step="1" min="0" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold">Costo Unitario ($)</label>
+                            <input type="number" class="form-control" id="repCosto" step="0.01" required />
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 fw-bold mt-4 rounded-pill"><i class="fas fa-save me-2"></i>Guardar en Almacén</button>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold mt-4 rounded-pill">
+                        <i class="fas fa-save me-2"></i>Guardar en Almacén
+                    </button>
                 </form>
             </div>
         </div>
