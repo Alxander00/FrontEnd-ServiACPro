@@ -39,24 +39,19 @@ const Auth = (() => {
 
     const register = async (userData) => {
         try {
-            const response = await fetch(`${BASE_URL}/usuarios`, {
+            const response = await fetch(`${BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
             });
-            
+
+            const data = await response.json();
+
             if (!response.ok) {
-                let errorMessage = 'Error al registrar usuario';
-                try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.message || errorMessage;
-                } catch (e) {
-                    errorMessage = await response.text() || errorMessage;
-                }
-                throw new Error(errorMessage);
+                throw new Error(data.message || 'Error al registrar usuario');
             }
-            
-            return await response.json();
+
+            return data;
         } catch (error) {
             console.error('Error en registro:', error);
             throw new Error(error.message || 'Error de registro. Por favor, intenta de nuevo.');
