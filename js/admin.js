@@ -1087,27 +1087,39 @@ async function renderPedidos() {
                                 ${pedidos.map(p => {
                                     const selectClass = p.estado === 'Completado' ? 'text-success border-success bg-success bg-opacity-10' : (p.estado === 'Cancelado' ? 'text-danger border-danger bg-danger bg-opacity-10' : 'text-warning border-warning bg-warning bg-opacity-10');
                                     const avatar = getAvatarUrl({ nombre: p.nombreCliente, fotoUrl: p.fotoUrl });
-                                    // 🔥 Mostrar botón de archivar solo si está completado o cancelado
                                     const puedeArchivar = (p.estado === 'Completado' || p.estado === 'Cancelado');
                                     const btnArchivar = puedeArchivar
                                         ? `<button class="btn btn-sm btn-light text-secondary shadow-sm rounded-circle" onclick="archivarPedido(${p.idPedido})" title="Archivar"><i class="fas fa-archive"></i></button>`
                                         : `<span class="text-muted small">-</span>`;
                                     return `<tr>
-                                    <td class="ps-4 fw-bold text-primary">#${p.idPedido}</td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <img src="${avatar}" class="rounded-circle me-3 border shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
-                                            <div>
-                                                <span class="fw-bold text-dark d-block">${p.nombreCliente || 'Cliente'}</span>
-                                                <small class="text-muted fw-semibold">ID: #${p.idUsuario}</small>
+                                        <td class="ps-4 fw-bold text-primary">#${p.idPedido}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="${avatar}" class="rounded-circle me-3 border shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
+                                                <div>
+                                                    <span class="fw-bold text-dark d-block">${p.nombreCliente || 'Cliente'}</span>
+                                                    <small class="text-muted fw-semibold">ID: #${p.idUsuario}</small>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-muted fw-semibold small"><i class="far fa-calendar-check text-primary me-1"></i> ${formatearFecha(p.fechaPedido)}</td>
-                                    <td class="fw-bold text-success fs-5">$${p.total.toFixed(2)}</td>
-                                    <td><select class="form-select form-select-sm fw-bold shadow-sm ${selectClass}" style="width: 150px;" onchange="cambiarEstadoPedido(${p.idPedido}, this.value)"><option value="Pendiente" ${p.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option><option value="En Proceso" ${p.estado === 'En Proceso' ? 'selected' : ''}>En Proceso</option><option value="Completado" ${p.estado === 'Completado' ? 'selected' : ''}>Completado</option><option value="Cancelado" ${p.estado === 'Cancelado' ? 'selected' : ''}>Cancelado</option></select></td>
-                                    <td class="text-end pe-4">${btnArchivar}</td>
-                                </tr>`}).join('')}
+                                        </td>
+                                        <td class="text-muted fw-semibold small"><i class="far fa-calendar-check text-primary me-1"></i> ${formatearFecha(p.fechaPedido)}</td>
+                                        <td class="fw-bold text-success fs-5">$${p.total.toFixed(2)}</td>
+                                        <td>
+                                            <select class="form-select form-select-sm fw-bold shadow-sm ${selectClass}" style="width: 150px;" onchange="cambiarEstadoPedido(${p.idPedido}, this.value)">
+                                                <option value="Pendiente" ${p.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+                                                <option value="En Proceso" ${p.estado === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
+                                                <option value="Completado" ${p.estado === 'Completado' ? 'selected' : ''}>Completado</option>
+                                                <option value="Cancelado" ${p.estado === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
+                                            </select>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <button class="btn btn-sm btn-info text-white me-1" onclick="verProductosPedido(${p.idPedido})" title="Ver productos">
+                                                <i class="fas fa-boxes"></i>
+                                            </button>
+                                            ${btnArchivar}
+                                        </td>
+                                    </tr>`;
+                                }).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -1127,6 +1139,141 @@ async function renderPedidos() {
         contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error: ${error.message}</div>`;
     }
 }
+
+// ==========================================
+// VER PRODUCTOS DE UN PEDIDO (ADMIN)
+// ==========================================
+// ==========================================
+// VER DETALLES DEL PEDIDO (DISEÑO PREMIUM)
+// ==========================================
+window.verProductosPedido = async function(idPedido) {
+    try {
+        Swal.fire({
+            title: 'Cargando detalles...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const pedido = await API.request(`/api/pedidos/${idPedido}`);
+
+        if (!pedido.detalles || pedido.detalles.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Sin productos',
+                text: 'Este pedido no tiene productos asociados.',
+                confirmButtonColor: '#0d6efd'
+            });
+            return;
+        }
+
+        let detallesHtml = '';
+        pedido.detalles.forEach(d => {
+            // Dibujar TODAS las imágenes del producto en pequeños thumbnails
+            let miniaturasHtml = '';
+            if (d.imagenesUrls && d.imagenesUrls.length > 0) {
+                miniaturasHtml = d.imagenesUrls.map(url => 
+                    `<img src="${url}" class="rounded border shadow-sm mt-2 me-1" 
+                          style="width: 40px; height: 40px; object-fit: cover; cursor: pointer; transition: transform 0.2s;" 
+                          onmouseover="this.style.transform='scale(1.1)'" 
+                          onmouseout="this.style.transform='scale(1)'"
+                          onclick="window.open('${url}', '_blank')" 
+                          title="Ver imagen completa">`
+                ).join('');
+            }
+
+            // Imagen principal a la izquierda (la primera)
+            const imagenPrincipal = (d.imagenesUrls && d.imagenesUrls.length > 0) 
+                ? `<img src="${d.imagenesUrls[0]}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px;" class="shadow-sm border">`
+                : `<div style="width: 70px; height: 70px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #adb5bd;" class="border shadow-sm"><i class="fas fa-image fs-4"></i></div>`;
+
+            const subtotal = (d.cantidad || 0) * d.precioUnitario;
+
+            // HTML de la fila de cada producto
+            detallesHtml += `
+                <div class="d-flex justify-content-between align-items-start border-bottom py-3 last-border-0">
+                    <div class="d-flex gap-3 w-75">
+                        ${imagenPrincipal}
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark text-start" style="line-height: 1.2;">${d.nombreProducto}</h6>
+                            <div class="text-muted small text-start mb-1"><i class="fas fa-snowflake text-info me-1"></i>${d.capacidadBtu || 0} BTU</div>
+                            <div class="d-flex flex-wrap">${miniaturasHtml}</div> </div>
+                    </div>
+                    <div class="text-end w-25">
+                        <div class="text-muted small mb-1">${d.cantidad} x $${d.precioUnitario.toFixed(2)}</div>
+                        <div class="fw-bold text-primary fs-5">$${subtotal.toFixed(2)}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // Obtener la foto del cliente (o crear un avatar con sus iniciales si no tiene)
+        const avatarCliente = pedido.fotoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.nombreCliente || 'Cliente')}&background=0d6efd&color=fff&bold=true`;
+
+        // Construir la "Factura" final
+        const html = `
+            <div class="text-start font-sans">
+                <div class="bg-light p-3 rounded-4 mb-4 border shadow-sm d-flex flex-column gap-2">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-1">
+                        <div class="d-flex align-items-center gap-3">
+                            <img src="${avatarCliente}" class="rounded-circle border shadow-sm" style="width: 45px; height: 45px; object-fit: cover;">
+                            <div>
+                                <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.65rem;">Comprador</small>
+                                <span class="fw-bold text-dark fs-6">${pedido.nombreCliente || 'No registrado'}</span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.65rem;">Fecha de Compra</small>
+                            <span class="text-dark fw-semibold"><i class="far fa-calendar-alt text-primary me-1"></i> ${new Date(pedido.fechaPedido).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.65rem;">Dirección de Instalación / Envío</small>
+                        <span class="text-dark small"><i class="fas fa-map-marker-alt text-danger me-1"></i> ${pedido.direccion || 'Sin dirección registrada'}</span>
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge ${pedido.incluyeInstalacion ? 'bg-success' : 'bg-secondary'} bg-opacity-10 text-${pedido.incluyeInstalacion ? 'success' : 'secondary'} border border-${pedido.incluyeInstalacion ? 'success' : 'secondary'} border-opacity-25 px-2 py-1">
+                            <i class="fas ${pedido.incluyeInstalacion ? 'fa-tools' : 'fa-box'} me-1"></i> ${pedido.incluyeInstalacion ? 'Requiere Instalación Técnica' : 'Solo Entrega de Equipo'}
+                        </span>
+                    </div>
+                </div>
+
+                <h6 class="fw-bold text-dark mb-2 ms-1"><i class="fas fa-boxes text-secondary me-2"></i>Artículos Adquiridos</h6>
+                <div class="border rounded-4 px-3 bg-white mb-3 shadow-sm" style="max-height: 380px; overflow-y: auto;">
+                    ${detallesHtml}
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center bg-gradient-primary text-white p-3 rounded-4 shadow">
+                    <span class="fw-bold text-uppercase" style="letter-spacing: 1px;">Total Pagado</span>
+                    <span class="fw-bold fs-2">$${pedido.total.toFixed(2)}</span>
+                </div>
+            </div>
+        `;
+
+        // Mostrar el modal elegante
+        Swal.fire({
+            title: `<div class="d-flex align-items-center gap-2"><i class="fas fa-file-invoice-dollar text-primary"></i> <span class="fw-bold text-dark">Detalle de Orden #${pedido.idPedido}</span></div>`,
+            html: html,
+            showConfirmButton: true,
+            confirmButtonText: '<i class="fas fa-check me-2"></i>Entendido',
+            confirmButtonColor: '#0d6efd',
+            width: 750,
+            customClass: {
+                popup: 'rounded-4 shadow-lg',
+                title: 'border-bottom pb-3 mb-0 text-start',
+                htmlContainer: 'mt-3'
+            }
+        });
+
+    } catch (error) {
+        console.error('Error al cargar productos del pedido:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de Conexión',
+            text: 'No se pudieron cargar los detalles del pedido.',
+            confirmButtonColor: '#dc3545'
+        });
+    }
+};
 
 window.cambiarEstadoPedido = async function(id, nuevoEstado) {
     try {
