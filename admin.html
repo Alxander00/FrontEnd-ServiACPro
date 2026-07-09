@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dashboard | ServiA/CPro</title>
     <link rel="manifest" href="./manifest.json" />
     <meta name="theme-color" content="#0d6efd" />
@@ -25,48 +25,78 @@
 </head>
 <body>
 
-<div class="container-fluid px-0">
-    <div class="row g-0">
-        <!-- ===== SIDEBAR ===== -->
-        <div class="col-auto col-md-3 col-xl-2 px-0 sidebar d-flex flex-column">
-            <div class="d-flex flex-column align-items-center align-items-sm-start px-3 pt-4 pb-3 text-white flex-grow-1">
-                <a href="#" class="d-flex align-items-center pb-3 mb-md-0 me-md-auto text-white text-decoration-none border-bottom w-100 pb-2">
-                    <span class="fs-4 fw-bold">ServiA<span class="text-accent">CPro</span></span>
-                </a>
-                <ul class="nav nav-pills flex-column mb-sm-auto mb-0 align-items-center align-items-sm-start w-100 mt-4" id="menu">
-                    <li class="nav-item w-100"><a href="#" class="nav-link active" data-page="dashboard"><i class="fas fa-home me-2"></i> <span class="d-none d-sm-inline">Dashboard</span></a></li>
-                    <li class="nav-item w-100"><a href="#" class="nav-link" data-page="productos"><i class="fas fa-box me-2"></i> <span class="d-none d-sm-inline">Productos</span></a></li>
-                    <li class="nav-item w-100"><a href="#" class="nav-link" data-page="pedidos"><i class="fas fa-shopping-cart me-2"></i> <span class="d-none d-sm-inline">Pedidos</span><span id="badgePedidosAdmin" class="badge bg-danger rounded-pill ms-2" style="display: none; font-size: 0.7rem;">0</span></a></li>
-                    <li class="nav-item w-100"><a href="#" class="nav-link" data-page="categorias"><i class="fas fa-tags me-2"></i> <span class="d-none d-sm-inline">Categorías</span></a></li>
-                    <li class="nav-item w-100"><a href="#" class="nav-link" data-page="usuarios"><i class="fas fa-users me-2"></i> <span class="d-none d-sm-inline">Usuarios</span></a></li>
-                    <li class="nav-item w-100"><a href="#" class="nav-link" data-page="inventario"><i class="fas fa-boxes me-2"></i> <span class="d-none d-sm-inline">Inventario</span></a></li>
-                    <li class="nav-item w-100"><a href="#" class="nav-link" data-page="cotizador"><i class="fas fa-file-invoice-dollar me-2"></i> <span class="d-none d-sm-inline">Cotizador</span></a></li>
-                    <li class="nav-item w-100"><a href="#" class="nav-link" data-page="solicitudes"><i class="fas fa-inbox me-2"></i> <span class="d-none d-sm-inline">Solicitudes</span><span id="badgeSolicitudesAdmin" class="badge bg-danger rounded-pill ms-2" style="display: none; font-size: 0.7rem;">0</span></a></li>
-                    <li class="nav-item w-100"><a href="#" class="nav-link" data-page="reportes"><i class="fas fa-clipboard-check me-2"></i> <span class="d-none d-sm-inline">Reportes Técnicos</span></a></li>
-                </ul>
-                <hr class="w-100 mt-auto" />
-                <div class="pb-2 w-100">
-                    <a href="index.html" class="text-white text-decoration-none d-flex align-items-center"><i class="fas fa-sign-out-alt me-2"></i> <span class="d-none d-sm-inline">Salir</span></a>
-                </div>
+<div class="d-md-none bg-dark text-white p-3 d-flex justify-content-between align-items-center sticky-top shadow-sm">
+    <h5 class="mb-0 fw-bold"><i class="fas fa-snowflake text-info me-2"></i>Servi A/C Pro</h5>
+    <button class="btn btn-dark border-0 fs-4 text-white" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarAdmin" aria-controls="sidebarAdmin">
+        <i class="fas fa-bars"></i>
+    </button>
+</div>
+
+<div class="d-flex bg-light" style="min-height: 100vh;">
+
+    <div class="offcanvas-md offcanvas-start bg-dark text-white shadow-lg" tabindex="-1" id="sidebarAdmin" style="width: 260px;">
+        
+        <div class="offcanvas-header d-md-none border-bottom border-secondary border-opacity-50">
+            <h5 class="offcanvas-title fw-bold text-white">Menú Principal</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#sidebarAdmin"></button>
+        </div>
+
+        <div class="offcanvas-body d-flex flex-column p-0 h-100">
+            <div class="p-4 d-none d-md-block border-bottom border-secondary border-opacity-50">
+                <h4 class="fw-bold mb-0 text-white text-center"><i class="fas fa-snowflake text-info me-2"></i>Servi A/C Pro</h4>
+            </div>
+
+            <ul class="nav nav-pills flex-column py-3 px-2 w-100 gap-1">
+                <li class="nav-item">
+                    <a href="#" class="nav-link text-white active" data-page="dashboard" data-bs-dismiss="offcanvas" data-bs-target="#sidebarAdmin"><i class="fas fa-chart-pie fa-fw me-2"></i> Dashboard</a>
+                </li>
+                <li class="nav-item mt-3 mb-1 px-3"><small class="text-secondary fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">Operaciones</small></li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link text-white" data-page="solicitudes" data-bs-dismiss="offcanvas" data-bs-target="#sidebarAdmin"><i class="fas fa-hard-hat fa-fw text-warning me-2"></i> Asignaciones <span class="badge bg-danger ms-2" id="badgeSolicitudesAdmin" style="display: none;">0</span></a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link text-white" data-page="reportes" data-bs-dismiss="offcanvas" data-bs-target="#sidebarAdmin"><i class="fas fa-clipboard-list fa-fw text-primary me-2"></i> Reportes Técnicos</a>
+                </li>
+                <li class="nav-item mt-3 mb-1 px-3"><small class="text-secondary fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">Comercial</small></li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link text-white" data-page="cotizador" data-bs-dismiss="offcanvas" data-bs-target="#sidebarAdmin"><i class="fas fa-file-invoice fa-fw text-info me-2"></i> Cotizador Rápido</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link text-white" data-page="pedidos" data-bs-dismiss="offcanvas" data-bs-target="#sidebarAdmin"><i class="fas fa-shopping-bag fa-fw text-success me-2"></i> Pedidos <span class="badge bg-danger ms-2" id="badgePedidosAdmin" style="display: none;">0</span></a>
+                </li>
+                <li class="nav-item mt-3 mb-1 px-3"><small class="text-secondary fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">Almacén y Catálogo</small></li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link text-white" data-page="inventario" data-bs-dismiss="offcanvas" data-bs-target="#sidebarAdmin"><i class="fas fa-tools fa-fw text-secondary me-2"></i> Inventario Téc.</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link text-white" data-page="productos" data-bs-dismiss="offcanvas" data-bs-target="#sidebarAdmin"><i class="fas fa-box fa-fw me-2"></i> Equipos</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link text-white" data-page="categorias" data-bs-dismiss="offcanvas" data-bs-target="#sidebarAdmin"><i class="fas fa-tags fa-fw me-2"></i> Categorías</a>
+                </li>
+                <li class="nav-item mt-3 mb-1 px-3"><small class="text-secondary fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">Sistema</small></li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link text-white" data-page="usuarios" data-bs-dismiss="offcanvas" data-bs-target="#sidebarAdmin"><i class="fas fa-users-cog fa-fw me-2"></i> Usuarios</a>
+                </li>
+            </ul>
+
+            <div class="mt-auto p-3 border-top border-secondary border-opacity-50">
+                <button class="btn btn-outline-danger w-100 fw-bold border-0 text-start" onclick="Auth.logout()"><i class="fas fa-sign-out-alt fa-fw me-2"></i> Cerrar Sesión</button>
             </div>
         </div>
-
-        <!-- ===== CONTENIDO PRINCIPAL ===== -->
-        <div class="col py-3 px-4">
-            <!-- HEADER SUPERIOR -->
-            <nav class="navbar navbar-expand-lg navbar-light bg-white rounded-4 shadow-sm mb-4 px-4">
-                <div class="container-fluid">
-                    <div>
-                        <h4 class="mb-0 fw-bold text-dark" id="sectionTitle">Dashboard</h4>
-                        <small class="text-muted" id="sectionSubtitle">Resumen general del sistema</small>
-                    </div>
-                </div>
-            </nav>
-
-            <!-- CONTENIDO DINÁMICO -->
-            <div id="dynamicContent"></div>
-        </div>
     </div>
+
+    <div class="flex-grow-1 p-3 p-md-4" style="max-width: 100vw; overflow-x: hidden;">
+        <div class="mb-4 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 id="sectionTitle" class="fw-bold text-dark mb-1">Dashboard</h2>
+                <p id="sectionSubtitle" class="text-muted mb-0">Visión general de métricas en tiempo real</p>
+            </div>
+            </div>
+
+        <div id="dynamicContent" class="w-100"></div>
+    </div>
+
 </div>
 
 <!-- ===== MODAL PRODUCTO (CON IMÁGENES ACTUALES) ===== -->

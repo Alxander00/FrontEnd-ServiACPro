@@ -1668,3 +1668,48 @@ body {
     margin-left: 10px;
     color: #667781;
 }
+
+/* ========================================= */
+/* ADAPTACIÓN MÓVIL (RESPONSIVE)             */
+/* ========================================= */
+
+@media (max-width: 768px) {
+    /* 1. Darle aire a los contenedores principales */
+    .card-body {
+        padding: 1rem !important; /* Reduce el padding excesivo en celulares */
+    }
+
+    /* 2. Forzar que los inputs y botones ocupen el 100% en celular */
+    .input-group, 
+    .form-select, 
+    .btn {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-bottom: 0.5rem;
+    }
+
+    /* 3. Asegurar que las tablas se puedan deslizar con el dedo sin deformar la tarjeta */
+    .table-responsive {
+        border: 0;
+        margin-bottom: 0;
+        /* Evita que los textos de la tabla se aplasten, forzando un ancho mínimo */
+        min-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* Deslizamiento suave en iOS */
+    }
+
+    /* 4. Que los textos de las tablas no se corten */
+    .table th, .table td {
+        white-space: nowrap; /* Evita que el texto salte a la siguiente línea */
+        padding: 0.75rem !important;
+    }
+
+    /* 5. Modales (Ventanas emergentes) a pantalla completa en celular */
+    .modal-dialog {
+        margin: 0.5rem;
+        max-width: 100%;
+    }
+    .modal-content {
+        border-radius: 12px;
+    }
+}

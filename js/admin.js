@@ -21,6 +21,218 @@ let currentImageUrls = [];
 let usuariosCache = [];
 
 // ==========================================
+// VARIABLES GLOBALES EXTRA Y FILAS (UI PREMIUM)
+// ==========================================
+let tecnicosGlobal = []; // Caché para no recargar técnicos al buscar solicitudes
+
+// 1. Generadores de Filas Individuales
+function generarFilaUsuario(u) {
+    const statusBadge = u.activo ? 'bg-success text-success' : 'bg-secondary text-secondary';
+    const avatar = getAvatarUrl(u); // Usa la foto real de Cloudinary
+    return `<tr>
+        <td class="ps-4">
+            <div class="d-flex align-items-center">
+                <img src="${avatar}" class="rounded-circle me-3 border shadow-sm" style="width: 45px; height: 45px; object-fit: cover;">
+                <div>
+                    <h6 class="mb-0 fw-bold text-dark">${u.nombre || u.nombres || 'Usuario'} ${u.apellido || u.apellidos || ''}</h6>
+                    <small class="text-muted fw-semibold">ID: #${u.idUsuario}</small>
+                </div>
+            </div>
+        </td>
+        <td><a href="mailto:${u.email}" class="text-decoration-none text-muted fw-semibold"><i class="fas fa-envelope text-primary me-1"></i> ${u.email}</a></td>
+        <td>
+            <select class="form-select form-select-sm bg-light border-0 w-auto" style="min-width: 100px;" onchange="cambiarRolUsuario(${u.idUsuario}, this.value)">
+                ${['CLIENTE', 'TECNICO', 'ADMIN'].map(r => `<option value="${r}" ${u.rol === r ? 'selected' : ''}>${r}</option>`).join('')}
+            </select>
+        </td>
+        <td><span class="badge ${statusBadge.split(' ')[0]} bg-opacity-10 ${statusBadge.split(' ')[1]} border-0 px-3 py-2"><i class="fas fa-circle me-1" style="font-size: 8px;"></i> ${u.activo ? 'Operativo' : 'Restringido'}</span></td>
+        <td class="text-end pe-4"><button class="btn btn-sm ${u.activo ? 'btn-outline-danger' : 'btn-outline-success'} fw-bold px-3 shadow-sm" onclick="toggleUsuarioEstado(${u.idUsuario}, ${!u.activo})"><i class="fas ${u.activo ? 'fa-user-lock' : 'fa-user-check'} me-1"></i> ${u.activo ? 'Suspender' : 'Reactivar'}</button></td>
+    </tr>`;
+}
+
+function generarFilaPedido(p) {
+    const selectClass = p.estado === 'Completado' ? 'text-success border-success bg-success bg-opacity-10' : (p.estado === 'Cancelado' ? 'text-danger border-danger bg-danger bg-opacity-10' : 'text-warning border-warning bg-warning bg-opacity-10');
+    const avatar = getAvatarUrl({ nombre: p.nombreCliente, fotoUrl: p.fotoUrl }); // Foto real
+    const btnArchivar = (p.estado === 'Completado' || p.estado === 'Cancelado') ? `<button class="btn btn-sm btn-light text-secondary shadow-sm rounded-circle" onclick="archivarPedido(${p.idPedido})" title="Archivar"><i class="fas fa-archive"></i></button>` : `<span class="text-muted small">-</span>`;
+    return `<tr>
+        <td class="ps-4 fw-bold text-primary">#${p.idPedido}</td>
+        <td>
+            <div class="d-flex align-items-center">
+                <img src="${avatar}" class="rounded-circle me-3 border shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
+                <div><span class="fw-bold text-dark d-block">${p.nombreCliente || 'Cliente'}</span><small class="text-muted fw-semibold">ID: #${p.idUsuario}</small></div>
+            </div>
+        </td>
+        <td class="text-muted fw-semibold small"><i class="far fa-calendar-check text-primary me-1"></i> ${formatearFecha(p.fechaPedido)}</td>
+        <td class="fw-bold text-success fs-5">$${p.total.toFixed(2)}</td>
+        <td>
+            <select class="form-select form-select-sm fw-bold shadow-sm ${selectClass}" style="width: 150px;" onchange="cambiarEstadoPedido(${p.idPedido}, this.value)">
+                ${['Pendiente', 'En Proceso', 'Completado', 'Cancelado'].map(e => `<option value="${e}" ${p.estado === e ? 'selected' : ''}>${e}</option>`).join('')}
+            </select>
+        </td>
+        <td class="text-end pe-4"><button class="btn btn-sm btn-info text-white me-1" onclick="verProductosPedido(${p.idPedido})" title="Ver productos"><i class="fas fa-boxes"></i></button>${btnArchivar}</td>
+    </tr>`;
+}
+
+function generarFilaCategoria(c) {
+    return `<tr>
+        <td class="ps-4 fw-bold text-muted">#${c.idCategoria}</td>
+        <td class="fw-bold text-dark fs-6">${c.nombre}</td>
+        <td class="text-end pe-4">
+            <button class="btn btn-sm btn-light text-primary me-2 shadow-sm" onclick="editarCategoria(${c.idCategoria}, '${c.nombre}')"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-light text-danger rounded-circle shadow-sm" onclick="eliminarCategoria(${c.idCategoria})"><i class="fas fa-trash"></i></button>
+        </td>
+    </tr>`;
+}
+
+function generarFilaInventario(rep) {
+    const badgeStock = rep.stockActual <= 5 ? 'bg-danger' : 'bg-success';
+    return `<tr>
+        <td class="ps-4 fw-bold text-dark">${rep.nombre}</td>
+        <td><span class="badge bg-secondary bg-opacity-10 text-secondary border">${rep.unidadMedida}</span></td>
+        <td>$${rep.costoUnitario.toFixed(2)}</td>
+        <td><span class="badge ${badgeStock} px-3 py-2 fs-6">${rep.stockActual % 1 === 0 ? rep.stockActual : rep.stockActual.toFixed(2)}</span></td>
+        <td class="text-end pe-4">
+            <button class="btn btn-sm btn-light text-primary me-2 shadow-sm" onclick="editarRepuesto(${rep.idRepuesto})"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-sm btn-light text-danger shadow-sm rounded-circle" onclick="eliminarRepuesto(${rep.idRepuesto})"><i class="fas fa-trash"></i></button>
+        </td>
+    </tr>`;
+}
+
+function generarFilaSolicitud(sol) {
+    const esPendiente = sol.estado === 'PENDIENTE';
+    const preferencia = sol.fechaPreferida ? new Date(sol.fechaPreferida).toLocaleString() : 'Abierto a sugerencias';
+    
+    return `<tr>
+        <td class="ps-4">
+            <h6 class="fw-bold text-dark mb-1">Ticket #${sol.idSolicitud}</h6>
+            <span class="text-primary fw-semibold"><i class="fas fa-user-circle me-1"></i> ${sol.nombreCliente}</span>
+            <small class="text-muted fw-bold d-block mt-2 bg-light p-1 rounded">
+                <i class="far fa-calendar-alt text-warning me-1"></i> Preferencia: ${preferencia}
+            </small>
+        </td>
+        <td><span class="badge bg-gradient-warning shadow-sm mb-2 px-3 py-2">${sol.tipoServicio.replace('_', ' ')}</span><div class="bg-light p-2 rounded-3 border"><p class="small text-muted mb-0 fst-italic" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;"><i class="fas fa-quote-left text-primary opacity-50 me-1"></i> ${sol.mensaje || 'Sin detalles'}</p></div></td>
+        <td>
+            ${esPendiente ? `
+            <div class="bg-white p-3 rounded-4 border shadow-sm">
+                <select id="tecnicoSelect_${sol.idSolicitud}" class="form-select mb-2 border-primary border-opacity-25 bg-light text-primary fw-bold">
+                    <option value="">👤 Asignar Profesional...</option>
+                    ${tecnicosGlobal.map(t => `<option value="${t.idUsuario}">${t.nombre || t.nombres} ${t.apellido || t.apellidos || ''}</option>`).join('')}
+                </select>
+                <div class="d-flex gap-2">
+                    <div class="input-group input-group-sm w-50"><span class="input-group-text bg-success bg-opacity-10 border-0 text-success"><i class="fas fa-play"></i></span><input type="datetime-local" id="fechaInicio_${sol.idSolicitud}" class="form-control border-0 bg-light text-muted fw-semibold"></div>
+                    <div class="input-group input-group-sm w-50"><span class="input-group-text bg-danger bg-opacity-10 border-0 text-danger"><i class="fas fa-stop"></i></span><input type="datetime-local" id="fechaFin_${sol.idSolicitud}" class="form-control border-0 bg-light text-muted fw-semibold"></div>
+                </div>
+            </div>
+            ` : `<span class="badge ${sol.estado === 'ASIGNADA' ? 'bg-success' : 'bg-danger'}">${sol.estado}</span>`}
+        </td>
+        <td class="text-end pe-4">
+            ${esPendiente ? `<button class="btn btn-success fw-bold shadow-sm mb-2 w-100" onclick="asignarTecnico(${sol.idSolicitud})"><i class="fas fa-check me-1"></i> Asignar</button><button class="btn btn-light text-danger fw-bold border-danger border-opacity-25 w-100" onclick="rechazarSolicitud(${sol.idSolicitud})"><i class="fas fa-times me-1"></i> Descartar</button>` : `<span class="text-muted small">Procesada</span>`}
+        </td>
+    </tr>`;
+}
+function generarFilaReporte(cita) {
+    const badgeClass = cita.estado === 'COMPLETADA' ? 'bg-success' : (cita.estado === 'CANCELADA' ? 'bg-danger' : 'bg-warning text-dark');
+    const tieneEvidencia = cita.estado === 'COMPLETADA' && (cita.urlFirmaCliente || cita.urlsFotosAntes || cita.urlsFotosDespues);
+    const btnEvidencia = tieneEvidencia ? `<button class="btn btn-sm btn-primary shadow-sm rounded-pill px-3 fw-bold" onclick="abrirVisorEvidencia(${cita.idCita})"><i class="fas fa-camera me-1"></i> Ver Reporte</button>` : `<span class="text-muted small">No disponible</span>`;
+    const btnArchivar = (cita.estado === 'COMPLETADA' || cita.estado === 'CANCELADA') ? `<button class="btn btn-sm btn-light text-secondary shadow-sm rounded-circle" onclick="archivarReporte(${cita.idCita})" title="Archivar"><i class="fas fa-archive"></i></button>` : `<span class="text-muted small">-</span>`;
+    return `<tr>
+        <td class="ps-4 fw-bold text-primary">#${cita.idCita}</td>
+        <td><div class="fw-bold text-dark">${cita.nombreCliente}</div><small class="text-muted"><i class="fas fa-map-marker-alt text-danger me-1"></i>${cita.direccionCliente || 'Sin dirección'}</small></td>
+        <td><span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 p-2"><i class="fas fa-hard-hat me-1"></i> ${cita.nombreTecnico}</span></td>
+        <td class="small fw-semibold text-secondary">${formatearFecha(cita.fechaInicio)}</td>
+        <td><span class="badge ${badgeClass} shadow-sm px-3 py-2">${cita.estado}</span></td>
+        <td class="text-end pe-4"><div class="d-flex gap-1 justify-content-end flex-wrap">${btnEvidencia}${btnArchivar}</div></td>
+    </tr>`;
+}
+
+// 2. MOTOR DE BÚSQUEDA SILENCIOSA UNIVERSAL
+window.filtrarSilencioso = async function(modulo, valor) {
+    if (debounceTimers[modulo]) clearTimeout(debounceTimers[modulo]);
+    adminState[modulo].search = valor;
+    adminState[modulo].page = 0; // Al buscar, regresamos a la pag 1
+
+    const icon = document.getElementById(`searchIcon_${modulo}`);
+    const tbody = document.getElementById(`tabla_${modulo}_body`);
+    const pagContainer = document.getElementById(`paginacion_${modulo}_container`);
+
+    // Feedback visual al instante (sin recargar pantalla)
+    if (icon) icon.innerHTML = '<i class="fas fa-spinner fa-spin text-primary"></i>';
+    if (tbody) tbody.style.opacity = '0.5';
+
+    debounceTimers[modulo] = setTimeout(async () => {
+        try {
+            let htmlFilas = '';
+            let totalPages = 1;
+            const { page, size, search } = adminState[modulo];
+
+            if (modulo === 'usuarios') {
+                const response = await API.request(`/usuarios/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search)}&rol=${adminState.usuarios.rol}`);
+                usuariosCache = response.content || [];
+                totalPages = response.totalPages || 1;
+                htmlFilas = usuariosCache.length === 0 ? '<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron usuarios.</td></tr>' : usuariosCache.map(u => generarFilaUsuario(u)).join('');
+            } 
+            else if (modulo === 'pedidos') {
+                const response = await API.request(`/api/pedidos/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search)}&estado=${adminState.pedidos.estado}`);
+                const archivados = obtenerArchivados();
+                let pedidos = (response.content || []).filter(p => !archivados.includes(p.idPedido));
+                totalPages = response.totalPages || 1;
+                htmlFilas = pedidos.length === 0 ? '<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron pedidos.</td></tr>' : pedidos.map(p => generarFilaPedido(p)).join('');
+            }
+            else if (modulo === 'categorias') {
+                const categorias = await API.request('/categorias');
+                let filtradas = search ? categorias.filter(c => c.nombre.toLowerCase().includes(search.toLowerCase())) : categorias;
+                const paginadas = filtradas.slice(page * size, (page * size) + size);
+                totalPages = Math.ceil(filtradas.length / size) || 1;
+                htmlFilas = paginadas.length === 0 ? '<tr><td colspan="3" class="text-center py-4 text-muted">No se encontraron categorías.</td></tr>' : paginadas.map(c => generarFilaCategoria(c)).join('');
+            }
+            else if (modulo === 'inventario') {
+                let repuestos = await API.Repuestos.listarActivos();
+                if (search) repuestos = repuestos.filter(r => r.nombre.toLowerCase().includes(search.toLowerCase()));
+                if (adminState.inventario.unidad) repuestos = repuestos.filter(r => r.unidadMedida === adminState.inventario.unidad);
+                const paginados = repuestos.slice(page * size, (page * size) + size);
+                totalPages = Math.ceil(repuestos.length / size) || 1;
+                htmlFilas = paginados.length === 0 ? '<tr><td colspan="5" class="text-center py-4 text-muted">No hay repuestos.</td></tr>' : paginados.map(r => generarFilaInventario(r)).join('');
+                
+                // Actualizar números de las Cards silenciosamente
+                const inversionTotal = repuestos.reduce((acc, rep) => acc + (rep.stockActual * rep.costoUnitario), 0);
+                const cardInversion = document.getElementById('card-inversion-total');
+                const cardMateriales = document.getElementById('card-materiales-total');
+                if (cardInversion) cardInversion.textContent = `$${inversionTotal.toFixed(2)}`;
+                if (cardMateriales) cardMateriales.textContent = repuestos.length;
+            }
+            else if (modulo === 'solicitudes') {
+                let solicitudes = await API.Solicitudes.listarPendientes();
+                if (search) solicitudes = solicitudes.filter(s => s.nombreCliente.toLowerCase().includes(search.toLowerCase()));
+                if (adminState.solicitudes.estado) solicitudes = solicitudes.filter(s => s.estado === adminState.solicitudes.estado);
+                const paginadas = solicitudes.slice(page * size, (page * size) + size);
+                totalPages = Math.ceil(solicitudes.length / size) || 1;
+                htmlFilas = paginadas.length === 0 ? '<tr><td colspan="4" class="text-center py-4 text-muted">No hay solicitudes.</td></tr>' : paginadas.map(s => generarFilaSolicitud(s)).join('');
+            }
+            else if (modulo === 'reportes') {
+                let citas = listaCitasGlobal; // Usamos la caché de reportes
+                if (search) citas = citas.filter(c => c.nombreCliente.toLowerCase().includes(search.toLowerCase()));
+                if (adminState.reportes.estado) citas = citas.filter(c => c.estado === adminState.reportes.estado);
+                const archivados = obtenerReportesArchivados();
+                citas = citas.filter(c => !archivados.includes(Number(c.idCita)));
+                const paginadas = citas.slice(page * size, (page * size) + size);
+                totalPages = Math.ceil(citas.length / size) || 1;
+                htmlFilas = paginadas.length === 0 ? '<tr><td colspan="6" class="text-center py-4 text-muted">No hay reportes.</td></tr>' : paginadas.map(c => generarFilaReporte(c)).join('');
+            }
+
+            // Inyectar datos en silencio
+            if (tbody) { tbody.innerHTML = htmlFilas; tbody.style.opacity = '1'; }
+            if (pagContainer) pagContainer.innerHTML = renderPagination(totalPages, page, modulo);
+            if (icon) icon.innerHTML = '<i class="fas fa-search text-muted"></i>';
+
+        } catch (error) {
+            console.error(`Error en búsqueda de ${modulo}:`, error);
+            if (icon) icon.innerHTML = '<i class="fas fa-exclamation-triangle text-danger"></i>';
+            if (tbody) tbody.style.opacity = '1';
+        }
+    }, 400); // 400ms de espera
+};
+
+// ==========================================
 // ARCHIVADO DE PEDIDOS (LOCALSTORAGE)
 // ==========================================
 function obtenerArchivados() {
@@ -881,86 +1093,35 @@ async function eliminarProducto(id) {
 async function renderCategorias() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        // Obtener todas las categorías
         const categorias = await API.request('/categorias');
-        
-        // Aplicar filtro de búsqueda
         const { search, page, size } = adminState.categorias;
-        let categoriasFiltradas = categorias;
-        if (search && search.trim() !== '') {
-            const busqueda = search.toLowerCase().trim();
-            categoriasFiltradas = categorias.filter(c =>
-                c.nombre.toLowerCase().includes(busqueda)
-            );
-        }
-        
-        // Paginación manual
-        const start = page * size;
-        const end = start + size;
-        const categoriasPaginadas = categoriasFiltradas.slice(start, end);
-        const totalPages = Math.ceil(categoriasFiltradas.length / size) || 1;
-        
-        // Generar HTML
-        let html = `
+        const filtradas = search ? categorias.filter(c => c.nombre.toLowerCase().includes(search.toLowerCase())) : categorias;
+        const paginadas = filtradas.slice(page * size, (page * size) + size);
+        const totalPages = Math.ceil(filtradas.length / size) || 1;
+        contentDiv.innerHTML = `
             <div class="row g-4">
-                <div class="col-lg-4">
-                    <div class="card border-0 bg-gradient-primary text-white h-100 shadow-sm">
-                        <div class="card-body p-4 p-xl-5 d-flex flex-column justify-content-center">
-                            <h4 class="fw-bold mb-4 text-white"><i class="fas fa-folder-plus me-2"></i>Nueva Categoría</h4>
-                            <form id="formNuevaCategoria" onsubmit="guardarCategoria(event)">
-                                <div class="mb-4"><label class="form-label small text-white-50 fw-bold text-uppercase">Nombre</label><input type="text" id="nombreCategoria" class="form-control border-0 py-3 shadow-sm text-dark fw-bold" placeholder="Ej. Minisplit Inverter" required></div>
-                                <button type="submit" class="btn btn-light text-primary fw-bold w-100 py-3 mt-2 shadow-sm fs-6">Crear Categoría</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
+                <div class="col-lg-4"><div class="card border-0 bg-gradient-primary text-white h-100 shadow-sm"><div class="card-body p-4 p-xl-5"><h4 class="fw-bold mb-4 text-white"><i class="fas fa-folder-plus me-2"></i>Nueva Categoría</h4><form id="formNuevaCategoria" onsubmit="guardarCategoria(event)"><input type="text" id="nombreCategoria" class="form-control border-0 py-3 shadow-sm text-dark fw-bold mb-3" placeholder="Nombre..." required><button type="submit" class="btn btn-light text-primary fw-bold w-100 py-3 shadow-sm">Crear Categoría</button></form></div></div></div>
                 <div class="col-lg-8">
                     <div class="card border-0 h-100 shadow-sm">
-                        <div class="card-header bg-white pt-4 px-4 border-0">
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-tags text-primary me-2"></i>Clasificaciones Registradas</h5>
-                                <div class="input-group input-group-sm" style="max-width: 250px;">
-                                    <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
-                                    <input type="text" id="searchCategorias" class="form-control bg-light border-0" placeholder="Buscar categoría..." value="${search}" oninput="filtrarCategorias()">
-                                </div>
+                        <div class="card-header bg-white pt-4 px-4 border-0 d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-tags text-primary me-2"></i>Clasificaciones</h5>
+                            <div class="input-group input-group-sm" style="max-width: 250px;">
+                                <span class="input-group-text bg-light border-0" id="searchIcon_categorias"><i class="fas fa-search text-muted"></i></span>
+                                <input type="text" id="searchCategorias" class="form-control bg-light border-0" placeholder="Buscar categoría..." value="${search}" oninput="filtrarSilencioso('categorias', this.value)">
                             </div>
                         </div>
                         <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="bg-light"><tr><th class="ps-4">ID</th><th>Nombre</th><th class="text-end pe-4">Acciones</th></tr></thead>
-                                    <tbody>
-                                        ${categoriasPaginadas.length === 0 ? '<tr><td colspan="3" class="text-center py-4 text-muted">No se encontraron categorías.</td></tr>' : ''}
-                                        ${categoriasPaginadas.map(c => `
-                                            <tr>
-                                                <td class="ps-4 fw-bold text-muted">#${c.idCategoria}</td>
-                                                <td class="fw-bold text-dark fs-6">${c.nombre}</td>
-                                                <td class="text-end pe-4">
-                                                    <button class="btn btn-sm btn-light text-primary me-2 shadow-sm" onclick="editarCategoria(${c.idCategoria}, '${c.nombre}')" title="Editar"><i class="fas fa-edit"></i></button>
-                                                    <button class="btn btn-sm btn-light text-danger rounded-circle shadow-sm" onclick="eliminarCategoria(${c.idCategoria})" title="Eliminar"><i class="fas fa-trash"></i></button>
-                                                </td>
-                                            </tr>`).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                            ${renderPagination(totalPages, page, 'categorias')}
+                            <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="bg-light"><tr><th class="ps-4">ID</th><th>Nombre</th><th class="text-end pe-4">Acciones</th></tr></thead>
+                                <tbody id="tabla_categorias_body" style="transition: opacity 0.3s ease;">
+                                    ${paginadas.length === 0 ? '<tr><td colspan="3" class="text-center py-4 text-muted">No se encontraron.</td></tr>' : paginadas.map(c => generarFilaCategoria(c)).join('')}
+                                </tbody>
+                            </table></div>
+                            <div id="paginacion_categorias_container">${renderPagination(totalPages, page, 'categorias')}</div>
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
-        contentDiv.innerHTML = html;
-        
-        // Enfocar el buscador
-        const searchInput = document.getElementById('searchCategorias');
-        if (searchInput) {
-            searchInput.focus();
-            const length = searchInput.value.length;
-            searchInput.setSelectionRange(length, length);
-        }
-    } catch (error) {
-        contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error al cargar categorías: ${error.message}</div>`;
-    }
+            </div>`;
+    } catch (error) { contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error: ${error.message}</div>`; }
 }
 
 window.filtrarCategorias = function() {
@@ -1026,118 +1187,38 @@ async function renderPedidos() {
     try {
         const { page, size, search, estado } = adminState.pedidos;
         const response = await API.request(`/api/pedidos/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search)}&estado=${estado}`);
-        let pedidos = response.content || [];
         const archivados = obtenerArchivados();
-        pedidos = pedidos.filter(p => !archivados.includes(p.idPedido));
+        const pedidos = (response.content || []).filter(p => !archivados.includes(p.idPedido));
         const totalPages = response.totalPages || 1;
-        pedidos.sort((a, b) => a.idPedido - b.idPedido);
-        const currentSearchValue = search;
-
         contentDiv.innerHTML = `
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-header bg-white pt-4 px-4 border-0">
-                    <!-- Fila 1: Título y botones de acción -->
-                    <div class="row align-items-center mb-3">
-                        <div class="col-md-6">
-                            <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-file-invoice-dollar text-success me-2"></i>Historial de Transacciones</h5>
-                        </div>
-                        <div class="col-md-6 text-md-end">
-                            <div class="d-flex gap-2 justify-content-md-end flex-wrap">
-                                <button class="btn btn-outline-danger btn-sm" onclick="archivarTodosCompletados()" title="Archivar todos los completados/cancelados">
-                                    <i class="fas fa-check-double me-1"></i> Archivar todos
-                                </button>
-                                <button class="btn btn-outline-success btn-sm" onclick="abrirModalFiltrosExcel()">
-                                    <i class="fas fa-file-excel me-1"></i> Exportar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Fila 2: Filtros y buscador -->
+                    <div class="row align-items-center mb-3"><div class="col-md-6"><h5 class="fw-bold mb-0 text-dark"><i class="fas fa-file-invoice-dollar text-success me-2"></i>Historial de Transacciones</h5></div><div class="col-md-6 text-md-end"><button class="btn btn-outline-success btn-sm" onclick="abrirModalFiltrosExcel()"><i class="fas fa-file-excel me-1"></i> Exportar</button></div></div>
                     <div class="row align-items-center">
                         <div class="col-md-8">
                             <div class="d-flex gap-2 flex-wrap">
-                                <select id="filterEstadoPedidos" class="form-select form-select-sm bg-light border-0 w-auto" style="min-width: 140px;" onchange="aplicarFiltro('pedidos')">
-                                    <option value="" ${estado === '' ? 'selected' : ''}>Todos los Estados</option>
-                                    <option value="Pendiente" ${estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
-                                    <option value="En Proceso" ${estado === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
-                                    <option value="Completado" ${estado === 'Completado' ? 'selected' : ''}>Completado</option>
-                                    <option value="Cancelado" ${estado === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
-                                </select>
+                                <select id="filterEstadoPedidos" class="form-select form-select-sm bg-light border-0 w-auto" onchange="aplicarFiltro('pedidos')"><option value="">Todos</option><option value="Pendiente">Pendiente</option><option value="En Proceso">En Proceso</option><option value="Completado">Completado</option><option value="Cancelado">Cancelado</option></select>
                                 <div class="input-group" style="max-width: 280px;">
-                                    <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
-                                    <input type="text" id="searchPedidos" class="form-control form-control-sm bg-light border-0" placeholder="Buscar por ID..." value="${currentSearchValue}" oninput="filtrarEnTiempoReal('pedidos', this.value)">
-                                    <button class="btn btn-primary btn-sm" onclick="aplicarFiltro('pedidos')">Buscar</button>
+                                    <span class="input-group-text bg-light border-0" id="searchIcon_pedidos"><i class="fas fa-search text-muted"></i></span>
+                                    <input type="text" id="searchPedidos" class="form-control form-control-sm bg-light border-0" placeholder="Buscar ID o Cliente..." value="${search}" oninput="filtrarSilencioso('pedidos', this.value)">
                                 </div>
-                                <button class="btn btn-outline-secondary btn-sm" onclick="mostrarArchivados()" title="Ver pedidos archivados">
-                                    <i class="fas fa-archive me-1"></i> Archivados
-                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="mostrarArchivados()"><i class="fas fa-archive me-1"></i> Archivados</button>
                             </div>
-                        </div>
-                        <div class="col-md-4 text-md-end mt-2 mt-md-0">
-                            <span class="text-muted small">Mostrando ${pedidos.length} pedidos</span>
                         </div>
                     </div>
                 </div>
                 <div class="card-body p-0 mt-3">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light"><tr><th class="ps-4">Factura</th><th>Comprador</th><th>Fecha</th><th>Monto Total</th><th>Estado Actual</th><th class="text-end pe-4">Limpiar</th></tr></thead>
-                            <tbody>
-                                ${pedidos.length === 0 ? '<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron pedidos.</td></tr>' : ''}
-                                ${pedidos.map(p => {
-                                    const selectClass = p.estado === 'Completado' ? 'text-success border-success bg-success bg-opacity-10' : (p.estado === 'Cancelado' ? 'text-danger border-danger bg-danger bg-opacity-10' : 'text-warning border-warning bg-warning bg-opacity-10');
-                                    const avatar = getAvatarUrl({ nombre: p.nombreCliente, fotoUrl: p.fotoUrl });
-                                    const puedeArchivar = (p.estado === 'Completado' || p.estado === 'Cancelado');
-                                    const btnArchivar = puedeArchivar
-                                        ? `<button class="btn btn-sm btn-light text-secondary shadow-sm rounded-circle" onclick="archivarPedido(${p.idPedido})" title="Archivar"><i class="fas fa-archive"></i></button>`
-                                        : `<span class="text-muted small">-</span>`;
-                                    return `<tr>
-                                        <td class="ps-4 fw-bold text-primary">#${p.idPedido}</td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <img src="${avatar}" class="rounded-circle me-3 border shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
-                                                <div>
-                                                    <span class="fw-bold text-dark d-block">${p.nombreCliente || 'Cliente'}</span>
-                                                    <small class="text-muted fw-semibold">ID: #${p.idUsuario}</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="text-muted fw-semibold small"><i class="far fa-calendar-check text-primary me-1"></i> ${formatearFecha(p.fechaPedido)}</td>
-                                        <td class="fw-bold text-success fs-5">$${p.total.toFixed(2)}</td>
-                                        <td>
-                                            <select class="form-select form-select-sm fw-bold shadow-sm ${selectClass}" style="width: 150px;" onchange="cambiarEstadoPedido(${p.idPedido}, this.value)">
-                                                <option value="Pendiente" ${p.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
-                                                <option value="En Proceso" ${p.estado === 'En Proceso' ? 'selected' : ''}>En Proceso</option>
-                                                <option value="Completado" ${p.estado === 'Completado' ? 'selected' : ''}>Completado</option>
-                                                <option value="Cancelado" ${p.estado === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
-                                            </select>
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            <button class="btn btn-sm btn-info text-white me-1" onclick="verProductosPedido(${p.idPedido})" title="Ver productos">
-                                                <i class="fas fa-boxes"></i>
-                                            </button>
-                                            ${btnArchivar}
-                                        </td>
-                                    </tr>`;
-                                }).join('')}
+                        <table class="table table-hover align-middle mb-0"><thead class="bg-light"><tr><th class="ps-4">Factura</th><th>Comprador</th><th>Fecha</th><th>Monto Total</th><th>Estado Actual</th><th class="text-end pe-4">Acciones</th></tr></thead>
+                            <tbody id="tabla_pedidos_body" style="transition: opacity 0.3s ease;">
+                                ${pedidos.length === 0 ? '<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron pedidos.</td></tr>' : pedidos.map(p => generarFilaPedido(p)).join('')}
                             </tbody>
                         </table>
                     </div>
-                    ${renderPagination(totalPages, page, 'pedidos')}
+                    <div id="paginacion_pedidos_container">${renderPagination(totalPages, page, 'pedidos')}</div>
                 </div>
-            </div>
-        `;
-
-        const newInput = document.getElementById('searchPedidos');
-        if (newInput) {
-            newInput.focus();
-            const length = newInput.value.length;
-            newInput.setSelectionRange(length, length);
-        }
-
-    } catch (error) {
-        contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error: ${error.message}</div>`;
-    }
+            </div>`;
+    } catch (error) { contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error: ${error.message}</div>`; }
 }
 
 // ==========================================
@@ -1364,12 +1445,8 @@ async function renderUsuarios() {
     try {
         const { page, size, search, rol } = adminState.usuarios;
         const response = await API.request(`/usuarios/paginado?page=${page}&size=${size}&search=${encodeURIComponent(search)}&rol=${rol}`);
-        const usuarios = response.content || [];
-        usuariosCache = usuarios;
+        usuariosCache = response.content || [];
         const totalPages = response.totalPages || 1;
-
-        const currentSearchValue = search;
-
         contentDiv.innerHTML = `
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
                 <div class="card-header bg-white pt-4 px-4 border-0">
@@ -1378,15 +1455,11 @@ async function renderUsuarios() {
                         <div class="col-md-8">
                             <div class="d-flex gap-2 justify-content-md-end flex-wrap">
                                 <select id="filterRolUsuarios" class="form-select bg-light border-0 w-auto" onchange="aplicarFiltro('usuarios')">
-                                    <option value="" ${rol === '' ? 'selected' : ''}>Todos</option>
-                                    <option value="ADMIN" ${rol === 'ADMIN' ? 'selected' : ''}>Admins</option>
-                                    <option value="TECNICO" ${rol === 'TECNICO' ? 'selected' : ''}>Técnicos</option>
-                                    <option value="CLIENTE" ${rol === 'CLIENTE' ? 'selected' : ''}>Clientes</option>
+                                    <option value="" ${rol === '' ? 'selected' : ''}>Todos</option><option value="ADMIN" ${rol === 'ADMIN' ? 'selected' : ''}>Admins</option><option value="TECNICO" ${rol === 'TECNICO' ? 'selected' : ''}>Técnicos</option><option value="CLIENTE" ${rol === 'CLIENTE' ? 'selected' : ''}>Clientes</option>
                                 </select>
                                 <div class="input-group w-50">
-                                    <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
-                                    <input type="text" id="searchUsuarios" class="form-control bg-light border-0" placeholder="Buscar..." value="${currentSearchValue}" oninput="filtrarEnTiempoReal('usuarios', this.value)">
-                                    <button class="btn btn-primary fw-bold" onclick="aplicarFiltro('usuarios')">Buscar</button>
+                                    <span class="input-group-text bg-light border-0" id="searchIcon_usuarios"><i class="fas fa-search text-muted"></i></span>
+                                    <input type="text" id="searchUsuarios" class="form-control bg-light border-0" placeholder="Buscar..." value="${search}" oninput="filtrarSilencioso('usuarios', this.value)">
                                 </div>
                             </div>
                         </div>
@@ -1394,57 +1467,16 @@ async function renderUsuarios() {
                 </div>
                 <div class="card-body p-0 mt-3">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light"><tr><th class="ps-4">Perfil</th><th>Contacto</th><th>Permisos</th><th>Estado</th><th class="text-end pe-4">Acción</th></tr></thead>
-                            <tbody>
-                                ${usuarios.length === 0 ? '<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron usuarios.</td></tr>' : ''}
-                                ${usuarios.map(u => {
-                                    const statusBadge = u.activo ? 'bg-success text-success' : 'bg-secondary text-secondary';
-                                    const avatar = getAvatarUrl(u);
-                                    
-                                    const rolesOptions = ['CLIENTE', 'TECNICO', 'ADMIN'];
-                                    const selectRol = `
-                                        <select class="form-select form-select-sm bg-light border-0 w-auto d-inline-block" 
-                                                style="width: auto; min-width: 100px; font-size: 0.75rem; padding: 0.2rem 0.5rem;"
-                                                onchange="cambiarRolUsuario(${u.idUsuario}, this.value)">
-                                            ${rolesOptions.map(r => `<option value="${r}" ${u.rol === r ? 'selected' : ''}>${r}</option>`).join('')}
-                                        </select>
-                                    `;
-
-                                    return `<tr>
-                                        <td class="ps-4">
-                                            <div class="d-flex align-items-center">
-                                                <img src="${avatar}" class="rounded-circle me-3 border shadow-sm" style="width: 45px; height: 45px; object-fit: cover;">
-                                                <div>
-                                                    <h6 class="mb-0 fw-bold text-dark">${u.nombre || 'Usuario'} ${u.apellido || ''}</h6>
-                                                    <small class="text-muted fw-semibold">ID: #${u.idUsuario}</small>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td><a href="mailto:${u.email}" class="text-decoration-none text-muted fw-semibold"><i class="fas fa-envelope text-primary me-1"></i> ${u.email}</a></td>
-                                        <td>${selectRol}</td>
-                                        <td><span class="badge ${statusBadge.split(' ')[0]} bg-opacity-10 ${statusBadge.split(' ')[1]} border-0 px-3 py-2"><i class="fas fa-circle me-1" style="font-size: 8px;"></i> ${u.activo ? 'Operativo' : 'Restringido'}</span></td>
-                                        <td class="text-end pe-4"><button class="btn btn-sm ${u.activo ? 'btn-outline-danger' : 'btn-outline-success'} fw-bold px-3 shadow-sm" onclick="toggleUsuarioEstado(${u.idUsuario}, ${!u.activo})"><i class="fas ${u.activo ? 'fa-user-lock' : 'fa-user-check'} me-1"></i> ${u.activo ? 'Suspender' : 'Reactivar'}</button></td>
-                                    </tr>`;
-                                }).join('')}
+                        <table class="table table-hover align-middle mb-0"><thead class="bg-light"><tr><th class="ps-4">Perfil</th><th>Contacto</th><th>Permisos</th><th>Estado</th><th class="text-end pe-4">Acción</th></tr></thead>
+                            <tbody id="tabla_usuarios_body" style="transition: opacity 0.3s ease;">
+                                ${usuariosCache.length === 0 ? '<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron usuarios.</td></tr>' : usuariosCache.map(u => generarFilaUsuario(u)).join('')}
                             </tbody>
                         </table>
                     </div>
-                    ${renderPagination(totalPages, page, 'usuarios')}
+                    <div id="paginacion_usuarios_container">${renderPagination(totalPages, page, 'usuarios')}</div>
                 </div>
-            </div>
-        `;
-
-        const newInput = document.getElementById('searchUsuarios');
-        if (newInput) {
-            newInput.focus();
-            const length = newInput.value.length;
-            newInput.setSelectionRange(length, length);
-        }
-
-    } catch (error) {
-        contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error: ${error.message}</div>`;
-    }
+            </div>`;
+    } catch (error) { contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error: ${error.message}</div>`; }
 }
 
 window.cambiarRolUsuario = async function(idUsuario, nuevoRol) {
@@ -1536,142 +1568,42 @@ window.toggleUsuarioEstado = async (id, nuevoEstado) => {
 async function renderSolicitudes() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        const { page, size, search, estado } = adminState.solicitudes;
-
-        // ✅ Obtener fechas de los inputs si existen
-        const fechaInicioInput = document.getElementById('filtroSolFechaInicio');
-        const fechaFinInput = document.getElementById('filtroSolFechaFin');
-        const fechaInicio = fechaInicioInput ? fechaInicioInput.value : '';
-        const fechaFin = fechaFinInput ? fechaFinInput.value : '';
-
-        // ✅ Usamos el endpoint existente que devuelve SOLO las PENDIENTES
-        let solicitudes = await API.Solicitudes.listarPendientes();
-
-        // ✅ Aplicar filtro de búsqueda por nombre de cliente (search)
-        if (search && search.trim() !== '') {
-            const busqueda = search.toLowerCase().trim();
-            solicitudes = solicitudes.filter(s =>
-                s.nombreCliente.toLowerCase().includes(busqueda)
-            );
-        }
-
-        // ✅ Filtro por estado (aunque solo hay PENDIENTE, pero lo dejamos por si acaso)
-        if (estado && estado !== '') {
-            solicitudes = solicitudes.filter(s => s.estado === estado);
-        }
-
-        // ✅ Filtro por fecha (si los inputs tienen valor)
-        if (fechaInicio) {
-            const fechaInicioObj = new Date(fechaInicio);
-            solicitudes = solicitudes.filter(s => new Date(s.fechaCreacion) >= fechaInicioObj);
-        }
-        if (fechaFin) {
-            const fechaFinObj = new Date(fechaFin);
-            solicitudes = solicitudes.filter(s => new Date(s.fechaCreacion) <= fechaFinObj);
-        }
-
-        // ✅ Paginación manual
-        const start = page * size;
-        const end = start + size;
-        const solicitudesPaginadas = solicitudes.slice(start, end);
-        const totalPages = Math.ceil(solicitudes.length / size) || 1;
-
-        // Obtener técnicos para asignar
         const todos = await API.Usuarios.listar();
-        const tecnicos = todos.filter(u => u.rol === 'TECNICO' && u.activo);
-
-        if (solicitudes.length === 0 && page === 0 && !estado && !search) {
-            contentDiv.innerHTML = `<div class="card border-0 shadow-sm py-5 text-center"><div class="card-body"><div class="stat-icon bg-success bg-opacity-10 text-success mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2.5rem;"><i class="fas fa-check-double"></i></div><h4 class="fw-bold text-dark">Todo al día</h4><p class="text-muted">No hay solicitudes técnicas pendientes de asignación.</p></div></div>`;
-            return;
-        }
-
-        const currentSearchValue = search;
-
-        let html = `
+        tecnicosGlobal = todos.filter(u => u.rol === 'TECNICO' && u.activo); // Cachear técnicos
+        let solicitudes = await API.Solicitudes.listarPendientes();
+        const { page, size, search, estado } = adminState.solicitudes;
+        if (search) solicitudes = solicitudes.filter(s => s.nombreCliente.toLowerCase().includes(search.toLowerCase()));
+        if (estado) solicitudes = solicitudes.filter(s => s.estado === estado);
+        const paginadas = solicitudes.slice(page * size, (page * size) + size);
+        const totalPages = Math.ceil(solicitudes.length / size) || 1;
+        contentDiv.innerHTML = `
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-hard-hat text-warning me-2"></i>Centro de Asignación de Tareas</h5>
                 </div>
                 <div class="card-body">
-                    <!-- Filtros -->
                     <div class="row g-2 mb-3 align-items-end">
                         <div class="col-md-3">
-                            <label class="form-label fw-bold small text-secondary text-uppercase">Buscar cliente</label>
-                            <input type="text" class="form-control form-control-sm bg-light" id="filtroSolCliente" placeholder="Nombre..." value="${currentSearchValue}" oninput="filtrarEnTiempoReal('solicitudes', this.value)">
+                            <label class="form-label fw-bold small text-secondary">Buscar cliente</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light border-0" id="searchIcon_solicitudes"><i class="fas fa-search text-muted"></i></span>
+                                <input type="text" class="form-control bg-light border-0" id="filtroSolCliente" placeholder="Nombre..." value="${search}" oninput="filtrarSilencioso('solicitudes', this.value)">
+                            </div>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label fw-bold small text-secondary text-uppercase">Estado</label>
-                            <select class="form-select form-select-sm bg-light" id="filtroSolEstado" onchange="aplicarFiltro('solicitudes')">
-                                <option value="" ${estado === '' ? 'selected' : ''}>Todos</option>
-                                <option value="PENDIENTE" ${estado === 'PENDIENTE' ? 'selected' : ''}>Pendiente</option>
-                                <!-- Los demás estados no se mostrarán porque solo traemos pendientes, pero los dejamos por si acaso -->
-                                <option value="ASIGNADA" ${estado === 'ASIGNADA' ? 'selected' : ''}>Asignada</option>
-                                <option value="RECHAZADA" ${estado === 'RECHAZADA' ? 'selected' : ''}>Rechazada</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold small text-secondary text-uppercase">Desde</label>
-                            <input type="datetime-local" class="form-control form-control-sm bg-light" id="filtroSolFechaInicio" value="${fechaInicio}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold small text-secondary text-uppercase">Hasta</label>
-                            <input type="datetime-local" class="form-control form-control-sm bg-light" id="filtroSolFechaFin" value="${fechaFin}">
-                        </div>
-                        <div class="col-md-1 d-flex gap-1">
-                            <button class="btn btn-primary btn-sm w-100" onclick="aplicarFiltro('solicitudes')"><i class="fas fa-search"></i></button>
-                            <button class="btn btn-outline-secondary btn-sm" onclick="limpiarFiltrosSolicitudes()"><i class="fas fa-times"></i></button>
+                            <label class="form-label fw-bold small text-secondary">Estado</label>
+                            <select class="form-select form-select-sm bg-light" id="filtroSolEstado" onchange="aplicarFiltro('solicitudes')"><option value="">Todos</option><option value="PENDIENTE" ${estado === 'PENDIENTE' ? 'selected' : ''}>Pendiente</option></select>
                         </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light"><tr><th class="ps-4">Ticket / Cliente</th><th>Labor Requerida</th><th style="min-width: 320px;">Despacho de Técnico</th><th class="text-end pe-4" style="width: 130px;">Decisión</th></tr></thead>
-                            <tbody>
-                                ${solicitudesPaginadas.length === 0 ? '<tr><td colspan="4" class="text-center py-4 text-muted">No hay solicitudes que coincidan con los filtros.</td></tr>' : ''}
-                                ${solicitudesPaginadas.map(sol => {
-                                    const esPendiente = sol.estado === 'PENDIENTE';
-                                    return `<tr>
-                                        <td class="ps-4"><h6 class="fw-bold text-dark mb-1">Ticket #${sol.idSolicitud}</h6><span class="text-primary fw-semibold"><i class="fas fa-user-circle me-1"></i> ${sol.nombreCliente}</span><small class="text-muted fw-bold d-block mt-2 bg-light p-1 rounded"><i class="far fa-calendar-alt text-warning me-1"></i> Preferencia: ${sol.fechaPreferida ? new Date(sol.fechaPreferida).toLocaleString() : 'Abierto a sugerencias'}</small></td>
-                                        <td><span class="badge bg-gradient-warning shadow-sm mb-2 px-3 py-2">${sol.tipoServicio.replace('_', ' ')}</span><div class="bg-light p-2 rounded-3 border"><p class="small text-muted mb-0 fst-italic" style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" title="${sol.mensaje || 'Sin detalles extra'}"><i class="fas fa-quote-left text-primary opacity-50 me-1"></i> ${sol.mensaje || 'Cliente no proporcionó detalles extras.'}</p></div></td>
-                                        <td>
-                                            ${esPendiente ? `
-                                            <div class="bg-white p-3 rounded-4 border shadow-sm">
-                                                <select id="tecnicoSelect_${sol.idSolicitud}" class="form-select mb-2 border-primary border-opacity-25 bg-light text-primary fw-bold">
-                                                    <option value="">👤 Asignar Profesional...</option>
-                                                    ${tecnicos.map(t => `<option value="${t.idUsuario}">${t.nombre} ${t.apellido || ''}</option>`).join('')}
-                                                </select>
-                                                <div class="d-flex gap-2">
-                                                    <div class="input-group input-group-sm w-50"><span class="input-group-text bg-success bg-opacity-10 border-0 text-success"><i class="fas fa-play"></i></span><input type="datetime-local" id="fechaInicio_${sol.idSolicitud}" class="form-control border-0 bg-light text-muted fw-semibold"></div>
-                                                    <div class="input-group input-group-sm w-50"><span class="input-group-text bg-danger bg-opacity-10 border-0 text-danger"><i class="fas fa-stop"></i></span><input type="datetime-local" id="fechaFin_${sol.idSolicitud}" class="form-control border-0 bg-light text-muted fw-semibold"></div>
-                                                </div>
-                                            </div>
-                                            ` : `<span class="badge ${sol.estado === 'ASIGNADA' ? 'bg-success' : 'bg-danger'}">${sol.estado}</span>`}
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            ${esPendiente ? `
-                                            <button class="btn btn-success fw-bold shadow-sm mb-2 w-100" onclick="asignarTecnico(${sol.idSolicitud})"><i class="fas fa-check me-1"></i> Asignar</button>
-                                            <button class="btn btn-light text-danger fw-bold border-danger border-opacity-25 w-100" onclick="rechazarSolicitud(${sol.idSolicitud})"><i class="fas fa-times me-1"></i> Descartar</button>
-                                            ` : `<span class="text-muted small">Procesada</span>`}
-                                        </td>
-                                    </tr>`;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                    ${renderPagination(totalPages, page, 'solicitudes')}
+                    <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="bg-light"><tr><th class="ps-4">Ticket / Cliente</th><th>Labor Requerida</th><th style="min-width: 320px;">Despacho de Técnico</th><th class="text-end pe-4" style="width: 130px;">Decisión</th></tr></thead>
+                        <tbody id="tabla_solicitudes_body" style="transition: opacity 0.3s ease;">
+                            ${paginadas.length === 0 ? '<tr><td colspan="4" class="text-center py-4 text-muted">No hay solicitudes.</td></tr>' : paginadas.map(s => generarFilaSolicitud(s)).join('')}
+                        </tbody>
+                    </table></div>
+                    <div id="paginacion_solicitudes_container">${renderPagination(totalPages, page, 'solicitudes')}</div>
                 </div>
-            </div>
-        `;
-        contentDiv.innerHTML = html;
-        const inputSol = document.getElementById('filtroSolCliente');
-        if (inputSol && document.activeElement.id !== 'filtroSolEstado' && document.activeElement.id !== 'filtroSolFechaInicio' && document.activeElement.id !== 'filtroSolFechaFin') {
-            inputSol.focus();
-            const length = inputSol.value.length;
-            inputSol.setSelectionRange(length, length);
-        }
-    } catch (error) {
-        console.error('Error en renderSolicitudes:', error);
-        contentDiv.innerHTML = `<div class="alert alert-danger shadow-sm rounded-4 m-3"><i class="fas fa-exclamation-circle me-2"></i> Error de conexión: ${error.message}</div>`;
-    }
+            </div>`;
+    } catch (error) { contentDiv.innerHTML = `<div class="alert alert-danger shadow-sm m-3">Error: ${error.message}</div>`; }
 }
 
 // Función auxiliar para limpiar filtros de solicitudes
@@ -1912,156 +1844,44 @@ window.archivarReporte = async function(id) {
 async function renderReportes() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        const { page, size, search, estado } = adminState.reportes;
-        const idTecnico = document.getElementById('filtroRepTecnico')?.value || '';
-        const fechaInicio = document.getElementById('filtroRepFechaInicio')?.value || '';
-        const fechaFin = document.getElementById('filtroRepFechaFin')?.value || '';
-
-        // ✅ Obtener TODAS las citas
         let citas = await API.Citas.listar();
-
-        // ✅ Aplicar filtros de búsqueda
-        if (estado && estado !== '') {
-            citas = citas.filter(c => c.estado === estado);
-        }
-        if (search && search.trim() !== '') {
-            const busqueda = search.toLowerCase().trim();
-            citas = citas.filter(c =>
-                c.nombreCliente.toLowerCase().includes(busqueda)
-            );
-        }
-        if (idTecnico && idTecnico.trim() !== '') {
-            citas = citas.filter(c =>
-                c.nombreTecnico && c.nombreTecnico.toLowerCase().includes(idTecnico.toLowerCase())
-            );
-        }
-        if (fechaInicio) {
-            const fechaInicioObj = new Date(fechaInicio);
-            citas = citas.filter(c => new Date(c.fechaInicio) >= fechaInicioObj);
-        }
-        if (fechaFin) {
-            const fechaFinObj = new Date(fechaFin);
-            citas = citas.filter(c => new Date(c.fechaInicio) <= fechaFinObj);
-        }
-
-        // ✅ Guardar copia completa para el visor de evidencia
-        listaCitasGlobal = citas;
-
-        // ✅ Filtrar archivados (asegurar que los IDs sean números)
+        listaCitasGlobal = citas; 
+        const { page, size, search, estado } = adminState.reportes;
+        if (search) citas = citas.filter(c => c.nombreCliente.toLowerCase().includes(search.toLowerCase()));
+        if (estado) citas = citas.filter(c => c.estado === estado);
         const archivados = obtenerReportesArchivados();
-        console.log('🔍 Archivados desde localStorage:', archivados);
-        let citasVisibles = citas.filter(c => !archivados.includes(Number(c.idCita)));
-        console.log('🔍 Citas visibles después del filtro:', citasVisibles.length);
-
-        // ✅ Paginación
-        const start = page * size;
-        const end = start + size;
-        const citasPaginadas = citasVisibles.slice(start, end);
-        const totalPages = Math.ceil(citasVisibles.length / size) || 1;
-
-        // Si no hay citas visibles y no hay filtros activos, mostrar mensaje
-        if (citasVisibles.length === 0 && page === 0 && !estado && !search) {
-            contentDiv.innerHTML = `
-                <div class="alert alert-info shadow-sm m-4">
-                    No hay historial de citas o reportes en el sistema.
-                    ${archivados.length > 0 ? `<br><button class="btn btn-outline-secondary btn-sm mt-2" onclick="mostrarArchivadosReportes()">Ver ${archivados.length} archivados</button>` : ''}
-                </div>
-            `;
-            return;
-        }
-
-        const currentSearchValue = search;
-
-        // ===== GENERAR HTML DE LA TABLA =====
-        let html = `
+        citas = citas.filter(c => !archivados.includes(Number(c.idCita)));
+        const paginadas = citas.slice(page * size, (page * size) + size);
+        const totalPages = Math.ceil(citas.length / size) || 1;
+        contentDiv.innerHTML = `
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-clipboard-list text-primary me-2"></i>Historial de Trabajos</h5>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-secondary btn-sm" onclick="mostrarArchivadosReportes()" title="Ver reportes archivados">
-                            <i class="fas fa-archive me-1"></i> Archivados (${archivados.length})
-                        </button>
-                        ${archivados.length > 0 ? `<button class="btn btn-outline-danger btn-sm" onclick="desarchivarTodosReportes()" title="Restaurar todos los archivados"><i class="fas fa-undo me-1"></i> Restaurar todos</button>` : ''}
-                    </div>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="mostrarArchivadosReportes()"><i class="fas fa-archive me-1"></i> Archivados</button>
                 </div>
                 <div class="card-body">
-                    <!-- Filtros -->
                     <div class="row g-2 mb-3 align-items-end">
                         <div class="col-md-2">
                             <label class="form-label fw-bold small text-secondary text-uppercase">Estado</label>
-                            <select class="form-select form-select-sm bg-light" id="filtroRepEstado" onchange="aplicarFiltro('reportes')">
-                                <option value="" ${estado === '' ? 'selected' : ''}>Todos</option>
-                                <option value="PROGRAMADA" ${estado === 'PROGRAMADA' ? 'selected' : ''}>Programada</option>
-                                <option value="EN_PROCESO" ${estado === 'EN_PROCESO' ? 'selected' : ''}>En Proceso</option>
-                                <option value="COMPLETADA" ${estado === 'COMPLETADA' ? 'selected' : ''}>Completada</option>
-                                <option value="CANCELADA" ${estado === 'CANCELADA' ? 'selected' : ''}>Cancelada</option>
-                            </select>
+                            <select class="form-select form-select-sm bg-light" id="filtroRepEstado" onchange="aplicarFiltro('reportes')"><option value="">Todos</option><option value="PROGRAMADA" ${estado === 'PROGRAMADA' ? 'selected' : ''}>Programada</option><option value="COMPLETADA" ${estado === 'COMPLETADA' ? 'selected' : ''}>Completada</option></select>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold small text-secondary text-uppercase">Cliente</label>
-                            <input type="text" class="form-control form-control-sm bg-light" id="filtroRepCliente" placeholder="Nombre..." value="${currentSearchValue}" oninput="filtrarEnTiempoReal('reportes', this.value)">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold small text-secondary text-uppercase">Técnico</label>
-                            <input type="text" class="form-control form-control-sm bg-light" id="filtroRepTecnico" placeholder="Nombre..." value="${idTecnico}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold small text-secondary text-uppercase">Desde</label>
-                            <input type="datetime-local" class="form-control form-control-sm bg-light" id="filtroRepFechaInicio" value="${fechaInicio}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold small text-secondary text-uppercase">Hasta</label>
-                            <input type="datetime-local" class="form-control form-control-sm bg-light" id="filtroRepFechaFin" value="${fechaFin}">
-                        </div>
-                        <div class="col-md-1 d-flex gap-1">
-                            <button class="btn btn-primary btn-sm w-100" onclick="aplicarFiltro('reportes')"><i class="fas fa-search"></i></button>
-                            <button class="btn btn-outline-secondary btn-sm" onclick="limpiarFiltrosReportes()"><i class="fas fa-times"></i></button>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small text-secondary text-uppercase">Buscar Cliente</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light border-0" id="searchIcon_reportes"><i class="fas fa-search text-muted"></i></span>
+                                <input type="text" class="form-control bg-light border-0" id="filtroRepCliente" placeholder="Nombre..." value="${search}" oninput="filtrarSilencioso('reportes', this.value)">
+                            </div>
                         </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light"><tr><th class="ps-4">Ticket</th><th>Cliente</th><th>Técnico</th><th>Fecha</th><th>Estado</th><th class="text-end pe-4">Acciones</th></tr></thead>
-                            <tbody>
-                                ${citasPaginadas.length === 0 ? '<tr><td colspan="6" class="text-center py-4 text-muted">No hay reportes que coincidan con los filtros.</td></tr>' : ''}
-                                ${citasPaginadas.map(cita => {
-                                    const badgeClass = cita.estado === 'COMPLETADA' ? 'bg-success' : (cita.estado === 'CANCELADA' ? 'bg-danger' : 'bg-warning text-dark');
-                                    const tieneEvidencia = cita.estado === 'COMPLETADA' && (cita.urlFirmaCliente || cita.urlsFotosAntes || cita.urlsFotosDespues);
-                                    const btnEvidencia = tieneEvidencia ? `<button class="btn btn-sm btn-primary shadow-sm rounded-pill px-3 fw-bold" onclick="abrirVisorEvidencia(${cita.idCita})"><i class="fas fa-camera me-1"></i> Ver Reporte</button>` : `<span class="text-muted small">No disponible</span>`;
-                                    const esFinalizado = (cita.estado === 'COMPLETADA' || cita.estado === 'CANCELADA');
-                                    const btnArchivar = esFinalizado
-                                        ? `<button class="btn btn-sm btn-light text-secondary shadow-sm rounded-circle" onclick="archivarReporte(${cita.idCita})" title="Archivar"><i class="fas fa-archive"></i></button>`
-                                        : `<span class="text-muted small">-</span>`;
-                                    return `<tr><td class="ps-4 fw-bold text-primary">#${cita.idCita}</td>
-                                        <td><div class="fw-bold text-dark">${cita.nombreCliente}</div><small class="text-muted"><i class="fas fa-map-marker-alt text-danger me-1"></i>${cita.direccionCliente || 'Sin dirección'}</small></td>
-                                        <td><span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 p-2"><i class="fas fa-hard-hat me-1"></i> ${cita.nombreTecnico}</span></td>
-                                        <td class="small fw-semibold text-secondary">${formatearFecha(cita.fechaInicio)}</td>
-                                        <td><span class="badge ${badgeClass} shadow-sm px-3 py-2">${cita.estado}</span></td>
-                                        <td class="text-end pe-4">
-                                            <div class="d-flex gap-1 justify-content-end flex-wrap">
-                                                ${btnEvidencia}
-                                                ${btnArchivar}
-                                            </div>
-                                        </td>
-                                    </tr>`;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                    ${renderPagination(totalPages, page, 'reportes')}
+                    <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="bg-light"><tr><th class="ps-4">Ticket</th><th>Cliente</th><th>Técnico</th><th>Fecha</th><th>Estado</th><th class="text-end pe-4">Acciones</th></tr></thead>
+                        <tbody id="tabla_reportes_body" style="transition: opacity 0.3s ease;">
+                            ${paginadas.length === 0 ? '<tr><td colspan="6" class="text-center py-4 text-muted">No hay reportes.</td></tr>' : paginadas.map(c => generarFilaReporte(c)).join('')}
+                        </tbody>
+                    </table></div>
+                    <div id="paginacion_reportes_container">${renderPagination(totalPages, page, 'reportes')}</div>
                 </div>
-            </div>
-        `;
-        contentDiv.innerHTML = html;
-        const inputRepCliente = document.getElementById('filtroRepCliente');
-        if (inputRepCliente && adminState.reportes.search !== '') {
-            inputRepCliente.focus();
-            const length = inputRepCliente.value.length;
-            inputRepCliente.setSelectionRange(length, length);
-        }
-    } catch (error) {
-        console.error('Error en renderReportes:', error);
-        contentDiv.innerHTML = `<div class="alert alert-danger shadow-sm m-4">Error al cargar reportes: ${error.message}</div>`;
-    }
+            </div>`;
+    } catch (error) { contentDiv.innerHTML = `<div class="alert alert-danger shadow-sm m-4">Error: ${error.message}</div>`; }
 }
 
 function limpiarFiltrosReportes() {
@@ -2159,94 +1979,65 @@ let listaInventarioGlobal = [];
 async function renderInventario() {
     contentDiv.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     try {
-        const repuestos = await API.Repuestos.listarActivos();
+        let repuestos = await API.Repuestos.listarActivos();
         const { page, size, search, unidad } = adminState.inventario;
+        if (search) repuestos = repuestos.filter(r => r.nombre.toLowerCase().includes(search.toLowerCase()));
+        if (unidad) repuestos = repuestos.filter(r => r.unidadMedida === unidad);
+        const paginados = repuestos.slice(page * size, (page * size) + size);
+        const totalPages = Math.ceil(repuestos.length / size) || 1;
 
-        let repuestosFiltrados = repuestos;
-        if (search && search.trim() !== '') {
-            const busqueda = search.toLowerCase().trim();
-            repuestosFiltrados = repuestosFiltrados.filter(r =>
-                r.nombre.toLowerCase().includes(busqueda)
-            );
-        }
-        if (unidad && unidad !== '') {
-            repuestosFiltrados = repuestosFiltrados.filter(r => r.unidadMedida === unidad);
-        }
+        // Calculamos la inversión inicial para las cards
+        const inversionTotal = repuestos.reduce((acc, rep) => acc + (rep.stockActual * rep.costoUnitario), 0);
 
-        const start = page * size;
-        const end = start + size;
-        const repuestosPaginados = repuestosFiltrados.slice(start, end);
-        const totalPages = Math.ceil(repuestosFiltrados.length / size) || 1;
-
-        listaInventarioGlobal = repuestosFiltrados;
-
-        const inversionTotal = repuestosFiltrados.reduce((acc, rep) => acc + (rep.stockActual * rep.costoUnitario), 0);
-        const currentSearch = search || '';
-        const currentUnidad = unidad || '';
-
-        let html = `
+        contentDiv.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
                 <h5 class="fw-bold mb-0">Existencias Actuales</h5>
                 <div class="d-flex gap-2 align-items-center flex-wrap">
                     <div class="input-group input-group-sm shadow-sm rounded-pill overflow-hidden border bg-white" style="max-width: 200px;">
-                        <span class="input-group-text bg-white border-0 text-muted ps-3"><i class="fas fa-search"></i></span>
-                        <input type="text" id="buscadorInventario" class="form-control border-0 bg-white" placeholder="Buscar material..." value="${currentSearch}" oninput="filtrarInventario()">
+                        <span class="input-group-text bg-white border-0 text-muted ps-3" id="searchIcon_inventario"><i class="fas fa-search"></i></span>
+                        <input type="text" id="buscadorInventario" class="form-control border-0 bg-white" placeholder="Buscar material..." value="${search}" oninput="filtrarSilencioso('inventario', this.value)">
                     </div>
-                    <select id="filtroUnidadInventario" class="form-select form-select-sm bg-light border-0 rounded-pill" style="width: auto;" onchange="filtrarInventario()">
+                    <select id="filtroUnidadInventario" 
+                            class="form-select form-select-sm bg-white border shadow-sm rounded-pill px-3 fw-semibold text-secondary form-select-no-arrow" 
+                            style="width: 180px; appearance: menulist-button !important;" 
+                            onchange="aplicarFiltro('inventario')">
                         <option value="">Todas las unidades</option>
-                        <option value="Unidades" ${currentUnidad === 'Unidades' ? 'selected' : ''}>Unidades (Pzas)</option>
-                        <option value="Libras" ${currentUnidad === 'Libras' ? 'selected' : ''}>Libras (lbs)</option>
-                        <option value="Metros" ${currentUnidad === 'Metros' ? 'selected' : ''}>Metros (m)</option>
+                        <option value="Unidades" ${unidad === 'Unidades' ? 'selected' : ''}>Unidades (Pzas)</option>
+                        <option value="Libras" ${unidad === 'Libras' ? 'selected' : ''}>Libras (lbs)</option>
+                        <option value="Metros" ${unidad === 'Metros' ? 'selected' : ''}>Metros (m)</option>
                     </select>
-                    <button class="btn btn-primary fw-bold rounded-pill px-4 shadow-sm text-nowrap" onclick="abrirModalRepuesto()"><i class="fas fa-plus me-2"></i>Nuevo</button>
+                    <button class="btn btn-primary btn-sm fw-bold rounded-pill px-4 shadow-sm" style="height: 31px;" onclick="abrirModalRepuesto()"><i class="fas fa-plus me-2"></i>Nuevo</button>
                 </div>
             </div>
-            <div class="row mb-4">
-                <div class="col-md-4"><div class="card border-0 shadow-sm bg-primary text-white rounded-4"><div class="card-body p-4"><h6 class="opacity-75 mb-1">Inversión en Almacén (filtrado)</h6><h2 class="fw-bold mb-0">$${inversionTotal.toFixed(2)}</h2></div></div></div>
-                <div class="col-md-4"><div class="card border-0 shadow-sm bg-info text-white rounded-4"><div class="card-body p-4"><h6 class="opacity-75 mb-1">Total de materiales</h6><h2 class="fw-bold mb-0">${repuestosFiltrados.length}</h2></div></div></div>
-            </div>
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light"><tr><th class="ps-4">Material</th><th>Unidad</th><th>Costo Unit.</th><th>Stock</th><th class="text-end pe-4">Acciones</th></tr></thead>
-                        <tbody>
-                            ${repuestosPaginados.length === 0 ? '<tr><td colspan="5" class="text-center py-4 text-muted">No hay materiales que coincidan con los filtros.</td></tr>' : ''}
-                            ${repuestosPaginados.map(rep => {
-                                const badgeStock = rep.stockActual <= 5 ? 'bg-danger' : 'bg-success';
-                                return `
-                                <tr>
-                                    <td class="ps-4 fw-bold text-dark">${rep.nombre}</td>
-                                    <td><span class="badge bg-secondary bg-opacity-10 text-secondary border">${rep.unidadMedida}</span></td>
-                                    <td>$${rep.costoUnitario.toFixed(2)}</td>
-                                    <td>
-                                        <span class="badge ${badgeStock} px-3 py-2 fs-6">
-                                            ${rep.stockActual % 1 === 0 ? rep.stockActual : rep.stockActual.toFixed(2)}
-                                        </span>
-                                    </td>
-                                    <td class="text-end pe-4">
-                                        <button class="btn btn-sm btn-light text-primary me-2 shadow-sm" onclick="editarRepuesto(${rep.idRepuesto})" title="Editar"><i class="fas fa-edit"></i></button>
-                                        <button class="btn btn-sm btn-light text-danger shadow-sm rounded-circle" onclick="eliminarRepuesto(${rep.idRepuesto})" title="Eliminar"><i class="fas fa-trash"></i></button>
-                                    </td>
-                                </tr>`;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                </div>
-                ${renderPagination(totalPages, page, 'inventario')}
-            </div>
-        `;
-        contentDiv.innerHTML = html;
 
-        const searchInput = document.getElementById('buscadorInventario');
-        if (searchInput) {
-            searchInput.focus();
-            const length = searchInput.value.length;
-            searchInput.setSelectionRange(length, length);
-        }
-    } catch (error) {
-        console.error('Error en renderInventario:', error);
-        contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error al cargar inventario: ${error.message}</div>`;
-    }
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm bg-primary text-white rounded-4">
+                        <div class="card-body p-4">
+                            <h6 class="opacity-75 mb-1">Inversión en Almacén (filtrado)</h6>
+                            <h2 class="fw-bold mb-0" id="card-inversion-total">$${inversionTotal.toFixed(2)}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm bg-info text-white rounded-4">
+                        <div class="card-body p-4">
+                            <h6 class="opacity-75 mb-1">Total de materiales</h6>
+                            <h2 class="fw-bold mb-0" id="card-materiales-total">${repuestos.length}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="bg-light"><tr><th class="ps-4">Material</th><th>Unidad</th><th>Costo Unit.</th><th>Stock</th><th class="text-end pe-4">Acciones</th></tr></thead>
+                    <tbody id="tabla_inventario_body" style="transition: opacity 0.3s ease;">
+                        ${paginados.length === 0 ? '<tr><td colspan="5" class="text-center py-4 text-muted">No hay repuestos.</td></tr>' : paginados.map(r => generarFilaInventario(r)).join('')}
+                    </tbody>
+                </table></div>
+                <div id="paginacion_inventario_container">${renderPagination(totalPages, page, 'inventario')}</div>
+            </div>`;
+    } catch (error) { contentDiv.innerHTML = `<div class="alert alert-danger m-4">Error: ${error.message}</div>`; }
 }
 
 window.filtrarInventario = function() {
