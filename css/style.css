@@ -1713,3 +1713,41 @@ body {
         border-radius: 12px;
     }
 }
+
+/* ========================================= */
+/* ADAPTACIÓN MÓVIL PÚBLICA (RESPONSIVE)     */
+/* ========================================= */
+
+@media (max-width: 768px) {
+    /* Dar aire a los lados en celular */
+    .container {
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+    }
+
+    /* Que las imágenes nunca se desborden de la pantalla */
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* Botones más grandes y fáciles de tocar con el dedo */
+    .btn {
+        min-height: 44px;
+    }
+
+    /* Ajustar textos muy grandes en celular */
+    h1 { font-size: 2rem !important; }
+    h2 { font-size: 1.75rem !important; }
+}
+
+/* Asegurar que el navbar no se pegue a los bordes en móviles */
+@media (max-width: 991px) {
+    .navbar-collapse {
+        background: #fff;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-top: 10px;
+    }
+}
