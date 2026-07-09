@@ -352,3 +352,7 @@ html, body {
         margin-top: 10px;
     }
 }
+
+* {
+    outline: 2px solid red !important;
+}
