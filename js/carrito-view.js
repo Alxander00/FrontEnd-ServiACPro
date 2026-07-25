@@ -44,7 +44,7 @@ function renderizarCarrito() {
         const subtotal = precioUnitario * item.cantidad;
         htmlTabla += `
             <tr>
-                <td class="ps-4 py-3">
+                <td data-label="Producto" class="ps-4 py-3">
                     <div class="d-flex align-items-center gap-3">
                         <img src="${item.imagen}" alt="${item.nombre}" class="rounded" style="width: 60px; height: 60px; object-fit: contain; background-color: #f8fafc;">
                         <div>
@@ -55,16 +55,16 @@ function renderizarCarrito() {
                         </div>
                     </div>
                 </td>
-                <td class="text-center py-3 fw-semibold text-secondary">$${precioUnitario.toFixed(2)}</td>
-                <td class="text-center py-3">
+                <td data-label="Precio" class="text-center py-3 fw-semibold text-secondary">$${precioUnitario.toFixed(2)}</td>
+                <td data-label="Cantidad" class="text-center py-3">
                     <div class="d-inline-flex align-items-center bg-light rounded px-2 py-1 border">
                         <button class="btn btn-sm btn-link text-dark text-decoration-none px-2" onclick="cambiarCantidad(${item.id}, ${item.incluyeInstalacion}, -1)"><i class="fas fa-minus"></i></button>
                         <span class="fw-bold px-2" style="min-width: 25px;">${item.cantidad}</span>
                         <button class="btn btn-sm btn-link text-dark text-decoration-none px-2" onclick="cambiarCantidad(${item.id}, ${item.incluyeInstalacion}, 1)"><i class="fas fa-plus"></i></button>
                     </div>
                 </td>
-                <td class="text-center py-3 fw-bold text-primary">$${subtotal.toFixed(2)}</td>
-                <td class="pe-4 py-3 text-end">
+                <td data-label="Total" class="text-center py-3 fw-bold text-primary">$${subtotal.toFixed(2)}</td>
+                <td data-label="" class="pe-4 py-3 text-end">
                     <button class="btn btn-outline-danger btn-sm" onclick="eliminarItem(${item.id}, ${item.incluyeInstalacion})" title="Eliminar"><i class="fas fa-trash-alt"></i></button>
                 </td>
             </tr>

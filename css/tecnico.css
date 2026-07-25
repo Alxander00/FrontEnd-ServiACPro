@@ -1,3 +1,7 @@
+/* ==========================================
+   tecnico.css - Panel Técnico Moderno
+   ========================================== */
+
 body {
   font-family: "Montserrat", sans-serif;
   background: #f0f4f8;
@@ -75,7 +79,6 @@ body {
   font-weight: 600;
 }
 
-/* ===== BADGES DE ESTADO CON COLORES SUAVES (PASTEL) ===== */
 .badge-estado {
   padding: 6px 16px;
   border-radius: 30px;
@@ -88,24 +91,24 @@ body {
   gap: 6px;
 }
 .badge-estado.programada {
-  background: #dbeafe; /* azul pastel */
+  background: #dbeafe;
   color: #1e40af;
 }
 .badge-estado.en-proceso {
-  background: #fef3c7; /* amarillo pastel */
+  background: #fef3c7;
   color: #92400e;
 }
 .badge-estado.completada {
-  background: #d1fae5; /* verde pastel */
+  background: #d1fae5;
   color: #065f46;
 }
 .badge-estado.cancelada {
-  background: #fee2e2; /* rojo pastel */
+  background: #fee2e2;
   color: #991b1b;
 }
 
 .cita-card.urgente {
-  border-left-color: #f87171; /* rojo suave */
+  border-left-color: #f87171;
   animation: pulse-border 2s ease-in-out infinite;
 }
 @keyframes pulse-border {
@@ -168,14 +171,262 @@ body {
   transform: scale(1.02);
 }
 
+/* ========================================== */
+/* RESPONSIVE TÉCNICO - Mobile First           */
+/* ========================================== */
+
+@media (max-width: 576px) {
+    /* Estadísticas en 2 columnas */
+    .row.g-3.mb-4 .col-6 {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+        padding: 0.15rem !important;
+    }
+    .stat-card {
+        padding: 0.5rem !important;
+        gap: 0.3rem !important;
+        border-radius: 12px !important;
+    }
+    .stat-card .stat-icon {
+        width: 30px !important;
+        height: 30px !important;
+        font-size: 0.8rem !important;
+        border-radius: 10px !important;
+    }
+    .stat-card .stat-number {
+        font-size: 1rem !important;
+    }
+    .stat-card .stat-label {
+        font-size: 0.55rem !important;
+    }
+
+    /* Tarjetas de citas en una columna */
+    .cita-card {
+        padding: 0.5rem !important;
+        font-size: 0.8rem !important;
+        border-left-width: 4px !important;
+        border-radius: 12px !important;
+    }
+    .cita-card .cita-cliente {
+        font-size: 0.85rem !important;
+    }
+    .cita-card .cita-hora {
+        font-size: 0.8rem !important;
+    }
+    .cita-card .cita-direccion {
+        font-size: 0.75rem !important;
+    }
+    .cita-card .badge {
+        font-size: 0.65rem !important;
+        padding: 0.15rem 0.5rem !important;
+    }
+    .cita-card .cita-telefono {
+        font-size: 0.75rem !important;
+    }
+    .cita-card .btn-sm {
+        font-size: 0.65rem !important;
+        padding: 0.1rem 0.4rem !important;
+        min-height: 28px !important;
+    }
+    .cita-card .cita-urgente-badge {
+        font-size: 0.6rem !important;
+        padding: 0.1rem 0.5rem !important;
+    }
+
+    /* Filtros verticales */
+    .filtros-container {
+        padding: 0.5rem !important;
+        border-radius: 12px !important;
+    }
+    .filtros-container .row > div {
+        padding: 0.15rem !important;
+    }
+    .filtros-container .form-select,
+    .filtros-container .form-control {
+        font-size: 0.8rem !important;
+        padding: 0.25rem 0.6rem !important;
+        min-height: 32px !important;
+        border-radius: 20px !important;
+    }
+    .filtros-container .input-group-text {
+        padding: 0.2rem 0.5rem !important;
+        font-size: 0.8rem !important;
+    }
+
+    /* Paginación compacta */
+    #paginacionContainer {
+        flex-wrap: wrap !important;
+        gap: 0.25rem !important;
+        justify-content: center !important;
+        padding: 0.5rem 0 !important;
+    }
+    #paginacionContainer .btn {
+        font-size: 0.7rem !important;
+        padding: 0.2rem 0.6rem !important;
+        min-height: 30px !important;
+        border-radius: 20px !important;
+    }
+    #paginacionContainer .text-muted {
+        font-size: 0.7rem !important;
+    }
+    #paginacionContainer .fw-semibold {
+        font-size: 0.8rem !important;
+    }
+
+    /* Modal de reporte */
+    #modalActualizarEstado .modal-body {
+        padding: 0.75rem !important;
+    }
+    #modalActualizarEstado .row.g-2 {
+        flex-direction: column !important;
+        gap: 0.25rem !important;
+    }
+    #modalActualizarEstado .col-7,
+    #modalActualizarEstado .col-3,
+    #modalActualizarEstado .col-2 {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+    #modalActualizarEstado .input-group-sm {
+        flex-wrap: nowrap !important;
+    }
+    #modalActualizarEstado .form-control,
+    #modalActualizarEstado .form-select {
+        font-size: 0.8rem !important;
+        padding: 0.25rem 0.5rem !important;
+        min-height: 32px !important;
+    }
+    #modalActualizarEstado .btn {
+        font-size: 0.85rem !important;
+        min-height: 36px !important;
+    }
+    #modalActualizarEstado canvas {
+        height: 100px !important;
+    }
+    #modalActualizarEstado .repuesto-item .col-7,
+    #modalActualizarEstado .repuesto-item .col-3,
+    #modalActualizarEstado .repuesto-item .col-2 {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+        margin-bottom: 0.25rem !important;
+    }
+
+    /* Calendario */
+    #calendar {
+        font-size: 0.7rem !important;
+    }
+    .fc .fc-toolbar {
+        flex-wrap: wrap !important;
+        gap: 0.25rem !important;
+        font-size: 0.8rem !important;
+    }
+    .fc .fc-toolbar-title {
+        font-size: 0.9rem !important;
+    }
+    .fc .fc-button {
+        font-size: 0.7rem !important;
+        padding: 0.15rem 0.5rem !important;
+        min-height: 28px !important;
+    }
+    .fc .fc-daygrid-day-number {
+        font-size: 0.7rem !important;
+    }
+    .fc .fc-timegrid-slot-label {
+        font-size: 0.6rem !important;
+    }
+}
+
 @media (max-width: 768px) {
-  .stat-card .stat-number {
-    font-size: 1.6rem;
+    .filtros-container {
+        padding: 0.5rem !important;
+        border-radius: 12px !important;
+    }
+}
+
+/* ===== TÉCNICO - MEJORAS RESPONSIVE ===== */
+
+/* Estadísticas */
+@media (max-width: 576px) {
+  #statsContainer .col-6 {
+    flex: 0 0 50% !important;
+    max-width: 50% !important;
+    padding: 0.15rem !important;
   }
+  .stat-card {
+    padding: 0.5rem !important;
+    gap: 0.3rem !important;
+    border-radius: 10px !important;
+  }
+  .stat-card .stat-icon {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.8rem !important;
+  }
+  .stat-card .stat-number {
+    font-size: 1rem !important;
+  }
+  .stat-card .stat-label {
+    font-size: 0.5rem !important;
+  }
+}
+
+/* Tarjetas de citas */
+@media (max-width: 576px) {
+  .cita-card {
+    padding: 0.5rem !important;
+    font-size: 0.8rem !important;
+    border-left-width: 4px !important;
+  }
+  .cita-card .cita-cliente {
+    font-size: 0.85rem !important;
+  }
+  .cita-card .cita-hora {
+    font-size: 0.8rem !important;
+  }
+  .cita-card .cita-direccion {
+    font-size: 0.7rem !important;
+  }
+  .cita-card .badge-estado {
+    font-size: 0.6rem !important;
+    padding: 0.15rem 0.5rem !important;
+  }
+  .cita-card .btn-sm {
+    font-size: 0.65rem !important;
+    padding: 0.1rem 0.4rem !important;
+    min-height: 28px !important;
+  }
+  .cita-card .cita-telefono {
+    font-size: 0.7rem !important;
+  }
+}
+
+/* Filtros */
+@media (max-width: 576px) {
   .filtros-container {
-    padding: 1rem;
+    padding: 0.5rem !important;
   }
   .filtros-container .row > div {
-    margin-bottom: 0.5rem;
+    padding: 0.15rem !important;
+  }
+  .filtros-container .form-select,
+  .filtros-container .form-control {
+    font-size: 0.8rem !important;
+    padding: 0.25rem 0.6rem !important;
+    min-height: 32px !important;
+  }
+}
+
+/* Paginación */
+@media (max-width: 576px) {
+  #paginacionContainer {
+    flex-wrap: wrap !important;
+    gap: 0.25rem !important;
+    justify-content: center !important;
+  }
+  #paginacionContainer .btn {
+    font-size: 0.7rem !important;
+    padding: 0.2rem 0.6rem !important;
+    min-height: 30px !important;
   }
 }
