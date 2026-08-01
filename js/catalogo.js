@@ -470,7 +470,7 @@ document.getElementById('btnEnviarResena')?.addEventListener('click', async () =
         document.getElementById('formResenaSection').style.display = 'none';
         document.getElementById('comentarioResena').value = '';
     } catch (error) {
-        Swal.fire('Error', error.message, 'error');
+        UI.error(error.message);
     }
 });
 

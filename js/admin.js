@@ -339,17 +339,9 @@ window.archivarTodosCompletados = async function() {
         return;
     }
 
-    const confirm = await Swal.fire({
-        title: `Archivar ${completadosCancelados.length} pedidos`,
-        text: 'Estos pedidos desaparecerán de tu lista principal pero seguirán contando en las estadísticas.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, archivar todos',
-        cancelButtonText: 'Cancelar'
-    });
+    const confirmado = await UI.confirmar(`Archivar ${completadosCancelados.length} pedidos`, 'Estos pedidos desaparecerán de tu lista principal pero seguirán contando en las estadísticas.', 'Sí, archivar todos', '#6c757d');
 
-    if (confirm.isConfirmed) {
+    if (confirmado) {
         let ids = completadosCancelados.map(p => p.idPedido);
         let archivadosActuales = obtenerArchivados();
         let nuevosArchivados = [...new Set([...archivadosActuales, ...ids])];
@@ -1069,7 +1061,7 @@ async function guardarProducto(event) {
         if (error.message.includes('403')) {
             Swal.fire('Error de permisos', 'No tienes permisos para realizar esta acción. Verifica tu rol.', 'error');
         } else {
-            Swal.fire('Error', error.message, 'error');
+            UI.error(error.message);
         }
     } finally {
         submitBtn.disabled = false;
@@ -1120,7 +1112,7 @@ async function eliminarProducto(id) {
             renderProductos();
             Swal.fire('Eliminado', 'Equipo retirado del catálogo.', 'success');
         } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            UI.error(error.message);
         }
     }
 }
@@ -1180,7 +1172,7 @@ async function guardarCategoria(event) {
         renderCategorias();
         Swal.fire({ icon: 'success', title: 'Agregada', text: 'Clasificación guardada con éxito.', toast: true, position: 'top-end', timer: 3000 });
     } catch (error) {
-        Swal.fire('Error', error.message, 'error');
+        UI.error(error.message);
     }
 }
 
@@ -1200,7 +1192,7 @@ async function guardarCategoriaEdicion(event) {
         renderCategorias();
         Swal.fire({ icon: 'success', title: 'Actualizada', text: 'La categoría se modificó correctamente.', toast: true, position: 'top-end', timer: 3000 });
     } catch (error) {
-        Swal.fire('Error', error.message, 'error');
+        UI.error(error.message);
     }
 }
 
@@ -1212,7 +1204,7 @@ async function eliminarCategoria(id) {
             renderCategorias();
             Swal.fire('Eliminada', 'La categoría ha sido removida.', 'success');
         } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            UI.error(error.message);
         }
     }
 }
@@ -1411,7 +1403,7 @@ window.cambiarEstadoPedido = async function(id, nuevoEstado) {
         });
         renderPedidos();
     } catch (error) {
-        Swal.fire('Error', error.message, 'error');
+        UI.error(error.message);
     }
 };
 
@@ -1474,7 +1466,7 @@ async function exportarPedidosConFiltros() {
         bootstrap.Modal.getInstance(document.getElementById('modalFiltrosExcel')).hide();
     } catch (error) {
         Swal.close();
-        Swal.fire('Error', error.message, 'error');
+        UI.error(error.message);
     }
 }
 
@@ -1542,17 +1534,9 @@ window.cambiarRolUsuario = async function(idUsuario, nuevoRol) {
     }
 
     // 3. Confirmar el cambio
-    const confirm = await Swal.fire({
-        title: 'Cambiar rol',
-        text: `¿Estás seguro de cambiar el rol de "${usuario.nombre || usuario.nombres || 'Usuario'}" de "${usuario.rol}" a "${nuevoRol}"?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#0d6efd',
-        confirmButtonText: 'Sí, cambiar',
-        cancelButtonText: 'Cancelar'
-    });
+    const confirmado = await UI.confirmar('Cambiar rol', `¿Estás seguro de cambiar el rol de "${usuario.nombre || usuario.nombres || 'Usuario'}" de "${usuario.rol}" a "${nuevoRol}"?`, 'Sí, cambiar', '#0d6efd');
 
-    if (!confirm.isConfirmed) {
+    if (!confirmado) {
         renderUsuarios(); // Resetear el select
         return;
     }
@@ -1584,7 +1568,7 @@ window.cambiarRolUsuario = async function(idUsuario, nuevoRol) {
         });
         renderUsuarios();
     } catch (error) {
-        Swal.fire('Error', error.message, 'error');
+        UI.error(error.message);
         renderUsuarios();
     }
 };
@@ -1598,7 +1582,7 @@ window.toggleUsuarioEstado = async (id, nuevoEstado) => {
             renderUsuarios();
             Swal.fire({ icon: 'success', title: 'Actualizado', text: `Usuario ${action.toLowerCase()}do con éxito.`, toast: true, position: 'top-end', timer: 2000 });
         } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            UI.error(error.message);
         }
     }
 };
@@ -1673,7 +1657,7 @@ window.asignarTecnico = async function(idSolicitud) {
         renderSolicitudes();
         actualizarContadoresAdmin();
     } catch (error) {
-        Swal.fire('Error', error.message, 'error');
+        UI.error(error.message);
     }
 };
 
@@ -2141,7 +2125,7 @@ window.abrirModalRepuesto = function(id = null) {
                         return;
                     }
                 } catch (error) {
-                    Swal.fire('Error', error.message, 'error');
+                    UI.error(error.message);
                 }
             })();
             return;
@@ -2167,7 +2151,7 @@ window.eliminarRepuesto = async function(id) {
             Swal.fire('Eliminado', 'Material retirado.', 'success');
             renderInventario();
         } catch (error) {
-            Swal.fire('Error', error.message, 'error');
+            UI.error(error.message);
         }
     }
 };
@@ -2228,7 +2212,7 @@ async function guardarRepuesto(event) {
         bsModalRepuesto.hide();
         renderInventario();
     } catch (error) {
-        Swal.fire('Error', error.message, 'error');
+        UI.error(error.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar en Almacén';

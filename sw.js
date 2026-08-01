@@ -6,7 +6,9 @@ const urlsToCache = [
   './css/main.css',
   './js/auth.js',
   './js/api.js',
-  './js/admin.js'
+  './js/admin.js',
+  './js/componentes.js',
+  './css/responsive.css'
 ];
 
 // Instalar y forzar activación inmediata

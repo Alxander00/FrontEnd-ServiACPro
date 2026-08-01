@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.location.href = 'login.html';
                 });
             } catch (error) {
-                Swal.fire('Error', error.message, 'error');
+                UI.error(error.message);
                 btn.disabled = false;
                 btn.innerHTML = 'Restablecer contraseña';
             }

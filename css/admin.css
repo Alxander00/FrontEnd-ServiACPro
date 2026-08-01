@@ -775,3 +775,17 @@ body {
     font-size: 0.7rem !important;
   }
 }
+
+/* ========================================= */
+/* RESPONSIVE: GRÁFICOS DEL DASHBOARD        */
+/* ========================================= */
+@media (max-width: 768px) {
+    canvas#ventasChart, 
+    canvas#productosChart {
+        height: 250px !important;
+        width: 100% !important;
+    }
+    .card-body canvas {
+        max-width: 100%;
+    }
+}

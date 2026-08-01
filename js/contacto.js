@@ -61,6 +61,6 @@ async function enviarSolicitud(e) {
         e.target.reset();
         gestionarCalendario();
     } catch (error) {
-        Swal.fire('Error', error.message, 'error');
+        UI.error(error.message);
     }
 }

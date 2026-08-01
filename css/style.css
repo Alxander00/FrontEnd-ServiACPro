@@ -351,3 +351,209 @@ img {
         min-height: 36px !important;
     }
 }
+
+/* =========================================================
+   MEJORAS PREMIUM PARA EL INICIO (INDEX.HTML)
+   ========================================================= */
+
+/* 1. Tarjetas de Servicios y Productos (Efecto flotante tipo App) */
+.service-card, .product-card {
+    border: none !important;
+    border-radius: 24px !important; /* Esquinas más redondas para móviles */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+    background: #ffffff;
+}
+
+.service-card:hover, .product-card:hover {
+    transform: translateY(-8px) !important;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.12) !important;
+}
+
+/* 2. Sección Hero (Imagen principal) */
+.hero-section {
+    position: relative;
+    border-bottom-left-radius: 40px; /* Le da un toque curvo moderno abajo */
+    border-bottom-right-radius: 40px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+/* 3. Botones en el Hero para Celular */
+@media (max-width: 768px) {
+    .hero-section {
+        min-height: 65vh !important; /* En celular no necesitamos que ocupe tanto alto */
+        border-bottom-left-radius: 30px;
+        border-bottom-right-radius: 30px;
+        padding: 3rem 1rem !important;
+    }
+    
+    .hero-section .display-4 {
+        font-size: 2.2rem !important; /* Ajustar texto principal */
+        line-height: 1.2;
+    }
+    
+    .hero-section .d-flex {
+        flex-direction: column;
+        gap: 12px !important;
+    }
+    
+    .hero-section .btn {
+        width: 100%;
+        border-radius: 30px;
+        padding: 14px !important;
+        font-size: 1.1rem !important;
+    }
+}
+
+/* =========================================================
+   ESTILOS PARA EL FOOTER PREMIUM
+   ========================================================= */
+.footer-premium {
+    border-top-left-radius: 40px;
+    border-top-right-radius: 40px;
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
+}
+
+.footer-link {
+    transition: all 0.3s ease;
+    position: relative;
+    display: inline-block;
+}
+
+.footer-link:hover {
+    color: #00d4ff !important;
+    transform: translateX(8px); /* Efecto de moverse un poco a la derecha */
+}
+
+.social-icons .btn {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.social-icons .btn:hover {
+    transform: translateY(-5px); /* Efecto de saltar hacia arriba */
+    box-shadow: 0 8px 20px rgba(0,212,255,0.4);
+    background-color: #00d4ff !important;
+    border-color: #00d4ff !important;
+    color: #000 !important;
+}
+
+/* Ajustes para móviles */
+@media (max-width: 768px) {
+    .footer-premium {
+        border-top-left-radius: 30px;
+        border-top-right-radius: 30px;
+    }
+    .footer-link:hover {
+        transform: translateX(0); /* Evitar desplazamientos incómodos al tocar en celular */
+    }
+}
+
+/* ===== DISEÑO MINIMALISTA TECH/GAMER ===== */
+.product-card {
+    background-color: #ffffff !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    transition: border-color 0.2s ease, transform 0.2s ease !important;
+}
+.product-card:hover {
+    border-color: #0d6efd !important;
+    transform: translateY(-4px) !important;
+}
+.badge-tech {
+    background-color: #ffc107;
+    color: #000;
+    font-weight: 800;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+
+/* =========================================================
+   NAVBAR PREMIUM 2.0 (Fija y Ultra Moderna)
+   ========================================================= */
+.navbar-premium {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(13, 110, 253, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1050 !important;
+    padding: 12px 0;
+    transition: all 0.3s ease;
+}
+
+/* Diseño del Logo tipo App */
+.brand-logo-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+}
+
+.brand-icon-box {
+    background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+    color: white;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 1.3rem;
+    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
+}
+
+.brand-text {
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: #1e293b;
+    letter-spacing: -0.5px;
+    margin: 0;
+}
+
+.brand-text span {
+    color: #0d6efd;
+}
+
+/* Enlaces del menú tipo píldora */
+.nav-link-premium {
+    font-weight: 600;
+    color: #64748b !important;
+    padding: 8px 18px !important;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    margin: 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-link-premium:hover,
+.nav-link-premium.active {
+    background: rgba(13, 110, 253, 0.08);
+    color: #0d6efd !important;
+}
+
+/* Botón Hamburguesa elegante para Móvil */
+.toggler-premium {
+    border: none !important;
+    background: #f8faff;
+    box-shadow: 0 2px 8px rgba(13, 110, 253, 0.1);
+    border-radius: 10px;
+    padding: 8px 12px;
+    color: #0d6efd;
+}
+.toggler-premium:focus {
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.3) !important;
+}

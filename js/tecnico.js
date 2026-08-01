@@ -401,13 +401,23 @@ function renderizarCalendario(citas) {
         };
     });
 
+    const esMovil = window.innerWidth < 768;
     calendar = new FullCalendar.Calendar(calendarEl, {
         locale: 'es',
-        initialView: 'timeGridWeek',
+        // Si es celular muestra una lista, si es PC muestra la semana
+        initialView: esMovil ? 'listWeek' : 'timeGridWeek',
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            right: esMovil ? 'listWeek,timeGridDay' : 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        // Escucha si el usuario voltea el celular o achica la ventana
+        windowResize: function(arg) {
+            if (window.innerWidth < 768) {
+                calendar.changeView('listWeek');
+            } else {
+                calendar.changeView('timeGridWeek');
+            }
         },
         buttonText: {
             today: 'Hoy',
@@ -735,17 +745,12 @@ async function guardarEstadoCita(event) {
             throw new Error(errorData || 'Error al guardar el reporte');
         }
 
-        Swal.fire({
-            icon: 'success',
-            title: '¡Reporte Guardado!',
-            text: 'Las evidencias y el estado se han guardado exitosamente.',
-            confirmButtonColor: '#0d6efd'
-        });
+        UI.exito('¡Reporte Guardado!', 'Las evidencias y el estado se han guardado exitosamente.');
 
         bsModalEstado.hide();
         await cargarCitas(currentPage);
     } catch (error) {
-        Swal.fire('Error', error.message, 'error');
+        UI.error(error.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = txtOriginal;
@@ -941,16 +946,8 @@ function agregarFilaRepuesto() {
 // ELIMINAR CITA (completada)
 // ==========================================
 window.eliminarCita = async function(idCita) {
-    const confirm = await Swal.fire({
-        title: '¿Eliminar esta cita?',
-        text: 'Esta acción no se puede deshacer.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    });
-    if (!confirm.isConfirmed) return;
+    const confirmado = await UI.confirmar('¿Eliminar esta cita?', 'Esta acción no se puede deshacer.', 'Sí, eliminar', '#dc3545');
+    if (!confirmado) return;
 
     try {
         const token = Auth.getToken();
@@ -967,17 +964,10 @@ window.eliminarCita = async function(idCita) {
             throw new Error('Error al eliminar la cita');
         }
 
-        Swal.fire({
-            icon: 'success',
-            title: 'Cita eliminada',
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 2000
-        });
+        UI.exitoToast('Cita eliminada');
         await cargarCitas(currentPage);
     } catch (error) {
-        Swal.fire('Error', error.message, 'error');
+        UI.error(error.message);
     }
 };
 

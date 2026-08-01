@@ -512,28 +512,13 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 
 window.ocultarItem = function (tipo, id) {
-    Swal.fire({
-        title: '¿Archivar registro?',
-        text: 'Desaparecerá de tu historial principal para mantenerlo limpio.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, archivar',
-        cancelButtonText: 'Cancelar',
-    }).then((result) => {
-        if (result.isConfirmed) {
+        UI.confirmar('¿Archivar registro?', 'Desaparecerá de tu historial principal para mantenerlo limpio.', 'Sí, archivar', '#6c757d').then((confirmado) => {
+        if (confirmado) {
             let ocultos = JSON.parse(localStorage.getItem('climapro_archivados') || '{}');
             if (!ocultos[tipo]) ocultos[tipo] = [];
             ocultos[tipo].push(id);
             localStorage.setItem('climapro_archivados', JSON.stringify(ocultos));
-            Swal.fire({
-                icon: 'success',
-                title: 'Archivado',
-                toast: true,
-                position: 'top-end',
-                timer: 2000,
-                showConfirmButton: false,
-            });
+            UI.exitoToast('Archivado');
             paginas[tipo] = 0;
             mostrarSeccion(tipo);
             actualizarContadoresCliente();
@@ -1561,15 +1546,10 @@ window.actualizarDatos = async function (event) {
         localStorage.setItem('climapro_user', JSON.stringify(updatedUser));
         if (typeof actualizarNavAuth === 'function') actualizarNavAuth();
         await cargarDatosLateral();
-        Swal.fire({
-            icon: 'success',
-            title: 'Perfil actualizado',
-            text: 'Tus datos se guardaron correctamente.',
-            confirmButtonColor: '#0d6efd',
-        });
+        UI.exito('Perfil actualizado', 'Tus datos se guardaron correctamente.');
         await mostrarSeccion('dashboard');
     } catch (error) {
-        Swal.fire('Error', error.message, 'error');
+        UI.error(error.message);
     } finally {
         btnSubmit.disabled = false;
         btnSubmit.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Cambios';

@@ -463,3 +463,33 @@ img {
 #authButtons .dropdown .btn > * {
     flex: 0 0 auto !important; /* Evita que el avatar y el texto vuelvan a estirarse */
 }
+
+/* =========================================================
+   AJUSTES ESPECÍFICOS PARA EL CARRITO Y CHECKOUT MÓVIL
+   ========================================================= */
+@media (max-width: 576px) {
+    /* Acomodar imagen y título del producto en el carrito */
+    .table td[data-label="Producto"] .d-flex {
+        flex-direction: column !important;
+        align-items: flex-end !important;
+        text-align: right !important;
+    }
+    .table td[data-label="Producto"] img {
+        width: 80px !important;
+        height: 80px !important;
+        margin-bottom: 8px;
+    }
+    
+    /* Ajustar los botones de cantidad (+ y -) */
+    .table td[data-label="Cantidad"] .d-inline-flex {
+        justify-content: center !important;
+        width: 100%;
+        margin-top: 5px;
+    }
+
+    /* Mapa del checkout 100% táctil */
+    #mapaCheckout {
+        height: 300px !important;
+        width: 100% !important;
+    }
+}

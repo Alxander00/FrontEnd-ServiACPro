@@ -99,6 +99,11 @@ function initMapa() {
     if (user && user.latitud && user.longitud) {
         obtenerDireccion(parseFloat(user.latitud), parseFloat(user.longitud));
     }
+    
+    // 1️⃣1️⃣ Forzar redibujado del mapa en celulares para evitar bordes grises
+    setTimeout(() => {
+        mapCheckout.invalidateSize();
+    }, 500);
 }
 
 // Función para transformar las coordenadas en una dirección en texto (Geocodificación Inversa)

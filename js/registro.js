@@ -127,18 +127,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await Auth.register(userData);
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Cuenta creada!',
-                    text: 'Tu registro ha sido exitoso. Por favor, inicia sesión.',
-                    confirmButtonColor: '#0d6efd'
-                }).then(() => {
+                    UI.exito('¡Cuenta creada!', 'Tu registro ha sido exitoso. Por favor, inicia sesión.').then(() => {
                     window.location.href = 'login.html';
                 });
             } catch (error) {
                 console.error('Error en registro:', error);
                 // Mostrar el mensaje de error que viene del backend
-                Swal.fire('Error', error.message || 'Error al registrar. Intente de nuevo.', 'error');
+                UI.error(error.message || 'Error al registrar. Intente de nuevo.');
             }
         });
     }

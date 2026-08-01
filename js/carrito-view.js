@@ -3,12 +3,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const user = Auth.getUser();
     if (user && user.rol !== 'CLIENTE') {
-        Swal.fire({
-            icon: 'error',
-            title: 'Acceso denegado',
-            text: 'Tu cuenta no tiene permisos para usar el carrito de compras.',
-            confirmButtonColor: '#dc3545'
-        }).then(() => {
+            UI.error('Tu cuenta no tiene permisos para usar el carrito de compras.', 'Acceso denegado').then(() => {
             window.location.href = 'index.html';
         });
         return;
@@ -107,18 +102,11 @@ function cambiarCantidad(id, incluyeInstalacion, delta) {
 }
 
 function eliminarItem(id, incluyeInstalacion) {
-    Swal.fire({
-        title: '¿Eliminar producto?',
-        text: "El producto se quitará del carrito",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc3545',
-        confirmButtonText: 'Sí, eliminar'
-    }).then((result) => {
-        if (result.isConfirmed) {
+    UI.confirmar('¿Eliminar producto?', 'El producto se quitará del carrito', 'Sí, eliminar', '#dc3545').then((confirmado) => {
+        if (confirmado) {
             Carrito.removeItem(id, incluyeInstalacion);
             renderizarCarrito();
-            Swal.fire('Eliminado', 'Producto eliminado del carrito', 'success');
+            UI.exitoToast('Eliminado', 'Producto eliminado del carrito');
         }
     });
 }

@@ -19,12 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Redirigir según el rol (esto ya lo maneja main.js al recargar)
                 window.location.href = 'index.html';
             } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Acceso Denegado',
-                    text: error.message || 'Error al iniciar sesión. Verifica tus credenciales.',
-                    confirmButtonColor: '#dc3545'
-                });
+                UI.error(error.message || 'Error al iniciar sesión.', 'Acceso Denegado');
+                
                 btn.disabled = false;
                 btn.innerHTML = originalText;
             }
