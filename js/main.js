@@ -1,51 +1,7 @@
 // js/main.js
 
-// ========== MODO OSCURO ==========
-function initDarkMode() {
-    const darkMode = localStorage.getItem('darkMode') === 'true';
-    if (darkMode) {
-        document.body.classList.add('dark-mode');
-    } else {
-        document.body.classList.remove('dark-mode');
-    }
-    const btn = document.getElementById('darkModeToggle');
-    if (btn) {
-        btn.innerHTML = darkMode ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-        btn.title = darkMode ? 'Modo claro' : 'Modo oscuro';
-    }
-}
-
-function toggleDarkMode() {
-    const isDark = document.body.classList.toggle('dark-mode');
-    localStorage.setItem('darkMode', isDark);
-    const btn = document.getElementById('darkModeToggle');
-    if (btn) {
-        btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-        btn.title = isDark ? 'Modo claro' : 'Modo oscuro';
-    }
-}
-
-function crearBotonDarkMode() {
-    if (document.getElementById('darkModeToggle')) return;
-    const btn = document.createElement('button');
-    btn.id = 'darkModeToggle';
-    btn.className = 'btn btn-sm btn-outline-secondary rounded-circle me-2';
-    btn.style.width = '36px';
-    btn.style.height = '36px';
-    btn.addEventListener('click', toggleDarkMode);
-    
-    const cartLink = document.querySelector('a[href="carrito.html"]');
-    if (cartLink && cartLink.parentNode) {
-        cartLink.parentNode.insertBefore(btn, cartLink);
-    } else {
-        console.warn('No se pudo encontrar el carrito para el botón de modo oscuro');
-    }
-}
-
 // ========== NAVBAR Y AUTENTICACIÓN ==========
 document.addEventListener('DOMContentLoaded', () => {
-    crearBotonDarkMode();
-    initDarkMode();
     actualizarNavAuth();
     
     if (typeof Carrito !== 'undefined') {
@@ -56,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function actualizarNavAuth() {
     const authContainer = document.getElementById('authButtons');
     const cartIcon = document.querySelector('a[href="carrito.html"]');
+    const btnCuentaMovil = document.getElementById('btnCuentaMovil');
     
     if (!authContainer) return;
     
@@ -88,18 +45,35 @@ function actualizarNavAuth() {
             iconoMenu = '<i class="fas fa-user me-2"></i>';
         }
         
+        if (btnCuentaMovil) btnCuentaMovil.href = destino; 
+        
         const iniciales = (user.nombre ? user.nombre.charAt(0).toUpperCase() : 'U') + 
                          (user.apellido ? user.apellido.charAt(0).toUpperCase() : '');
         
-        // ✅ La campana se inserta dentro de authContainer como elemento inline
         let notificacionesHtml = '';
         if (user.rol === 'TECNICO') {
-            notificacionesHtml = `<div id="notificacionesContainer" style="display:inline-block; margin-right: 8px;"></div>`;
+            notificacionesHtml = `<div id="notificacionesContainer" class="d-none d-lg-inline-block me-2"></div>`;
         }
         
         authContainer.innerHTML = `
             ${notificacionesHtml}
-            <div class="dropdown" style="display:inline-block;">
+
+            <!-- 📱 DISEÑO MÓVIL (Menú hamburguesa) -->
+            <div class="d-lg-none w-100" style="padding-bottom: 90px;">
+                <div class="text-center mb-3">
+                    <span class="d-block fw-bold text-dark">¡Hola, ${user.nombre}!</span>
+                    <span class="small text-muted">${user.email}</span>
+                </div>
+                <a href="${destino}" class="btn btn-outline-${colorRol} w-100 mb-2 rounded-pill fw-semibold">
+                    ${iconoMenu} Mi Panel
+                </a>
+                <button onclick="Auth.logout()" class="btn btn-danger w-100 rounded-pill fw-semibold">
+                    <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+                </button>
+            </div>
+
+            <!-- 💻 DISEÑO PC (Burbuja elegante con Dropdown) -->
+            <div class="dropdown d-none d-lg-inline-block">
                 <button class="btn btn-light rounded-pill dropdown-toggle d-flex align-items-center gap-2 shadow-sm border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: white; padding: 5px 12px;">
                     <div class="rounded-circle bg-${colorRol} bg-opacity-10 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
                         <span class="fw-bold text-${colorRol}" style="font-size: 0.85rem;">${iniciales}</span>
@@ -118,9 +92,18 @@ function actualizarNavAuth() {
         `;
     } else {
         if (cartIcon) cartIcon.style.display = 'inline-block';
+        if (btnCuentaMovil) btnCuentaMovil.href = 'login.html';
+        
         authContainer.innerHTML = `
-            <a href="login.html" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">Iniciar Sesión</a>
-            <a href="registro.html" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold">Registrarse</a>
+            <!-- 📱 DISEÑO MÓVIL (Con tu margen de seguridad en píxeles) -->
+            <div class="d-lg-none w-100" style="padding-bottom: 90px;">
+                <a href="login.html" class="btn btn-outline-primary w-100 mb-2 rounded-pill fw-semibold py-2">Iniciar Sesión</a>
+                <a href="registro.html" class="btn btn-primary w-100 rounded-pill fw-semibold py-2">Crear Cuenta Gratis</a>
+            </div>
+            
+            <!-- 💻 DISEÑO PC -->
+            <a href="login.html" class="btn btn-outline-primary d-none d-lg-inline-block rounded-pill px-4 fw-semibold">Iniciar Sesión</a>
+            <a href="registro.html" class="btn btn-primary d-none d-lg-inline-block rounded-pill px-4 fw-semibold">Registrarse</a>
         `;
     }
 }

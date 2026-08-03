@@ -557,3 +557,130 @@ img {
 .toggler-premium:focus {
     box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.3) !important;
 }
+
+/* =========================================================
+   MEJORAS HERO SECTION (MÓVIL Y PC)
+   ========================================================= */
+.hero-section {
+    position: relative;
+    border-bottom-left-radius: 40px;
+    border-bottom-right-radius: 40px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    /* Oscurecemos un poco el fondo para que el texto blanco resalte más */
+    background: linear-gradient(rgba(10, 25, 47, 0.7), rgba(10, 25, 47, 0.8)), url("../img/breezeless_ambiente.png") no-repeat center center/cover !important;
+}
+
+.hero-btns-container .btn {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hero-btns-container .btn:hover {
+    transform: translateY(-3px);
+}
+
+/* Reglas exclusivas para pantallas de celular */
+@media (max-width: 768px) {
+    .hero-section {
+        min-height: 55vh !important;
+        padding: 3rem 1.5rem !important;
+        border-bottom-left-radius: 24px;
+        border-bottom-right-radius: 24px;
+    }
+    
+    .hero-title {
+        font-size: 2rem !important;
+        line-height: 1.2;
+        letter-spacing: -0.5px;
+    }
+    
+    .hero-subtitle {
+        font-size: 0.95rem !important;
+        opacity: 0.9;
+    }
+    
+    .hero-btns-container {
+        flex-direction: column;
+        width: 100%;
+        gap: 12px !important;
+    }
+    
+    .hero-btns-container .btn {
+        width: 100% !important;
+        padding: 14px !important;
+        font-size: 1.05rem !important;
+    }
+}
+
+/* ===== CARRUSEL DE PRODUCTOS - INICIO ===== */
+.carousel-movil {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 15px;
+    padding-bottom: 15px;
+    -ms-overflow-style: none;  /* IE y Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+/* Ocultar barra de scroll en Chrome/Safari */
+.carousel-movil::-webkit-scrollbar {
+    display: none;
+}
+
+.carousel-movil .carousel-item-card {
+    flex: 0 0 70%; /* En celular ocupa el 70% para que se asome la siguiente tarjeta */
+    scroll-snap-align: center;
+}
+
+/* En PC mostramos 3 tarjetas al mismo tiempo */
+@media (min-width: 768px) {
+    .carousel-movil .carousel-item-card {
+        flex: 0 0 30%;
+    }
+}
+
+/* =========================================
+   CARRUSEL Y TARJETAS DE ALTURA PERFECTA
+   ========================================= */
+
+/* 1. Obligar al carrusel a estirar todas las tarjetas a la misma altura */
+.carrusel-oculto {
+    display: flex !important;
+    align-items: stretch !important; /* EL SECRETO PARA IGUALAR ALTURAS */
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
+}
+.carrusel-oculto::-webkit-scrollbar {
+    display: none !important;
+}
+
+/* 2. Hacer que la columna sea flexible para que la tarjeta crezca */
+.tarjeta-dinamica {
+    width: 75%;
+    display: flex !important; /* El secreto para igualar alturas */
+}
+
+@media (min-width: 768px) {
+    .tarjeta-dinamica {
+        width: 32%;
+    }
+}
+
+/* 3. Forzar que la tarjeta ocupe el 100% del espacio disponible */
+.tarjeta-dinamica .card {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 4. El título SIEMPRE medirá 2 líneas, aunque solo tenga una palabra */
+.titulo-producto-uniforme {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    min-height: 2.8em !important;
+    margin-bottom: 0.5rem;
+}

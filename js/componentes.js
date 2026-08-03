@@ -7,13 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
                 <div class="container d-flex justify-content-between align-items-center">
                     
-                    <a class="navbar-brand fw-bold fs-4 me-auto" href="index.html">ServiA<span class="text-info">CPro</span></a>
+                    <a class="navbar-brand fw-bold fs-4 me-auto" href="index.html">ServiA<span class="text-primary">CPro</span></a>
                     
                     <div class="d-flex align-items-center flex-nowrap d-lg-none" style="gap: 15px;">
-                        <a href="carrito.html" class="position-relative text-dark text-decoration-none fs-5" id="cartIconMobile" style="display: none;">
-                            <i class="fas fa-shopping-cart"></i>
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info cart-count" style="display: none; font-size: 0.65rem;">0</span>
-                        </a>
                         <button class="navbar-toggler border-0 p-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral">
                             <span class="navbar-toggler-icon"></span>
                         </button>
@@ -21,50 +17,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     <div class="offcanvas-lg offcanvas-start flex-grow-1" tabindex="-1" id="menuLateral">
                         <div class="offcanvas-header border-bottom d-lg-none">
-                            <h5 class="offcanvas-title fw-bold text-uppercase" style="letter-spacing: 1px;">Menú</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+                            <h5 class="offcanvas-title fw-bold text-uppercase text-primary" style="letter-spacing: 1px;">Opciones</h5>
+                            <!-- 🚨 AQUÍ REPARAMOS LA X (agregamos data-bs-target) -->
+                            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#menuLateral" aria-label="Cerrar"></button>
                         </div>
                         
-                        <div class="offcanvas-body p-0 p-lg-2 align-items-center">
-                            <ul class="navbar-nav mx-auto menu-movil-lista">
-                                <li class="nav-item border-bottom border-lg-0">
-                                    <a class="nav-link d-flex justify-content-between align-items-center p-3 p-lg-2" href="index.html">
-                                        <span><i class="fas fa-home text-muted me-3 d-lg-none"></i>Inicio</span>
-                                        <i class="fas fa-chevron-right text-muted small d-lg-none"></i>
-                                    </a>
-                                </li>
-                                <li class="nav-item border-bottom border-lg-0">
-                                    <a class="nav-link d-flex justify-content-between align-items-center p-3 p-lg-2" href="nosotros.html">
-                                        <span><i class="fas fa-users text-muted me-3 d-lg-none"></i>Nosotros</span>
-                                        <i class="fas fa-chevron-right text-muted small d-lg-none"></i>
-                                    </a>
-                                </li>
-                                <li class="nav-item border-bottom border-lg-0">
-                                    <a class="nav-link d-flex justify-content-between align-items-center p-3 p-lg-2" href="catalogo.html">
-                                        <span><i class="fas fa-store text-muted me-3 d-lg-none"></i>Catálogo</span>
-                                        <i class="fas fa-chevron-right text-muted small d-lg-none"></i>
-                                    </a>
-                                </li>
-                                <li class="nav-item border-bottom border-lg-0">
-                                    <a class="nav-link d-flex justify-content-between align-items-center p-3 p-lg-2" href="calculadora.html">
-                                        <span><i class="fas fa-calculator text-muted me-3 d-lg-none"></i>Asistente Inteligente</span>
-                                        <i class="fas fa-chevron-right text-muted small d-lg-none"></i>
-                                    </a>
-                                </li>
-                                <li class="nav-item border-bottom border-lg-0">
-                                    <a class="nav-link d-flex justify-content-between align-items-center p-3 p-lg-2" href="contacto.html">
-                                        <span><i class="fas fa-envelope text-muted me-3 d-lg-none"></i>Contacto</span>
-                                        <i class="fas fa-chevron-right text-muted small d-lg-none"></i>
-                                    </a>
-                                </li>
+                        <div class="offcanvas-body p-0 p-lg-2 d-flex flex-column flex-lg-row align-items-lg-center">
+                            
+                            <ul class="navbar-nav mx-auto d-none d-lg-flex">
+                                <li class="nav-item"><a class="nav-link fw-semibold px-3" href="index.html">Inicio</a></li>
+                                <li class="nav-item"><a class="nav-link fw-semibold px-3" href="catalogo.html">Catálogo</a></li>
+                                <li class="nav-item"><a class="nav-link fw-semibold px-3" href="calculadora.html">Asistente Inteligente</a></li>
+                                <li class="nav-item"><a class="nav-link fw-semibold px-3" href="nosotros.html">Nosotros</a></li>
+                                <li class="nav-item"><a class="nav-link fw-semibold px-3" href="contacto.html">Contacto</a></li>
                             </ul>
-                            
-                            <div class="mt-auto mt-lg-0 p-3 p-lg-0 bg-light bg-transparent border-top border-lg-0 d-flex align-items-center gap-3 justify-content-center" id="authButtons">
+
+                            <div class="d-lg-none w-100">
+                                <div class="p-3 bg-light border-bottom text-muted fw-bold small text-uppercase" style="letter-spacing: 1px;">
+                                    Soporte
                                 </div>
+                                <ul class="list-group list-group-flush border-bottom">
+                                    <a href="#" class="list-group-item list-group-item-action border-0 py-3 d-flex justify-content-between align-items-center">
+                                        <span><i class="fas fa-question-circle text-primary me-3"></i>Preguntas Frecuentes</span>
+                                        <i class="fas fa-chevron-right text-muted small"></i>
+                                    </a>
+                                    <a href="#" class="list-group-item list-group-item-action border-0 py-3 d-flex justify-content-between align-items-center">
+                                        <span><i class="fas fa-file-contract text-primary me-3"></i>Términos y Condiciones</span>
+                                        <i class="fas fa-chevron-right text-muted small"></i>
+                                    </a>
+                                </ul>
+                            </div>
                             
+                            <div class="mt-auto mt-lg-0 p-4 p-lg-0 border-top border-lg-0 d-flex flex-column flex-lg-row align-items-lg-center gap-2 gap-lg-3" id="authButtons" style="background-color: transparent;">
+                                <!-- El JS inyecta botones aquí -->
+                            </div>
+                            
+                            <!-- Carrito PC -->
                             <a href="carrito.html" class="position-relative ms-lg-3 mt-3 mt-lg-0 text-dark text-decoration-none fs-5 d-none d-lg-inline-block" id="cartIconDesktop" style="display: none;">
                                 <i class="fas fa-shopping-cart"></i>
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info cart-count" style="display: none; font-size: 0.65rem;">0</span>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count" style="display: none; font-size: 0.65rem;">0</span>
                             </a>
                         </div>
                     </div>
@@ -72,12 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
             </nav>
         `;
 
-        // Le avisamos a los otros scripts que el menú ya está listo
+        // 🚨 AQUÍ MANDAMOS A INYECTAR LA BARRA INFERIOR DE FORMA AUTOMÁTICA
+        inyectarBottomNav();
+        inyectarWhatsApp();
+
         if (typeof actualizarNavAuth === 'function') actualizarNavAuth();
-        if (typeof crearBotonDarkMode === 'function') {
-            crearBotonDarkMode();
-            initDarkMode();
-        }
         if (typeof Carrito !== 'undefined' && typeof Carrito.actualizarContadorCarrito === 'function') {
             Carrito.actualizarContadorCarrito();
         }
@@ -85,71 +75,125 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// INYECCIÓN DEL FOOTER (PIE DE PÁGINA)
+// FUNCIÓN PARA LA BARRA INFERIOR DINÁMICA
+// ==========================================
+function inyectarBottomNav() {
+    const path = window.location.pathname;
+    const isIndex = path.includes('index.html') || path.endsWith('/');
+    const isCatalogo = path.includes('catalogo.html');
+    const isCalculadora = path.includes('calculadora.html');
+    const isCarrito = path.includes('carrito.html');
+    
+    const navHtml = `
+        <div class="bottom-nav-movil d-flex d-md-none">
+            <a href="index.html" class="bottom-nav-item ${isIndex ? 'active' : ''}">
+                <i class="fas fa-home"></i>
+                <span>Inicio</span>
+            </a>
+            <a href="catalogo.html" class="bottom-nav-item ${isCatalogo ? 'active' : ''}">
+                <i class="fas fa-search"></i>
+                <span>Catálogo</span>
+            </a>
+            <a href="calculadora.html" class="bottom-nav-item ${isCalculadora ? 'active' : ''}">
+                <i class="fas fa-calculator"></i>
+                <span>Asistente</span>
+            </a>
+            <a href="login.html" id="btnCuentaMovil" class="bottom-nav-item">
+                <i class="fas fa-user"></i>
+                <span>Cuenta</span>
+            </a>
+            <a href="carrito.html" class="bottom-nav-item position-relative ${isCarrito ? 'active' : ''}">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Carrito</span>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count" style="display: none; font-size: 0.55rem; padding: 0.25em 0.4em; margin-left: -12px;">0</span>
+            </a>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', navHtml);
+}
+
+// ==========================================
+// FUNCIÓN PARA EL BOTÓN FLOTANTE DE WHATSAPP
+// ==========================================
+function inyectarWhatsApp() {
+    // Aquí puedes cambiar el número al tuyo real. Usa el código de país (503) sin el símbolo +
+    const numeroWhatsApp = "50370000000"; 
+    const mensajeAmigable = "¡Hola! Estoy interesado en los servicios de Servi A/C Pro. ¿Me pueden ayudar?";
+    const urlWa = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensajeAmigable)}`;
+
+    const btnWaHtml = `
+        <a href="${urlWa}" target="_blank" class="btn-whatsapp-flotante" title="Habla con un asesor">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', btnWaHtml);
+}
+
+// ==========================================
+// INYECCIÓN DEL FOOTER (ESTILO PREMIUM OSCURO)
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     const footerContainer = document.getElementById('footer-container');
     
     if (footerContainer) {
         footerContainer.innerHTML = `
-            <footer class="footer-premium bg-dark text-white pt-5 pb-3 mt-auto">
-                <div class="container">
-                    <div class="row g-4 mb-4">
+            <footer class="text-white pt-5 pb-4 mt-auto" style="background-color: #111827;">
+                <div class="container text-center text-md-start">
+                    <div class="row">
                         
-                        <div class="col-lg-4 col-md-6 text-center text-md-start">
-                            <h3 class="fw-bold mb-3">ServiA<span class="text-info">CPro</span></h3>
-                            <p class="text-secondary small mb-4">Expertos en soluciones de climatización residencial e industrial. Diseñamos experiencias de bienestar y confort para tu espacio.</p>
-                            <div class="d-flex justify-content-center justify-content-md-start gap-3 social-icons">
-                                <a href="#" class="btn btn-outline-light rounded-circle"><i class="fab fa-facebook-f"></i></a>
-                                <a href="#" class="btn btn-outline-light rounded-circle"><i class="fab fa-instagram"></i></a>
-                                <a href="https://wa.me/50370000000" target="_blank" class="btn btn-success rounded-circle border-0 shadow-sm" style="background-color: #25D366;"><i class="fab fa-whatsapp fs-5"></i></a>
+                        <!-- Logo e Información de Contacto -->
+                        <div class="col-md-4 col-lg-4 col-xl-3 mx-auto mb-4">
+                            <h4 class="text-uppercase fw-bold mb-4 d-flex align-items-center justify-content-center justify-content-md-start">
+                                <i class="fas fa-snowflake text-primary me-2"></i>ServiA/CPro
+                            </h4>
+                            <p class="text-white-50" style="font-size: 0.9rem;">
+                                Somos una empresa joven especializada en climatización. Proveemos la infraestructura necesaria para transformar los entornos del hogar y el trabajo.
+                            </p>
+                            <div class="mt-4 text-start ms-4 ms-md-0">
+                                <p><i class="fas fa-map-marker-alt me-3 text-primary"></i> San Salvador, El Salvador</p>
+                                <p><i class="fas fa-phone me-3 text-primary"></i> +503 7000-0000</p>
+                                <p><i class="fas fa-envelope me-3 text-primary"></i> soporte@serviacpro.com</p>
                             </div>
                         </div>
 
-                        <div class="col-lg-4 col-md-6 text-center text-md-start footer-links">
-                            <h5 class="text-white fw-bold mb-3">Navegación</h5>
-                            <ul class="list-unstyled d-flex flex-column gap-2">
-                                <li><a href="index.html" class="text-secondary text-decoration-none footer-link"><i class="fas fa-chevron-right text-info small me-2"></i>Inicio</a></li>
-                                <li><a href="nosotros.html" class="text-secondary text-decoration-none footer-link"><i class="fas fa-chevron-right text-info small me-2"></i>Nosotros</a></li>
-                                <li><a href="catalogo.html" class="text-secondary text-decoration-none footer-link"><i class="fas fa-chevron-right text-info small me-2"></i>Catálogo de Equipos</a></li>
-                                <li><a href="calculadora.html" class="text-secondary text-decoration-none footer-link"><i class="fas fa-chevron-right text-info small me-2"></i>Asistente Inteligente</a></li>
-                            </ul>
+                        <!-- Categorías (Acordeón en móvil) -->
+                        <div class="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
+                            <h6 class="text-uppercase fw-bold mb-3 border-bottom border-secondary pb-2 d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#footerCat" style="cursor: pointer;">
+                                Categorías <i class="fas fa-plus d-md-none text-primary"></i>
+                            </h6>
+                            <div class="collapse d-md-block" id="footerCat">
+                                <p class="mb-2"><a href="#" class="text-white-50 text-decoration-none" style="font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.classList.replace('text-white-50', 'text-white')" onmouseout="this.classList.replace('text-white', 'text-white-50')">Residencial</a></p>
+                                <p class="mb-2"><a href="#" class="text-white-50 text-decoration-none" style="font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.classList.replace('text-white-50', 'text-white')" onmouseout="this.classList.replace('text-white', 'text-white-50')">Industrial</a></p>
+                                <p class="mb-2"><a href="#" class="text-white-50 text-decoration-none" style="font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.classList.replace('text-white-50', 'text-white')" onmouseout="this.classList.replace('text-white', 'text-white-50')">Repuestos</a></p>
+                            </div>
                         </div>
 
-                        <div class="col-lg-4 col-md-12 text-center text-md-start footer-info">
-                            <h5 class="text-white fw-bold mb-3">Contacto Directo</h5>
-                            <ul class="list-unstyled d-flex flex-column gap-3">
-                                <li class="d-flex align-items-center justify-content-center justify-content-md-start gap-3 text-secondary">
-                                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
-                                        <i class="fas fa-map-marker-alt"></i>
-                                    </div>
-                                    <span class="small text-start">San Salvador, El Salvador</span>
-                                </li>
-                                <li class="d-flex align-items-center justify-content-center justify-content-md-start gap-3 text-secondary">
-                                    <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
-                                        <i class="fas fa-phone-alt"></i>
-                                    </div>
-                                    <span class="small text-start">+503 7000-0000</span>
-                                </li>
-                                <li class="d-flex align-items-center justify-content-center justify-content-md-start gap-3 text-secondary">
-                                    <div class="bg-info bg-opacity-10 text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
-                                        <i class="fas fa-envelope"></i>
-                                    </div>
-                                    <span class="small text-start">soporte@serviacpro.com</span>
-                                </li>
-                            </ul>
+                        <!-- Servicios (Acordeón en móvil) -->
+                        <div class="col-md-3 col-lg-2 col-xl-2 mx-auto mb-4">
+                            <h6 class="text-uppercase fw-bold mb-3 border-bottom border-secondary pb-2 d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#footerServ" style="cursor: pointer;">
+                                Nuestros Servicios <i class="fas fa-plus d-md-none text-primary"></i>
+                            </h6>
+                            <div class="collapse d-md-block" id="footerServ">
+                                <p class="mb-2"><a href="#" class="text-white-50 text-decoration-none" style="font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.classList.replace('text-white-50', 'text-white')" onmouseout="this.classList.replace('text-white', 'text-white-50')">Instalación y Venta</a></p>
+                                <p class="mb-2"><a href="#" class="text-white-50 text-decoration-none" style="font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.classList.replace('text-white-50', 'text-white')" onmouseout="this.classList.replace('text-white', 'text-white-50')">Mantenimiento Preventivo</a></p>
+                                <p class="mb-2"><a href="#" class="text-white-50 text-decoration-none" style="font-size: 0.9rem; transition: color 0.3s;" onmouseover="this.classList.replace('text-white-50', 'text-white')" onmouseout="this.classList.replace('text-white', 'text-white-50')">Asesoría Técnica</a></p>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="border-top border-secondary border-opacity-50 pt-4 mt-2 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
-                        <small class="text-secondary text-center text-md-start">
-                            &copy; ${new Date().getFullYear()} Servi A/C Pro. Todos los derechos reservados.
-                        </small>
-                        <div class="d-flex gap-3 small text-secondary">
-                            <a href="#" class="text-secondary text-decoration-none footer-link">Términos y Condiciones</a>
-                            <span>|</span>
-                            <a href="#" class="text-secondary text-decoration-none footer-link">Privacidad</a>
+                        <!-- Redes Sociales -->
+                        <div class="col-12 text-center mt-3 pt-4 border-top border-secondary">
+                            <a class="btn btn-outline-light btn-floating m-1 rounded-circle fs-5" style="border-color: rgba(255,255,255,0.2);" href="#!" role="button"><i class="fab fa-facebook-f"></i></a>
+                            <a class="btn btn-outline-light btn-floating m-1 rounded-circle fs-5" style="border-color: rgba(255,255,255,0.2);" href="#!" role="button"><i class="fab fa-instagram"></i></a>
+                            <a class="btn btn-outline-light btn-floating m-1 rounded-circle fs-5" style="border-color: rgba(255,255,255,0.2);" href="#!" role="button"><i class="fab fa-tiktok"></i></a>
+                            <a class="btn btn-outline-light btn-floating m-1 rounded-circle fs-5" style="border-color: rgba(255,255,255,0.2);" href="#!" role="button"><i class="fab fa-youtube"></i></a>
+                            
+                            <div class="mt-4 text-white-50 small">
+                                &copy; 2026 Servi A/C Pro. Todos los derechos reservados.
+                            </div>
                         </div>
+                        
                     </div>
                 </div>
             </footer>
@@ -161,7 +205,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // CONTROLADOR GLOBAL DE ALERTAS Y MODALES (SWEETALERT2)
 // =========================================================
 window.UI = {
-    // 1. Modal de "Cargando..."
     cargando: (mensaje = 'Procesando...') => {
         Swal.fire({
             title: mensaje,
@@ -169,13 +212,9 @@ window.UI = {
             didOpen: () => { Swal.showLoading(); }
         });
     },
-
-    // 2. Cerrar cualquier modal abierto
     cerrar: () => {
         Swal.close();
     },
-
-    // 3. Modal de Éxito (Centro de la pantalla)
     exito: (titulo, mensaje) => {
         return Swal.fire({
             icon: 'success',
@@ -184,8 +223,6 @@ window.UI = {
             confirmButtonColor: '#0d6efd'
         });
     },
-
-    // 4. Modal de Éxito tipo "Toast" (Notificación pequeña arriba a la derecha)
     exitoToast: (titulo, mensaje = '') => {
         return Swal.fire({
             icon: 'success',
@@ -197,8 +234,6 @@ window.UI = {
             timer: 3000
         });
     },
-
-    // 5. Modal de Error
     error: (mensaje, titulo = 'Error') => {
         return Swal.fire({
             icon: 'error',
@@ -207,8 +242,6 @@ window.UI = {
             confirmButtonColor: '#dc3545'
         });
     },
-
-    // 6. Modal de Confirmación (Pregunta Sí/No)
     confirmar: async (titulo, texto, txtConfirmar = 'Sí, continuar', colorBtn = '#0d6efd') => {
         const result = await Swal.fire({
             title: titulo,
@@ -220,7 +253,7 @@ window.UI = {
             confirmButtonText: txtConfirmar,
             cancelButtonText: 'Cancelar'
         });
-        return result.isConfirmed; // Devuelve true o false
+        return result.isConfirmed;
     }
 };
 
@@ -228,7 +261,6 @@ window.UI = {
 // INYECCIÓN DINÁMICA DEL MODAL DE CHAT
 // =========================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Solo inyectar el chat si el usuario está logueado y es Cliente o Técnico
     const user = typeof Auth !== 'undefined' ? Auth.getUser() : null;
     if (user && (user.rol === 'CLIENTE' || user.rol === 'TECNICO')) {
         const chatHtml = `

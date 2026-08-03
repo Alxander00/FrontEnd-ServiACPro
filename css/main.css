@@ -818,3 +818,47 @@ img {
     min-height: 36px !important;
   }
 }
+
+/* ===== BOTÓN FLOTANTE DE WHATSAPP ===== */
+.btn-whatsapp-flotante {
+    position: fixed;
+    /* En móvil, lo subimos a 85px para que no choque con tu barra de navegación inferior */
+    bottom: 85px; 
+    right: 20px;
+    background-color: #25D366;
+    color: white;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 28px;
+    box-shadow: 0 4px 10px rgba(37, 211, 102, 0.4);
+    z-index: 1060; /* Siempre por encima de todo */
+    text-decoration: none;
+    transition: all 0.3s ease;
+    animation: pulse-wa 2s infinite;
+}
+
+.btn-whatsapp-flotante:hover, 
+.btn-whatsapp-flotante:focus {
+    background-color: #128C7E;
+    color: white;
+    transform: scale(1.1);
+}
+
+/* Animación de latido suave para llamar la atención */
+@keyframes pulse-wa {
+    0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(37, 211, 102, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+}
+
+/* En computadora (donde no hay barra inferior), lo bajamos a la esquina */
+@media (min-width: 769px) {
+    .btn-whatsapp-flotante {
+        bottom: 30px;
+        right: 30px;
+    }
+}

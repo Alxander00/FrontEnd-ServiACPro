@@ -17,11 +17,11 @@
 
     <section class="hero-section text-white text-center d-flex align-items-center">
         <div class="container">
-            <h1 class="display-4 fw-bold mb-3">El clima perfecto en tu hogar, sin complicaciones.</h1>
-            <p class="lead mb-4">Venta, instalación y mantenimiento especializado con tecnología de bajo consumo.</p>
-            <div class="d-flex justify-content-center gap-3 flex-wrap">
-                <a href="catalogo.html" class="btn btn-info text-white fw-bold px-4 py-2">Explorar Catálogo</a>
-                <a href="calculadora.html" class="btn btn-outline-light fw-bold px-4 py-2">Calcular mi Equipo Ideal</a>
+            <h1 class="display-4 fw-bold mb-3 hero-title">El clima perfecto en tu hogar, sin complicaciones.</h1>
+            <p class="lead mb-4 hero-subtitle">Venta, instalación y mantenimiento especializado con tecnología de bajo consumo.</p>
+            <div class="d-flex justify-content-center gap-3 flex-wrap hero-btns-container">
+                <a href="catalogo.html" class="btn btn-primary fw-bold px-4 py-3 rounded-pill shadow-sm">Explorar Catálogo</a>
+                <a href="calculadora.html" class="btn btn-outline-light fw-bold px-4 py-3 rounded-pill">Calcular mi Equipo</a>
             </div>
         </div>
     </section>
@@ -52,23 +52,24 @@
 
     <section class="py-5">
         <div class="container">
-            <div class="row g-4 text-center">
-                <div class="col-md-4">
-                    <div class="p-4 bg-white rounded-4 shadow-sm h-100 service-card">
+            <!-- 🚨 CARRUSEL DE SERVICIOS PARA MÓVIL Y GRID NORMAL PARA PC -->
+            <div class="row g-4 text-center d-flex flex-nowrap overflow-x-auto pb-4 px-2 carrusel-servicios" style="scroll-snap-type: x mandatory; -ms-overflow-style: none; scrollbar-width: none;">
+                <div class="col-md-4 flex-shrink-0 tarjeta-servicio-item" style="scroll-snap-align: center;">
+                    <div class="p-4 bg-white rounded-4 shadow-sm h-100 service-card border">
                         <div class="display-4 mb-3">❄️</div>
                         <h4 class="fw-bold text-primary">Venta</h4>
                         <p class="text-muted">Equipos de última generación con ahorro energético certificado.</p>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="p-4 bg-white rounded-4 shadow-sm h-100 service-card">
+                <div class="col-md-4 flex-shrink-0 tarjeta-servicio-item" style="scroll-snap-align: center;">
+                    <div class="p-4 bg-white rounded-4 shadow-sm h-100 service-card border">
                         <div class="display-4 mb-3">🛠️</div>
                         <h4 class="fw-bold text-primary">Instalación</h4>
                         <p class="text-muted">Técnicos expertos que garantizan el cuidado de tu infraestructura.</p>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="p-4 bg-white rounded-4 shadow-sm h-100 service-card">
+                <div class="col-md-4 flex-shrink-0 tarjeta-servicio-item" style="scroll-snap-align: center;">
+                    <div class="p-4 bg-white rounded-4 shadow-sm h-100 service-card border">
                         <div class="display-4 mb-3">📅</div>
                         <h4 class="fw-bold text-primary">Mantenimiento</h4>
                         <p class="text-muted">Preventivo y correctivo para alargar la vida útil de tu equipo.</p>
@@ -84,15 +85,15 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
-    <script src="./js/auth.js"></script>
+    <script src="./js/componentes.js"></script>
     
     <script src="./js/api.js"></script>
-    
+    <script src="./js/auth.js"></script>
     <script src="./js/carrito.js"></script>
     <script src="./js/notificaciones.js"></script>
     
     <script src="./js/main.js"></script>
+    
     <script src="./js/index.js"></script>
-    <script src="./js/componentes.js"></script>
 </body>
 </html>
