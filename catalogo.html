@@ -199,6 +199,11 @@
                   <small class="text-muted" id="modalStockCantidadInfo">(0 unidades)</small>
                 </div>
               </div>
+              <!-- 👇 NUEVO: Precio total -->
+              <div class="mb-3">
+                <span class="text-muted small">Total:</span>
+                <strong class="text-primary fs-4" id="modalPrecioTotal">$0.00</strong>
+              </div>
 
               <p class="text-secondary mb-4" id="modalDescripcion" style="line-height: 1.6;">
                 Descripción del producto...
@@ -221,20 +226,31 @@
                 </div>
               </div>
 
-              <div class="border rounded-3 p-3 mb-4">
-                <div class="form-check d-flex align-items-center mb-0">
-                  <input class="form-check-input mt-0 me-3" type="checkbox" id="checkboxInstalacion" style="width: 1.3rem; height: 1.3rem; cursor: pointer;">
-                  <label class="form-check-label d-flex justify-content-between w-100 align-items-center" for="checkboxInstalacion" style="cursor: pointer;">
-                    <span class="fw-semibold text-dark">Incluir instalación profesional</span>
-                    <span class="text-primary fw-bold">+$80.00</span>
-                  </label>
+                <div class="border rounded-3 p-3 mb-4">
+                  <div class="form-check d-flex align-items-center mb-0">
+                    <input class="form-check-input mt-0 me-3" type="checkbox" id="checkboxInstalacion" style="width: 1.3rem; height: 1.3rem; cursor: pointer;">
+                    <label class="form-check-label d-flex justify-content-between w-100 align-items-center" for="checkboxInstalacion" style="cursor: pointer;">
+                      <span class="fw-semibold text-dark">Incluir instalación profesional</span>
+                      <span class="text-primary fw-bold">+$80.00</span>
+                    </label>
+                  </div>
                 </div>
-              </div>
 
-              <div class="d-grid gap-2 mb-4">
-                <button class="btn btn-primary btn-lg fw-bold rounded-3 py-3" id="modalAddCart">
-                  <i class="fas fa-shopping-cart me-2"></i> Añadir al Carrito
-                </button>
+                <!-- Control de cantidad -->
+                <div class="mb-3">
+                  <label for="cantidadProducto" class="form-label fw-semibold text-dark">Cantidad:</label>
+                  <div class="d-flex align-items-center gap-3">
+                    <button class="btn btn-outline-secondary btn-sm rounded-circle" id="btnCantidadMenos" style="width: 36px; height: 36px;" onclick="cambiarCantidad(-1)">−</button>
+                    <input type="number" id="cantidadProducto" class="form-control form-control-lg text-center fw-bold" style="max-width: 100px;" min="1" value="1" readonly>
+                    <button class="btn btn-outline-secondary btn-sm rounded-circle" id="btnCantidadMas" style="width: 36px; height: 36px;" onclick="cambiarCantidad(1)">+</button>
+                    <span class="text-muted small" id="stockDisponibleLabel">Stock: 0</span>
+                  </div>
+                </div>
+
+                <div class="d-grid gap-2 mb-4">
+                  <button class="btn btn-primary btn-lg fw-bold rounded-3 py-3" id="modalAddCart">
+                    <i class="fas fa-shopping-cart me-2"></i> Añadir al Carrito
+                  </button>
                 <div class="d-flex gap-2">
                   <button class="btn btn-success fw-bold rounded-3 flex-grow-1 py-2" id="btnWhatsApp">
                     <i class="fab fa-whatsapp me-2 fs-5 align-middle"></i> WhatsApp

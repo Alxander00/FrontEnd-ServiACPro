@@ -415,7 +415,7 @@ window.verDetalles = async function(id) {
         new bootstrap.Carousel(carouselElement);
     }
 
-// ===== 2. DATOS BÁSICOS =====
+    // ===== 2. DATOS BÁSICOS =====
     // 🚨 LIMPIAMOS LOS DATOS ANTES DE MOSTRARLOS
     const datosProcesados = procesarDatosProducto(prod);
 
@@ -489,6 +489,32 @@ window.verDetalles = async function(id) {
     calificacionSeleccionada = 0;
 
     await cargarResenas(prod.idProducto);
+
+    // ===== CONFIGURAR CANTIDAD Y STOCK =====
+    const inputCantidad = document.getElementById('cantidadProducto');
+    const stockLabel = document.getElementById('stockDisponibleLabel');
+    const btnMenos = document.getElementById('btnCantidadMenos');
+    const btnMas = document.getElementById('btnCantidadMas');
+
+    if (inputCantidad) {
+        if (prod.stock > 0) {
+            inputCantidad.max = prod.stock;
+            inputCantidad.value = 1;
+            inputCantidad.disabled = false;
+            if (stockLabel) stockLabel.textContent = `Stock: ${prod.stock}`;
+            if (btnMenos) btnMenos.disabled = false;
+            if (btnMas) btnMas.disabled = false;
+        } else {
+            inputCantidad.value = 0;
+            inputCantidad.disabled = true;
+            if (stockLabel) stockLabel.textContent = 'Sin stock';
+            if (btnMenos) btnMenos.disabled = true;
+            if (btnMas) btnMas.disabled = true;
+        }
+    }
+
+    // Actualizar precio total
+    actualizarPrecioTotal();
 
     // ===== 7. MOSTRAR MODAL =====
     bsModalDetalle.show();
@@ -636,11 +662,13 @@ document.getElementById('btnEnviarResena')?.addEventListener('click', async () =
 document.getElementById('modalAddCart').addEventListener('click', () => {
     if (productoActual) {
         const incluyeInstalacion = document.getElementById('checkboxInstalacion').checked;
-        agregarAlCarrito(productoActual.idProducto, incluyeInstalacion);
+        const cantidad = parseInt(document.getElementById('cantidadProducto')?.value) || 1;
+        agregarAlCarrito(productoActual.idProducto, cantidad, incluyeInstalacion);
     }
 });
 
-window.agregarAlCarrito = async function(id, incluyeInstalacion = false) {
+// ===== FUNCIÓN AGREGAR AL CARRITO (MODIFICADA) =====
+window.agregarAlCarrito = async function(id, cantidad = 1, incluyeInstalacion = false) {
     // 1. Verificar autenticación
     if (!Auth.requireAuth('login.html')) return;
     const user = Auth.getUser();
@@ -658,6 +686,15 @@ window.agregarAlCarrito = async function(id, incluyeInstalacion = false) {
                 title: 'Producto agotado',
                 text: 'Lo sentimos, este producto no tiene stock disponible.',
                 confirmButtonColor: '#dc3545'
+            });
+            return;
+        }
+        if (cantidad > stock) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Cantidad no disponible',
+                text: `Solo hay ${stock} unidades en stock.`,
+                confirmButtonColor: '#0d6efd'
             });
             return;
         }
@@ -684,13 +721,15 @@ window.agregarAlCarrito = async function(id, incluyeInstalacion = false) {
         nombre: prod.nombre, 
         precio: prod.precio, 
         imagen: imgUrl, 
-        incluyeInstalacion 
+        incluyeInstalacion,
+        cantidad: cantidad,  // <-- Añadir cantidad
+        stock: prod.stock  // <-- Guardamos el stock disponible
     });
     
     Swal.fire({
         icon: 'success',
         title: '¡Agregado!',
-        text: `"${prod.nombre}" ${incluyeInstalacion ? 'con instalación' : 'solo equipo'} añadido.`,
+        text: `${cantidad} x "${prod.nombre}" ${incluyeInstalacion ? 'con instalación' : 'solo equipo'} añadido.`,
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
@@ -755,6 +794,29 @@ function limpiarFiltros() {
 
     cargarProductos(0, false, {});
 }
+
+// ===== ACTUALIZAR PRECIO TOTAL (según cantidad) =====
+function actualizarPrecioTotal() {
+    const inputCantidad = document.getElementById('cantidadProducto');
+    const totalElement = document.getElementById('modalPrecioTotal');
+    if (!inputCantidad || !totalElement || !productoActual) return;
+    
+    const cantidad = parseInt(inputCantidad.value) || 1;
+    const total = cantidad * productoActual.precio;
+    totalElement.textContent = `$${total.toFixed(2)}`;
+}
+
+// ===== FUNCIÓN PARA CAMBIAR CANTIDAD (desde los botones + y -) =====
+window.cambiarCantidad = function(incremento) {
+    const input = document.getElementById('cantidadProducto');
+    if (!input) return;
+    let nuevaCantidad = parseInt(input.value) + incremento;
+    const stock = parseInt(input.max) || 0;
+    if (nuevaCantidad < 1) nuevaCantidad = 1;
+    if (nuevaCantidad > stock) nuevaCantidad = stock;
+    input.value = nuevaCantidad;
+    actualizarPrecioTotal(); // <--- Asegúrate de que esté esta línea
+};
 
 // ==========================================
 // FUNCIÓN PARA SEPARAR MARCA Y DESCRIPCIÓN

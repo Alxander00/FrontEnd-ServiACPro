@@ -75,12 +75,15 @@
 
                                 <div class="mb-4">
                                     <label class="form-label fw-semibold text-dark">Método de pago <span class="text-danger">*</span></label>
-                                    <select class="form-select" name="metodo_pago" required>
+                                    <select class="form-select" name="metodo_pago" required id="metodoPago">
                                         <option value="" disabled selected>Selecciona una opción...</option>
-                                        <option value="EFECTIVO">Efectivo contra entrega</option>
-                                        <option value="TRANSFERENCIA">Transferencia bancaria</option>
-                                        <option value="TARJETA">Tarjeta (En línea)</option>
+                                        <option value="EFECTIVO">💵 Efectivo contra entrega (¡Sin comisiones!)</option>
+                                        <option value="TRANSFERENCIA" disabled>🏦 Transferencia bancaria (Próximamente)</option>
+                                        <option value="TARJETA" disabled>💳 Tarjeta (Próximamente)</option>
                                     </select>
+                                    <small id="mensajeEfectivo" class="text-muted d-block mt-1">
+                                        🎉 Si eliges efectivo, ¡te ahorras el costo del procesamiento y nos ayudas a mantener los precios bajos!
+                                    </small>
                                 </div>
 
                                 <button type="submit" class="btn btn-primary w-100 py-3 fw-bold fs-5 shadow-sm rounded-pill">

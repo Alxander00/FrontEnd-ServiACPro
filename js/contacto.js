@@ -25,24 +25,36 @@ function gestionarCalendario() {
     }
 }
 
-// contacto.js
 async function enviarSolicitud(e) {
     e.preventDefault();
     if (!Auth.isAuthenticated()) {
-        Swal.fire('Debes iniciar sesión', 'Para agendar un servicio, inicia sesión primero.', 'warning');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Inicia sesión',
+            text: 'Para agendar un servicio, inicia sesión primero.',
+            confirmButtonColor: '#0d6efd'
+        });
         window.location.href = 'login.html';
         return;
     }
     const user = Auth.getUser();
     if (user.rol !== 'CLIENTE') {
-        Swal.fire('Acceso denegado', 'Solo los clientes pueden enviar solicitudes de servicio.', 'error');
+        if (window.UI) {
+            window.UI.error('Solo los clientes pueden enviar solicitudes de servicio.');
+        } else {
+            Swal.fire('Acceso denegado', 'Solo los clientes pueden enviar solicitudes de servicio.', 'error');
+        }
         return;
     }
 
     const tipoServicio = document.getElementById("tipoServicio").value;
     const fechaHora = document.getElementById("fechaCita").value;
     if (tipoServicio !== "VENTA" && !fechaHora) {
-        Swal.fire('Error', 'Selecciona una fecha y hora para la visita técnica.', 'error');
+        if (window.UI) {
+            window.UI.error('Selecciona una fecha y hora para la visita técnica.');
+        } else {
+            Swal.fire('Error', 'Selecciona una fecha y hora para la visita técnica.', 'error');
+        }
         return;
     }
     let fechaPreferida = null;
@@ -57,10 +69,20 @@ async function enviarSolicitud(e) {
 
     try {
         await API.request('/api/solicitudes', { method: 'POST', body: JSON.stringify(payload) });
-        Swal.fire('Solicitud enviada', 'El administrador revisará tu solicitud y se pondrá en contacto.', 'success');
+        
+        if (window.UI) {
+            window.UI.success('El administrador revisará tu solicitud y se pondrá en contacto.');
+        } else {
+            Swal.fire('Solicitud enviada', 'El administrador revisará tu solicitud y se pondrá en contacto.', 'success');
+        }
+
         e.target.reset();
         gestionarCalendario();
     } catch (error) {
-        UI.error(error.message);
+        if (window.UI) {
+            window.UI.error(error.message || 'No se pudo enviar la solicitud.');
+        } else {
+            Swal.fire('Error', error.message || 'No se pudo enviar la solicitud.', 'error');
+        }
     }
 }

@@ -3,7 +3,6 @@
 const Carrito = (() => {
     const CART_KEY_PREFIX = 'climapro_cart_';
 
-    // Obtener la clave del carrito basada en el usuario
     const getCartKey = () => {
         const user = Auth.getUser();
         const userId = user?.idUsuario || 'invitado';
@@ -25,6 +24,8 @@ const Carrito = (() => {
         const existing = cart.find(item => item.id === producto.id && item.incluyeInstalacion === producto.incluyeInstalacion);
         if (existing) {
             existing.cantidad += producto.cantidad || 1;
+            // Actualizar stock por si cambió
+            if (producto.stock !== undefined) existing.stock = producto.stock;
         } else {
             cart.push({ ...producto, cantidad: producto.cantidad || 1 });
         }
@@ -42,6 +43,16 @@ const Carrito = (() => {
         const item = cart.find(item => item.id === id && item.incluyeInstalacion === incluyeInstalacion);
         if (item) {
             item.cantidad = Math.max(1, cantidad);
+            saveCart(cart);
+        }
+    };
+
+    // Nuevo método para actualizar el stock de un item específico
+    const updateItemStock = (id, incluyeInstalacion, nuevoStock) => {
+        const cart = getCart();
+        const item = cart.find(item => item.id === id && item.incluyeInstalacion === incluyeInstalacion);
+        if (item) {
+            item.stock = nuevoStock;
             saveCart(cart);
         }
     };
@@ -69,5 +80,16 @@ const Carrito = (() => {
         });
     };
 
-    return { getCart, addItem, removeItem, updateCantidad, clearCart, getTotal, actualizarContadorCarrito };
+    // Exponemos saveCart y updateItemStock
+    return { 
+        getCart, 
+        addItem, 
+        removeItem, 
+        updateCantidad, 
+        clearCart, 
+        getTotal, 
+        actualizarContadorCarrito,
+        saveCart,
+        updateItemStock
+    };
 })();

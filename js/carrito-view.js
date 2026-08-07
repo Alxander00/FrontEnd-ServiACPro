@@ -3,7 +3,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const user = Auth.getUser();
     if (user && user.rol !== 'CLIENTE') {
-            UI.error('Tu cuenta no tiene permisos para usar el carrito de compras.', 'Acceso denegado').then(() => {
+        UI.error('Tu cuenta no tiene permisos para usar el carrito de compras.', 'Acceso denegado').then(() => {
             window.location.href = 'index.html';
         });
         return;
@@ -77,7 +77,7 @@ function renderizarCarrito() {
                     <div class="d-flex justify-content-between mb-4 border-bottom pb-4"><span class="text-muted">Envío</span><span class="text-success fw-bold">Por calcular</span></div>
                     <div class="d-flex justify-content-between align-items-center mb-4"><span class="fw-bold fs-5 text-dark">Total Estimado</span><span class="fw-bold fs-4 text-primary">$${total.toFixed(2)}</span></div>
                     <div class="d-grid gap-3">
-                        <a href="checkout.html" class="btn btn-primary fw-bold py-3 fs-5 shadow-sm">Proceder al Pago</a>
+                        <button id="btnFinalizarPedido" class="btn btn-primary fw-bold py-3 fs-5 shadow-sm">Proceder al Pago</button>
                         <a href="catalogo.html" class="btn btn-outline-secondary">Seguir Comprando</a>
                     </div>
                 </div>
@@ -85,28 +85,86 @@ function renderizarCarrito() {
         </div>
     `;
     container.innerHTML = htmlTabla + htmlResumen;
+
+    // Evento del botón "Proceder al Pago"
+    document.getElementById('btnFinalizarPedido')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.location.href = 'checkout.html';
+    });
 }
 
-function cambiarCantidad(id, incluyeInstalacion, delta) {
-    const cart = Carrito.getCart();
-    const item = cart.find(i => i.id === id && i.incluyeInstalacion === incluyeInstalacion);
-    if (item) {
-        const nuevaCantidad = item.cantidad + delta;
-        if (nuevaCantidad >= 1) {
-            Carrito.updateCantidad(id, incluyeInstalacion, nuevaCantidad);
-            renderizarCarrito();
-        } else {
-            eliminarItem(id, incluyeInstalacion);
+// ⚠️ FUNCIÓN MODIFICADA: consulta stock en tiempo real
+async function cambiarCantidad(id, incluyeInstalacion, delta) {
+    // Deshabilitar botones visualmente (opcional)
+    const buttons = document.querySelectorAll(`button[onclick*="cambiarCantidad(${id}, ${incluyeInstalacion}"]`);
+    buttons.forEach(btn => btn.disabled = true);
+
+    try {
+        // 1. Consultar stock actual en el servidor
+        const stockActual = await API.Productos.stockDisponible(id);
+        
+        // 2. Obtener el item del carrito
+        const cart = Carrito.getCart();
+        const item = cart.find(i => i.id === id && i.incluyeInstalacion === incluyeInstalacion);
+        if (!item) {
+            // Si no existe, salir
+            buttons.forEach(btn => btn.disabled = false);
+            return;
         }
+
+        const nuevaCantidad = item.cantidad + delta;
+
+        // 3. Validar contra el stock real
+        if (nuevaCantidad > stockActual) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Stock insuficiente',
+                text: `Solo hay ${stockActual} unidades disponibles.`,
+                confirmButtonText: 'Entendido'
+            });
+            buttons.forEach(btn => btn.disabled = false);
+            return;
+        }
+
+        if (nuevaCantidad < 1) {
+            // Si la cantidad es 0, eliminar el item
+            await eliminarItem(id, incluyeInstalacion);
+            buttons.forEach(btn => btn.disabled = false);
+            return;
+        }
+
+        // 4. Actualizar cantidad en el carrito
+        Carrito.updateCantidad(id, incluyeInstalacion, nuevaCantidad);
+        
+        // 5. Actualizar el stock guardado en el item para futuras operaciones
+        Carrito.updateItemStock(id, incluyeInstalacion, stockActual);
+
+        // 6. Re-renderizar el carrito
+        renderizarCarrito();
+
+    } catch (error) {
+        console.error('Error al consultar stock:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No pudimos verificar el stock. Intenta de nuevo.',
+            confirmButtonText: 'Entendido'
+        });
+    } finally {
+        // Re-habilitar botones
+        buttons.forEach(btn => btn.disabled = false);
     }
 }
 
 function eliminarItem(id, incluyeInstalacion) {
-    UI.confirmar('¿Eliminar producto?', 'El producto se quitará del carrito', 'Sí, eliminar', '#dc3545').then((confirmado) => {
-        if (confirmado) {
-            Carrito.removeItem(id, incluyeInstalacion);
-            renderizarCarrito();
-            UI.exitoToast('Eliminado', 'Producto eliminado del carrito');
-        }
+    return new Promise((resolve) => {
+        UI.confirmar('¿Eliminar producto?', 'El producto se quitará del carrito', 'Sí, eliminar', '#dc3545').then((confirmado) => {
+            if (confirmado) {
+                Carrito.removeItem(id, incluyeInstalacion);
+                renderizarCarrito();
+                UI.exitoToast('Eliminado', 'Producto eliminado del carrito');
+            }
+            resolve(confirmado);
+        });
     });
 }

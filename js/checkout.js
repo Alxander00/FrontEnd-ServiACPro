@@ -156,8 +156,20 @@ function renderizarCheckout(cart) {
 
 async function procesarPedido(event) {
     event.preventDefault();
-    const botonSubmit = event.target.querySelector('button[type="submit"]');
     
+    // ✅ VALIDACIÓN: Solo efectivo contra entrega
+    const metodoPago = document.querySelector('select[name="metodo_pago"]').value;
+    if (metodoPago !== 'EFECTIVO') {
+        Swal.fire({
+            icon: 'info',
+            title: 'Método no disponible',
+            text: 'Por el momento solo aceptamos efectivo contra entrega. Los otros métodos estarán disponibles pronto.',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+    
+    const botonSubmit = event.target.querySelector('button[type="submit"]');
     if (botonSubmit) {
         botonSubmit.disabled = true;
         botonSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Procesando Transacción...';
@@ -176,8 +188,10 @@ async function procesarPedido(event) {
         
         const requiereInstalacion = cart.some(item => item.incluyeInstalacion === true);
         const direccion = document.getElementById('direccionInput').value.trim();
+        const telefono = document.querySelector('input[name="telefono"]').value.trim(); // <-- NUEVO
         
         if (!direccion) throw new Error('La dirección de instalación es obligatoria');
+        if (!telefono) throw new Error('El teléfono de contacto es obligatorio');
         
         const idCliente = user.idUsuario || user.id;
         
@@ -186,6 +200,7 @@ async function procesarPedido(event) {
             total: total,
             incluyeInstalacion: requiereInstalacion,
             direccion: direccion,
+            telefono: telefono,  // <-- NUEVO
             items: itemsDto
         };
         
@@ -197,10 +212,10 @@ async function procesarPedido(event) {
         Swal.fire({
             icon: 'success',
             title: '¡Pedido confirmado!',
-            text: `Tu número de orden es #${numeroOrden}. Se ha enviado a tu perfil.`,
+            text: `Tu número de orden es #${numeroOrden}. Te contactaremos para coordinar la entrega y el pago en efectivo.`,
             confirmButtonColor: '#0d6efd'
         }).then(() => {
-            window.location.href = 'perfil.html?pedido=confirmado';
+            window.location.href = 'catalogo.html';
         });
         
     } catch (error) {

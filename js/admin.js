@@ -52,14 +52,27 @@ function generarFilaUsuario(u) {
 
 function generarFilaPedido(p) {
     const selectClass = p.estado === 'Completado' ? 'text-success border-success bg-success bg-opacity-10' : (p.estado === 'Cancelado' ? 'text-danger border-danger bg-danger bg-opacity-10' : 'text-warning border-warning bg-warning bg-opacity-10');
-    const avatar = getAvatarUrl({ nombre: p.nombreCliente, fotoUrl: p.fotoUrl }); // Foto real
+    const avatar = getAvatarUrl({ nombre: p.nombreCliente, fotoUrl: p.fotoUrl });
     const btnArchivar = (p.estado === 'Completado' || p.estado === 'Cancelado') ? `<button class="btn btn-sm btn-light text-secondary shadow-sm rounded-circle" onclick="archivarPedido(${p.idPedido})" title="Archivar"><i class="fas fa-archive"></i></button>` : `<span class="text-muted small">-</span>`;
+    const telefono = p.telefono || '';
+    // Limpiar número: eliminar espacios, guiones, paréntesis
+    const numeroWhatsApp = telefono.replace(/[\s\-\(\)]/g, '');
+    // Si tiene teléfono, mostrar botón de WhatsApp con código de país 503
+    const btnWhatsApp = telefono ? `<a href="https://wa.me/503${numeroWhatsApp}?text=Hola%20${encodeURIComponent(p.nombreCliente)}%2C%20soy%20de%20Servi%20A%2FC%20Pro.%20He%20recibido%20tu%20pedido%20%23${p.idPedido}%20y%20necesito%20confirmar%20la%20direcci%C3%B3n%20y%20fecha%20de%20instalaci%C3%B3n." target="_blank" class="btn btn-sm btn-success rounded-circle me-1" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>` : '';
+    // Botón "Ver en mapa" si hay dirección
+    const direccionMaps = p.direccion ? encodeURIComponent(p.direccion) : '';
+    const btnMaps = direccionMaps ? `<a href="https://www.google.com/maps/search/?api=1&query=${direccionMaps}" target="_blank" class="btn btn-sm btn-outline-info rounded-circle me-1" title="Ver en mapa"><i class="fas fa-map-marker-alt"></i></a>` : '';
+
     return `<tr>
         <td class="ps-4 fw-bold text-primary">#${p.idPedido}</td>
         <td>
             <div class="d-flex align-items-center">
                 <img src="${avatar}" class="rounded-circle me-3 border shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
-                <div><span class="fw-bold text-dark d-block">${p.nombreCliente || 'Cliente'}</span><small class="text-muted fw-semibold">ID: #${p.idUsuario}</small></div>
+                <div>
+                    <span class="fw-bold text-dark d-block">${p.nombreCliente || 'Cliente'}</span>
+                    <small class="text-muted fw-semibold">ID: #${p.idUsuario}</small>
+                    ${telefono ? `<div class="text-muted small"><i class="fas fa-phone text-success me-1"></i> ${telefono}</div>` : ''}
+                </div>
             </div>
         </td>
         <td class="text-muted fw-semibold small"><i class="far fa-calendar-check text-primary me-1"></i> ${formatearFecha(p.fechaPedido)}</td>
@@ -69,7 +82,12 @@ function generarFilaPedido(p) {
                 ${['Pendiente', 'En Proceso', 'Completado', 'Cancelado'].map(e => `<option value="${e}" ${p.estado === e ? 'selected' : ''}>${e}</option>`).join('')}
             </select>
         </td>
-        <td class="text-end pe-4"><button class="btn btn-sm btn-info text-white me-1" onclick="verProductosPedido(${p.idPedido})" title="Ver productos"><i class="fas fa-boxes"></i></button>${btnArchivar}</td>
+        <td class="text-end pe-4">
+            ${btnWhatsApp}
+            ${btnMaps}
+            <button class="btn btn-sm btn-info text-white me-1" onclick="verProductosPedido(${p.idPedido})" title="Ver productos"><i class="fas fa-boxes"></i></button>
+            ${btnArchivar}
+        </td>
     </tr>`;
 }
 
@@ -1282,7 +1300,6 @@ window.verProductosPedido = async function(idPedido) {
 
         let detallesHtml = '';
         pedido.detalles.forEach(d => {
-            // Dibujar TODAS las imágenes del producto en pequeños thumbnails
             let miniaturasHtml = '';
             if (d.imagenesUrls && d.imagenesUrls.length > 0) {
                 miniaturasHtml = d.imagenesUrls.map(url => 
@@ -1295,14 +1312,12 @@ window.verProductosPedido = async function(idPedido) {
                 ).join('');
             }
 
-            // Imagen principal a la izquierda (la primera)
             const imagenPrincipal = (d.imagenesUrls && d.imagenesUrls.length > 0) 
                 ? `<img src="${d.imagenesUrls[0]}" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px;" class="shadow-sm border">`
                 : `<div style="width: 70px; height: 70px; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #adb5bd;" class="border shadow-sm"><i class="fas fa-image fs-4"></i></div>`;
 
             const subtotal = (d.cantidad || 0) * d.precioUnitario;
 
-            // HTML de la fila de cada producto
             detallesHtml += `
                 <div class="d-flex justify-content-between align-items-start border-bottom py-3 last-border-0">
                     <div class="d-flex gap-3 w-75">
@@ -1310,7 +1325,8 @@ window.verProductosPedido = async function(idPedido) {
                         <div>
                             <h6 class="fw-bold mb-1 text-dark text-start" style="line-height: 1.2;">${d.nombreProducto}</h6>
                             <div class="text-muted small text-start mb-1"><i class="fas fa-snowflake text-info me-1"></i>${d.capacidadBtu || 0} BTU</div>
-                            <div class="d-flex flex-wrap">${miniaturasHtml}</div> </div>
+                            <div class="d-flex flex-wrap">${miniaturasHtml}</div>
+                        </div>
                     </div>
                     <div class="text-end w-25">
                         <div class="text-muted small mb-1">${d.cantidad} x $${d.precioUnitario.toFixed(2)}</div>
@@ -1320,10 +1336,11 @@ window.verProductosPedido = async function(idPedido) {
             `;
         });
 
-        // Obtener la foto del cliente (o crear un avatar con sus iniciales si no tiene)
         const avatarCliente = pedido.fotoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(pedido.nombreCliente || 'Cliente')}&background=0d6efd&color=fff&bold=true`;
+        const telefono = pedido.telefono || '';
+        const numeroWhatsApp = telefono.replace(/[\s\-\(\)]/g, '');
+        const btnWhatsApp = telefono ? `<a href="https://wa.me/503${numeroWhatsApp}?text=Hola%20${encodeURIComponent(pedido.nombreCliente)}%2C%20soy%20de%20Servi%20A%2FC%20Pro.%20He%20recibido%20tu%20pedido%20%23${pedido.idPedido}%20y%20necesito%20confirmar%20la%20direcci%C3%B3n%20y%20fecha%20de%20instalaci%C3%B3n." target="_blank" class="btn btn-success btn-sm fw-bold rounded-pill"><i class="fab fa-whatsapp me-1"></i> Contactar</a>` : '';
 
-        // Construir la "Factura" final
         const html = `
             <div class="text-start font-sans">
                 <div class="bg-light p-3 rounded-4 mb-4 border shadow-sm d-flex flex-column gap-2">
@@ -1333,11 +1350,16 @@ window.verProductosPedido = async function(idPedido) {
                             <div>
                                 <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.65rem;">Comprador</small>
                                 <span class="fw-bold text-dark fs-6">${pedido.nombreCliente || 'No registrado'}</span>
+                                ${telefono ? `<div class="text-muted small"><i class="fas fa-phone text-success me-1"></i> ${telefono}</div>` : ''}
                             </div>
                         </div>
                         <div class="text-end">
-                            <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.65rem;">Fecha de Compra</small>
-                            <span class="text-dark fw-semibold"><i class="far fa-calendar-alt text-primary me-1"></i> ${new Date(pedido.fechaPedido).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                            ${btnWhatsApp}
+                            ${pedido.direccion ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pedido.direccion)}" target="_blank" class="btn btn-outline-primary btn-sm fw-bold rounded-pill ms-2"><i class="fas fa-map-marked-alt me-1"></i> Ver en mapa</a>` : ''}
+                            <div>
+                                <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.65rem;">Fecha de Compra</small>
+                                <span class="text-dark fw-semibold"><i class="far fa-calendar-alt text-primary me-1"></i> ${new Date(pedido.fechaPedido).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
                         </div>
                     </div>
                     <div>
@@ -1363,7 +1385,6 @@ window.verProductosPedido = async function(idPedido) {
             </div>
         `;
 
-        // Mostrar el modal elegante
         Swal.fire({
             title: `<div class="d-flex align-items-center gap-2"><i class="fas fa-file-invoice-dollar text-primary"></i> <span class="fw-bold text-dark">Detalle de Orden #${pedido.idPedido}</span></div>`,
             html: html,
