@@ -6,120 +6,134 @@
     <title>Calculadora Inteligente | ServiA/CPro</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
     <link rel="stylesheet" href="./css/main.css">
     <link rel="stylesheet" href="./css/responsive.css" />
 </head>
-<body class="d-flex flex-column min-vh-100 bg-light">
+<body class="d-flex flex-column min-vh-100 bg-light" style="font-family: 'Montserrat', sans-serif;">
 
     <div id="navbar-container"></div>
 
-    <header class="bg-primary text-white text-center py-5">
+    <header class="bg-primary text-white text-center py-4 py-md-5 shadow-sm">
         <div class="container">
-            <h1 class="fw-bold">Asistente Técnico Virtual</h1>
-            <p class="lead mb-0">Calcula la capacidad exacta que necesitas según tu espacio y ocupación.</p>
+            <span class="badge bg-white text-primary mb-2 px-3 py-1 rounded-pill fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Asistente Inteligente</span>
+            <h1 class="fw-bold fs-2 fs-md-1 mb-1">Calculadora de BTU</h1>
+            <p class="small mb-0 opacity-75">Descubre la potencia exacta que requiere tu espacio para máxima eficiencia.</p>
         </div>
     </header>
 
-    <section class="py-5 flex-grow-1">
+    <section class="py-4 py-md-5 flex-grow-1">
         <div class="container">
-            <div class="row align-items-center g-5">
+            <div class="row align-items-center justify-content-center g-4">
                 
-                <div class="col-lg-6">
-                    <span class="badge bg-info text-dark mb-3 px-3 py-2 rounded-pill fw-bold">ANÁLISIS TÉRMICO</span>
-                    <h2 class="fw-bold display-6 mb-4">Encuentra tu equipo ideal en <span class="text-primary">segundos</span></h2>
-                    <p class="lead text-muted mb-5">Ingresa las dimensiones de tu espacio, la cantidad de personas y los equipos que generan calor. Nuestro algoritmo te recomendará la eficiencia exacta.</p>
-                    
-                    <div class="d-flex align-items-start mb-4">
-                        <div class="bg-white p-3 rounded-3 shadow-sm me-3 text-info fs-3">🌡️</div>
-                        <div>
-                            <h5 class="fw-bold text-dark mb-1">Balance Térmico Integral</h5>
-                            <p class="text-muted small">Cálculo basado en volumen real y fuentes de calor secundarias.</p>
+                <div class="col-lg-5 d-none d-lg-block">
+                    <div class="pe-lg-4">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-4 me-3 fs-4 fw-bold shadow-sm">❄️</div>
+                            <div>
+                                <h5 class="fw-bold text-dark mb-1">Eficiencia Energética</h5>
+                                <p class="text-muted small mb-0">Evita desperdicios de luz eligiendo los BTU justos para tu espacio.</p>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="d-flex align-items-start">
-                        <div class="bg-white p-3 rounded-3 shadow-sm me-3 text-info fs-3">⚡</div>
-                        <div>
-                            <h5 class="fw-bold text-dark mb-1">Filtrado Automático</h5>
-                            <p class="text-muted small">Te redirigimos directamente a los equipos de nuestro catálogo compatibles con tu espacio.</p>
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-4 me-3 fs-4 fw-bold shadow-sm">🌡️</div>
+                            <div>
+                                <h5 class="fw-bold text-dark mb-1">Balance Térmico Real</h5>
+                                <p class="text-muted small mb-0">Consideramos volumen real, zona climática, sol y fuentes de calor.</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-4 me-3 fs-4 fw-bold shadow-sm">⚡</div>
+                            <div>
+                                <h5 class="fw-bold text-dark mb-1">Conexión Directa</h5>
+                                <p class="text-muted small mb-0">Te llevamos al catálogo con el filtro de capacidad aplicado automáticamente.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-lg-6">
-                    <div class="card border-0 shadow-lg rounded-4 p-4 p-md-5">
-                        <div class="d-flex align-items-center mb-4">
-                            <div class="bg-primary text-white rounded p-2 me-3 fs-5"><i class="fas fa-cog"></i></div>
-                            <h4 class="fw-bold mb-0">Datos del Espacio</h4>
+                <div class="col-lg-8 col-xl-7">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                        <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                            <div class="bg-primary text-white rounded-circle p-3 me-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px;">
+                                <i class="fas fa-calculator fs-5"></i>
+                            </div>
+                            <div>
+                                <h4 class="fw-bold mb-0 text-dark" style="font-size: 1.25rem;">Parámetros del Espacio</h4>
+                                <small class="text-muted">Completa los datos para realizar el cálculo técnico</small>
+                            </div>
                         </div>
                         
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold text-secondary">Longitud (Largo)</label>
+                                <label class="form-label fw-semibold text-secondary small">Largo</label>
                                 <div class="input-group">
-                                    <input type="number" class="form-control bg-light" id="largo" placeholder="0.0" step="0.1" min="0" oninput="this.value = Math.abs(this.value)">
-                                    <span class="input-group-text bg-light border-start-0 text-muted">mts</span>
+                                    <input type="number" class="form-control bg-light border-0 py-2 shadow-none" id="largo" placeholder="0.0" step="0.1" min="0" oninput="this.value = Math.abs(this.value)">
+                                    <span class="input-group-text bg-light border-0 text-muted small">mts</span>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold text-secondary">Anchura (Ancho)</label>
+                                <label class="form-label fw-semibold text-secondary small">Ancho</label>
                                 <div class="input-group">
-                                    <input type="number" class="form-control bg-light" id="ancho" placeholder="0.0" step="0.1" min="0" oninput="this.value = Math.abs(this.value)">
-                                    <span class="input-group-text bg-light border-start-0 text-muted">mts</span>
+                                    <input type="number" class="form-control bg-light border-0 py-2 shadow-none" id="ancho" placeholder="0.0" step="0.1" min="0" oninput="this.value = Math.abs(this.value)">
+                                    <span class="input-group-text bg-light border-0 text-muted small">mts</span>
                                 </div>
                             </div>
                             <div class="col-12">
-                                <label class="form-label fw-bold text-secondary">Altura</label>
+                                <label class="form-label fw-semibold text-secondary small">Altura del Techo</label>
                                 <div class="input-group">
-                                    <input type="number" class="form-control bg-light" id="alto" value="2.5" step="0.1" min="0" oninput="this.value = Math.abs(this.value)">
-                                    <span class="input-group-text bg-light border-start-0 text-muted">mts</span>
+                                    <input type="number" class="form-control bg-light border-0 py-2 shadow-none" id="alto" value="2.5" step="0.1" min="0" oninput="this.value = Math.abs(this.value)">
+                                    <span class="input-group-text bg-light border-0 text-muted small">mts</span>
                                 </div>
                             </div>
                             
                             <div class="col-md-6">
-                                <label class="form-label fw-bold text-secondary">Personas habitualmente</label>
+                                <label class="form-label fw-semibold text-secondary small">Personas Habituales</label>
                                 <div class="input-group">
-                                    <input type="number" class="form-control bg-light" id="personas" value="1" min="1">
-                                    <span class="input-group-text bg-light border-start-0 text-muted"><i class="fas fa-user"></i></span>
+                                    <input type="number" class="form-control bg-light border-0 py-2 shadow-none" id="personas" value="1" min="1">
+                                    <span class="input-group-text bg-light border-0 text-muted"><i class="fas fa-user small"></i></span>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold text-secondary">Equipos eléctricos grandes</label>
+                                <label class="form-label fw-semibold text-secondary small">Equipos de Calor (TV, PC, etc.)</label>
                                 <div class="input-group">
-                                    <input type="number" class="form-control bg-light" id="inmuebles" value="0" min="0">
-                                    <span class="input-group-text bg-light border-start-0 text-muted"><i class="fas fa-tv"></i></span>
+                                    <input type="number" class="form-control bg-light border-0 py-2 shadow-none" id="inmuebles" value="0" min="0">
+                                    <span class="input-group-text bg-light border-0 text-muted"><i class="fas fa-tv small"></i></span>
                                 </div>
                             </div>
                             <div class="col-md-6 mt-3">
-                                <label class="form-label fw-bold text-secondary">Zona Climática</label>
-                                <select class="form-select bg-light" id="zonaClima">
+                                <label class="form-label fw-semibold text-secondary small">Zona Climática</label>
+                                <select class="form-select bg-light border-0 py-2 shadow-none fw-semibold" id="zonaClima">
                                     <option value="templada">Templada / Ciudad</option>
                                     <option value="calurosa">Calurosa / Costera</option>
                                 </select>
                             </div>
                             <div class="col-md-6 mt-3">
-                                <label class="form-label fw-bold text-secondary">Exposición al Sol</label>
-                                <select class="form-select bg-light" id="solDirecto">
-                                    <option value="no">No pega el sol directo</option>
+                                <label class="form-label fw-semibold text-secondary small">Exposición Solar</label>
+                                <select class="form-select bg-light border-0 py-2 shadow-none fw-semibold" id="solDirecto">
+                                    <option value="no">Normal / Sombra</option>
                                     <option value="si">Sol directo en la tarde</option>
                                 </select>
                             </div>
                         </div>
                         
-                        <button onclick="calcularBTU()" class="btn btn-primary w-100 py-3 fw-bold fs-5 shadow-sm">
+                        <button onclick="calcularBTU()" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm" style="letter-spacing: 0.5px; transition: transform 0.2s;">
                             Calcular Capacidad <i class="fas fa-arrow-right ms-2"></i>
                         </button>
 
-                        <div id="resultado" class="mt-4 p-4 border border-info rounded-4 bg-info bg-opacity-10 text-center" style="display: none;">
-                            <div class="text-primary fw-bold letter-spacing-1 small mb-2">CAPACIDAD REQUERIDA:</div>
-                            <h2 class="display-3 fw-bold text-dark mb-0"><span id="btu-valor">--</span> <small class="fs-4 text-muted">BTU</small></h2>
-                            <div class="bg-white p-3 rounded-3 my-3 shadow-sm">
-                                <p class="mb-0 text-secondary" id="recomendacion-texto"></p>
+                        <div id="resultado" class="mt-4 p-4 border-0 rounded-4 bg-primary bg-opacity-10 text-center" style="display: none;">
+                            <span class="text-primary fw-bold text-uppercase small" style="letter-spacing: 1px;">Capacidad Requerida:</span>
+                            <h2 class="display-4 fw-bold text-dark mb-2 mt-1" style="font-weight: 900;"><span id="btu-valor">--</span> <small class="fs-5 text-muted fw-semibold">BTU</small></h2>
+                            
+                            <div class="bg-white p-3 rounded-3 my-3 border">
+                                <p class="mb-0 text-secondary small" id="recomendacion-texto" style="line-height: 1.5;"></p>
                             </div>
-                            <a href="catalogo.html" id="btn-explore-dynamic" class="btn btn-outline-primary fw-bold w-100">Ver equipos sugeridos</a>
+                            
+                            <a href="catalogo.html" id="btn-explore-dynamic" class="btn btn-dark fw-bold w-100 rounded-pill py-3 shadow-sm text-decoration-none">
+                                <i class="fas fa-search me-2"></i> Ver equipos sugeridos
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -128,19 +142,17 @@
         </div>
     </section>
 
-    <!-- FOOTER -->
     <div id="footer-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script src="./js/auth.js"></script>
-    
     <script src="./js/api.js"></script>
-    
     <script src="./js/carrito.js"></script>
     <script src="./js/calculadora.js"></script>
-    <script src="./js/notificaciones.js"></script> <script src="./js/main.js"></script>
+    <script src="./js/notificaciones.js"></script>
+    <script src="./js/main.js"></script>
     <script src="./js/componentes.js"></script>
 </body>
 </html>

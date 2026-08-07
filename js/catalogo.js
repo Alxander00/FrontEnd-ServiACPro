@@ -6,26 +6,21 @@ let bsModalDetalle = null;
 let productoActual = null;
 let calificacionSeleccionada = 0;
 
-// NUEVO: Variables de paginación
+// Variables de paginación
 let currentPage = 0;
-const pageSize = 6; // Cantidad de productos a mostrar por página
+const pageSize = 6;
 let totalPages = 1;
 
 const container = document.getElementById('productosContainer');
 const resultadosSpan = document.querySelector('#resultadosCount span');
 const busquedaInput = document.getElementById('busquedaInput');
 
-// Elementos de filtros avanzados
-const btuMin = document.getElementById('btuMin');
-const btuMax = document.getElementById('btuMax');
-const btuMinValue = document.getElementById('btuMinValue');
-const btuMaxValue = document.getElementById('btuMaxValue');
-
-let timeoutBusqueda = null;  // para debounce
+let timeoutBusqueda = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     bsModalDetalle = new bootstrap.Modal(document.getElementById('modalDetalle'));
-    
+
+    // Eventos de filtros, orden, WhatsApp, etc.
     document.getElementById('aplicarFiltros').addEventListener('click', aplicarFiltros);
     document.getElementById('limpiarFiltros').addEventListener('click', limpiarFiltros);
     document.getElementById('ordenarSelect').addEventListener('change', () => {
@@ -35,75 +30,106 @@ document.addEventListener('DOMContentLoaded', async () => {
             ordenarProductos();
         }
     });
-    
-    busquedaInput.addEventListener('input', () => {
-        if (timeoutBusqueda) clearTimeout(timeoutBusqueda);
-        timeoutBusqueda = setTimeout(() => {
-            aplicarFiltros();
-        }, 300);
-    });
 
-    if (btuMin && btuMax) {
-        btuMin.addEventListener('input', () => {
-            let min = parseInt(btuMin.value);
-            let max = parseInt(btuMax.value);
-            if (min > max) btuMin.value = max;
-            btuMinValue.textContent = btuMin.value;
-            aplicarFiltros();
-        });
-        btuMax.addEventListener('input', () => {
-            let min = parseInt(btuMin.value);
-            let max = parseInt(btuMax.value);
-            if (max < min) btuMax.value = min;
-            btuMaxValue.textContent = btuMax.value;
-            aplicarFiltros();
+    // Rango de precio: actualizar valor mostrado
+    const precioRango = document.getElementById('precioMaxRango');
+    if (precioRango) {
+        precioRango.addEventListener('input', () => {
+            document.getElementById('valPrecioMax').textContent = precioRango.value;
+            document.getElementById('precioMax').value = precioRango.value;
         });
     }
 
-    // NUEVO: Eventos para Paginación
-    document.getElementById('btnAnterior')?.addEventListener('click', () => {
-        if (currentPage > 0) cargarProductos(currentPage - 1);
-    });
-    document.getElementById('btnSiguiente')?.addEventListener('click', () => {
-        if (currentPage < totalPages - 1) cargarProductos(currentPage + 1);
-    });
-
-    // NUEVO: Evento para el botón de WhatsApp Inteligente
+    // Botón WhatsApp
     document.getElementById('btnWhatsApp')?.addEventListener('click', () => {
         if (!productoActual) return;
-        
-        const numeroWhatsApp = "50371584643"; // Reemplaza por tu número
+        const numeroWhatsApp = "50371584643";
         const mensaje = `Hola Servi A/C Pro, estoy interesado en el equipo *${productoActual.nombre}* (${productoActual.capacidadBTU} BTU) que está en su catálogo a $${productoActual.precio.toFixed(2)}. ¿Me podrían dar más información?`;
-        
         const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
         window.open(url, '_blank');
     });
 
-    const ordenInicial = document.getElementById('ordenarSelect').value;
-    if (ordenInicial === 'popularidad') {
-        await cargarProductosPorPopularidad();
+    // 🔍 CAPTURA INTELIGENTE DE LA URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const capacidadUrl = urlParams.get('capacidad');
+
+    if (capacidadUrl) {
+        const capacidadNum = parseInt(capacidadUrl);
+        if (!isNaN(capacidadNum)) {
+            const rango = 2000;
+            const min = Math.max(0, capacidadNum - rango);
+            const max = capacidadNum + rango;
+
+            const btuMinRango = document.getElementById('btuMinRango');
+            const btuMaxRango = document.getElementById('btuMaxRango');
+            const btuMinVal = document.getElementById('btuMinVal');
+            const btuMaxVal = document.getElementById('btuMaxVal');
+
+            if (btuMinRango && btuMaxRango) {
+                btuMinRango.value = min;
+                btuMaxRango.value = max;
+                if (btuMinVal) btuMinVal.textContent = min;
+                if (btuMaxVal) btuMaxVal.textContent = max;
+            }
+
+            await cargarProductos(0, false, {
+                btuMin: min,
+                btuMax: max
+            });
+        } else {
+            await cargarProductos(0, false, {});
+        }
     } else {
-        await cargarProductos(0); // Iniciamos en la página 0
+        await cargarProductos(0, false, {});
     }
 
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('capacidad')) {
-        const capacidad = parseInt(urlParams.get('capacidad'));
-        if (btuMin && btuMax) {
-            btuMin.value = capacidad;
-            btuMax.value = capacidad;
-            btuMinValue.textContent = capacidad;
-            btuMaxValue.textContent = capacidad;
-        }
-        aplicarFiltros();
-    }
+    // Cargar categorías dinámicamente
+    await cargarCategorias();
 });
 
-async function cargarProductos(page = 0, esCambioDePagina = false) {
+async function cargarProductos(page = 0, esCambioDePagina = false, filtros = {}) {
     try {
         container.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Cargando catálogo...</p></div>';
 
-        const response = await API.request(`/productos?page=${page}&size=${pageSize}`);
+        const params = new URLSearchParams();
+        params.append('page', page);
+        params.append('size', pageSize);
+
+        // Filtros (sin marca)
+        if (filtros.categoria && filtros.categoria !== 'todas') params.append('categoria', filtros.categoria);
+        if (filtros.busqueda) params.append('busqueda', filtros.busqueda);
+        if (filtros.precioMin !== undefined) params.append('precioMin', filtros.precioMin);
+        if (filtros.precioMax !== undefined) params.append('precioMax', filtros.precioMax);
+        if (filtros.btuMin !== undefined) params.append('btuMin', filtros.btuMin);
+        if (filtros.btuMax !== undefined) params.append('btuMax', filtros.btuMax);
+
+        // Manejo de orden y dirección
+        let orden = filtros.orden || 'idProducto';
+        let direccion = 'ASC';
+        
+        // Mapear 'relevancia' a 'idProducto' (más recientes)
+        if (orden === 'relevancia' || orden === 'idProducto') {
+            orden = 'idProducto';
+            direccion = 'DESC'; // Los más recientes primero (ID más alto)
+        } else if (orden === 'precioAsc') { 
+            orden = 'precio'; 
+            direccion = 'ASC'; 
+        } else if (orden === 'precioDesc') { 
+            orden = 'precio'; 
+            direccion = 'DESC'; 
+        } else if (orden === 'popularidad') {
+            // Si es popularidad, usamos el endpoint separado y salimos
+            await cargarProductosPorPopularidad();
+            return;
+        }
+        // Para cualquier otro caso, usamos idProducto por defecto
+        
+        params.append('orden', orden);
+        params.append('direccion', direccion);
+
+        // console.log('🔍 URL:', `/productos?${params.toString()}`); // Para depurar
+
+        const response = await API.request(`/productos?${params.toString()}`);
 
         if (response && response.content) {
             productosData = response.content;
@@ -119,20 +145,15 @@ async function cargarProductos(page = 0, esCambioDePagina = false) {
         renderizarProductos();
         actualizarPaginacion();
 
-        // 🚀 MAGIA DE UX: El scroll suave solo ocurre si es un cambio de página real
         if (esCambioDePagina) {
             setTimeout(() => {
                 const elementoDestino = document.getElementById("productosContainer") || container;
                 if (elementoDestino) {
                     const offsetTop = elementoDestino.offsetTop - 120;
-                    window.scrollTo({
-                        top: offsetTop > 0 ? offsetTop : 0,
-                        behavior: "smooth"
-                    });
+                    window.scrollTo({ top: offsetTop > 0 ? offsetTop : 0, behavior: "smooth" });
                 }
             }, 60);
         }
-
     } catch (error) {
         console.error("Error al cargar productos:", error);
         container.innerHTML = `
@@ -203,16 +224,39 @@ function actualizarPaginacion() {
     if (btnSiguiente) btnSiguiente.disabled = (currentPage >= totalPages - 1);
 }
 
-// Delegación global de clics para la paginación (nunca pierde el clic y hace scroll perfecto)
 document.addEventListener('click', (e) => {
-    if (e.target && e.target.id === 'btnSiguiente' && !e.target.disabled) {
+    const target = e.target.closest('button');
+    if (!target) return;
+
+    const obtenerFiltrosActuales = () => {
+        const cat = document.getElementById('filtroCategoria').value;
+        const busqueda = busquedaInput.value.trim().toLowerCase();
+        const precioMin = parseFloat(document.getElementById('precioMin')?.value) || 0;
+        const precioMax = parseFloat(document.getElementById('precioMax')?.value) || 999999;
+        const btuMinVal = parseInt(document.getElementById('btuMinRango')?.value) || 0;
+        const btuMaxVal = parseInt(document.getElementById('btuMaxRango')?.value) || 50000;
+        const orden = document.getElementById('ordenarSelect').value;
+        return {
+            categoria: cat,
+            busqueda: busqueda,
+            precioMin: precioMin,
+            precioMax: precioMax,
+            btuMin: btuMinVal,
+            btuMax: btuMaxVal,
+            orden: orden === 'popularidad' ? 'popularidad' : undefined
+        };
+    };
+
+    if (target.id === 'btnSiguiente' && !target.disabled) {
         if (currentPage < totalPages - 1) {
-            cargarProductos(currentPage + 1, true);
+            const filtros = obtenerFiltrosActuales();
+            cargarProductos(currentPage + 1, true, filtros);
         }
     }
-    if (e.target && e.target.id === 'btnAnterior' && !e.target.disabled) {
+    if (target.id === 'btnAnterior' && !target.disabled) {
         if (currentPage > 0) {
-            cargarProductos(currentPage - 1, true);
+            const filtros = obtenerFiltrosActuales();
+            cargarProductos(currentPage - 1, true, filtros);
         }
     }
 });
@@ -656,23 +700,36 @@ window.agregarAlCarrito = async function(id, incluyeInstalacion = false) {
 };
 
 function aplicarFiltros() {
-    const cat = document.getElementById('filtroCategoria').value;
-    const marca = document.getElementById('filtroMarca').value;
-    const btuMinVal = parseInt(document.getElementById('btuMin')?.value) || 0;
-    const btuMaxVal = parseInt(document.getElementById('btuMax')?.value) || 999999;
-    const minPrecio = parseFloat(document.getElementById('precioMin').value) || 0;
-    const maxPrecio = parseFloat(document.getElementById('precioMax').value) || 999999;
-    const busqueda = busquedaInput.value.trim().toLowerCase();
+    const selectCat = document.getElementById('filtroCategoria');
+    const inputBusqueda = document.getElementById('busquedaInput');
+    const selectOrden = document.getElementById('ordenarSelect');
 
-    productosFiltrados = productosData.filter(p => {
-        if (cat !== 'todas' && p.nombreCategoria !== cat) return false;
-        if (marca !== 'todas' && p.marca !== marca) return false;
-        if (p.capacidadBTU < btuMinVal || p.capacidadBTU > btuMaxVal) return false;
-        if (p.precio < minPrecio || p.precio > maxPrecio) return false;
-        if (busqueda && !p.nombre.toLowerCase().includes(busqueda)) return false;
-        return true;
-    });
-    ordenarProductos();
+    const cat = selectCat ? selectCat.value : 'todas';
+    const busqueda = inputBusqueda ? inputBusqueda.value.trim().toLowerCase() : '';
+
+    const inputPrecioMin = document.getElementById('precioMin');
+    const inputPrecioMax = document.getElementById('precioMax');
+    const precioMin = inputPrecioMin ? parseFloat(inputPrecioMin.value) || 0 : 0;
+    const precioMax = inputPrecioMax ? parseFloat(inputPrecioMax.value) || 999999 : 999999;
+
+    const inputBtuMin = document.getElementById('btuMinRango');
+    const inputBtuMax = document.getElementById('btuMaxRango');
+    const btuMinVal = inputBtuMin ? parseInt(inputBtuMin.value) || 0 : 0;
+    const btuMaxVal = inputBtuMax ? parseInt(inputBtuMax.value) || 50000 : 50000;
+
+    const orden = selectOrden ? selectOrden.value : 'relevancia';
+
+    const filtros = {
+        categoria: cat,
+        busqueda: busqueda,
+        precioMin: precioMin,
+        precioMax: precioMax,
+        btuMin: btuMinVal,
+        btuMax: btuMaxVal,
+        orden: orden === 'relevancia' ? undefined : orden  // No enviar 'relevancia'
+    };
+
+    cargarProductos(0, false, filtros);
 }
 
 function ordenarProductos() {
@@ -685,21 +742,18 @@ function ordenarProductos() {
 
 function limpiarFiltros() {
     document.getElementById('filtroCategoria').value = 'todas';
-    document.getElementById('filtroMarca').value = 'todas';
-    if (btuMin) btuMin.value = 0;
-    if (btuMax) btuMax.value = 50000;
-    if (btuMinValue) btuMinValue.textContent = '0';
-    if (btuMaxValue) btuMaxValue.textContent = '50000';
+    document.getElementById('btuMinRango').value = 0;
+    document.getElementById('btuMaxRango').value = 50000;
+    document.getElementById('btuMinVal').textContent = '0';
+    document.getElementById('btuMaxVal').textContent = '50000';
     document.getElementById('precioMin').value = '0';
     document.getElementById('precioMax').value = '3000';
+    document.getElementById('precioMaxRango').value = '3000';
+    document.getElementById('valPrecioMax').textContent = '3000';
     busquedaInput.value = '';
     document.getElementById('ordenarSelect').value = 'relevancia';
-    if (document.getElementById('ordenarSelect').value === 'popularidad') {
-        cargarProductosPorPopularidad();
-    } else {
-        productosFiltrados = [...productosData];
-        renderizarProductos();
-    }
+
+    cargarProductos(0, false, {});
 }
 
 // ==========================================
@@ -729,21 +783,18 @@ function procesarDatosProducto(prod) {
 }
 
 // ==========================================
-// EXPORTACIÓN A PDF: MODO "REVISTA PREMIUM VIBRANTE"
+// EXPORTACIÓN A PDF: MODO "TABLA PROFESIONAL BLINDADA"
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     const btnDescargarPDF = document.getElementById('btnDescargarPDF');
     
     if(btnDescargarPDF) {
         btnDescargarPDF.addEventListener('click', async function() {
-            // 1. Efecto de "Cargando"
             const textoOriginal = this.innerHTML;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Diseñando Catálogo Completo...';
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Generando PDF Profesional...';
             this.disabled = true;
 
             try {
-                // 2. FETCH EN MEMORIA: Traemos el catálogo completo (ej. max 100 productos para no saturar)
-                // Esto no afecta la vista paginada del usuario.
                 const response = await API.request('/productos?page=0&size=100');
                 const catalogoCompleto = response.content || response || [];
 
@@ -754,96 +805,166 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // 3. Crear el "Lienzo" del PDF en Memoria (No se inyecta en el DOM visible)
                 const pdfContainer = document.createElement('div');
-                pdfContainer.style.padding = '30px 40px';
+                pdfContainer.style.width = '750px'; // Ancho fijo seguro para formato carta
+                pdfContainer.style.margin = '0 auto';
+                pdfContainer.style.padding = '20px';
                 pdfContainer.style.background = '#ffffff';
                 pdfContainer.style.fontFamily = "'Montserrat', sans-serif";
+                pdfContainer.style.boxSizing = 'border-box';
                 pdfContainer.style.setProperty('-webkit-print-color-adjust', 'exact', 'important');
                 pdfContainer.style.setProperty('print-color-adjust', 'exact', 'important');
 
-                // 4. ENCABEZADO VIBRANTE
+                // ENCABEZADO VIBRANTE
                 const fechaActual = new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
                 pdfContainer.innerHTML = `
-                    <div style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white; padding: 40px 20px; text-align: center; border-radius: 20px; margin-bottom: 40px;">
-                        <h1 style="margin: 0; font-size: 3.2rem; font-weight: 900; letter-spacing: -1px;">Servi A/C Pro</h1>
-                        <h4 style="margin: 15px 0 0 0; font-weight: 600; font-size: 1.4rem; opacity: 0.95; letter-spacing: 1px; text-transform: uppercase;">Catálogo Oficial de Equipos</h4>
-                        <div style="margin-top: 20px; display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 8px 25px; border-radius: 50px; font-size: 0.9rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.3);">
-                            <i class="fas fa-calendar-alt" style="margin-right: 8px;"></i> Edición Especial: ${fechaActual}
+                    <div style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white; padding: 25px 20px; text-align: center; border-radius: 12px; margin-bottom: 25px;">
+                        <h1 style="margin: 0; font-size: 2.5rem; font-weight: 900; letter-spacing: -1px;">Servi A/C Pro</h1>
+                        <h4 style="margin: 8px 0 0 0; font-weight: 600; font-size: 1.1rem; opacity: 0.95; letter-spacing: 1px; text-transform: uppercase;">Catálogo Oficial de Equipos</h4>
+                        <div style="margin-top: 12px; display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 5px 18px; border-radius: 50px; font-size: 0.8rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.3);">
+                            Edición Especial: ${fechaActual}
                         </div>
                     </div>
                 `;
 
-                // 5. CONSTRUCCIÓN DE LA CUADRÍCULA LIGERA (Sin clones pesados)
-                const gridHtml = document.createElement('div');
-                gridHtml.style.display = 'block';
-                gridHtml.style.width = '100%';
+                // CONSTRUCCIÓN USANDO TABLA (Garantiza 3 columnas simétricas sin que se rompa el diseño)
+                const tabla = document.createElement('table');
+                tabla.style.width = '100%';
+                tabla.style.borderCollapse = 'separate';
+                tabla.style.borderSpacing = '12px'; // Espacio limpio entre tarjetas
 
-                catalogoCompleto.forEach(prod => {
+                let tbody = document.createElement('tbody');
+                let filaActual = document.createElement('tr');
+                let contadorCol = 0;
+
+                catalogoCompleto.forEach((prod, index) => {
                     const datosProcesados = procesarDatosProducto(prod);
                     let imgUrl = (prod.imagenesUrls && prod.imagenesUrls.length > 0) ? prod.imagenesUrls[0] : "./img/breezeless_ambiente.png";
 
-                    // Tarjeta diseñada con CSS Inline estricto para PDF (3 columnas, alturas fijas, sin botones)
-                    gridHtml.innerHTML += `
-                        <div style="width: 31%; margin: 0 1% 30px 1%; display: inline-block; vertical-align: top; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 16px; overflow: hidden; page-break-inside: avoid; break-inside: avoid;">
-                            <div style="height: 200px; background: radial-gradient(circle at center, #ffffff 0%, #f8fafc 100%); border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; padding: 15px;">
-                                <img src="${imgUrl}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                    const celda = document.createElement('td');
+                    celda.style.width = '33.33%';
+                    celda.style.verticalAlign = 'top';
+                    celda.style.background = '#ffffff';
+                    celda.style.border = '1px solid #e2e8f0';
+                    celda.style.borderRadius = '12px';
+                    celda.style.overflow = 'hidden';
+                    celda.style.padding = '0';
+                    celda.style.boxSizing = 'border-box';
+                    celda.style.pageBreakInside = 'avoid';
+                    celda.style.breakInside = 'avoid';
+
+                    celda.innerHTML = `
+                        <div style="height: 150px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; padding: 10px; box-sizing: border-box;">
+                            <img src="${imgUrl}" style="max-height: 130px; max-width: 100%; object-fit: contain;">
+                        </div>
+                        <div style="padding: 15px; text-align: left; box-sizing: border-box;">
+                            <div style="margin-bottom: 6px;">
+                                <span style="background: #e0f2fe; color: #0369a1; font-size: 0.6rem; font-weight: 800; padding: 3px 6px; border-radius: 4px; text-transform: uppercase;">${prod.capacidadBTU ? prod.capacidadBTU + ' BTU' : 'Inverter'}</span>
                             </div>
-                            <div style="padding: 20px; text-align: left;">
-                                <small style="color: #64748b; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">${datosProcesados.marca}</small>
-                                <h5 style="color: #0f172a; font-size: 1.1rem; font-weight: 800; margin: 8px 0 10px 0; height: 2.6em; overflow: hidden; line-height: 1.3;">${prod.nombre}</h5>
-                                <p style="color: #475569; font-size: 0.85rem; height: 2.8em; overflow: hidden; margin-bottom: 15px; line-height: 1.4;">${datosProcesados.descripcion}</p>
-                                
-                                <div style="border-top: 1px dashed #cbd5e1; padding-top: 15px; margin-top: 15px;">
-                                    <span style="color: #0d6efd; font-size: 1.7rem; font-weight: 900; display: block;">$${prod.precio.toFixed(2)}</span>
-                                </div>
+                            <small style="color: #64748b; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px;">${datosProcesados.marca}</small>
+                            <h5 style="color: #0f172a; font-size: 0.9rem; font-weight: 800; margin: 0 0 6px 0; height: 2.4em; overflow: hidden; line-height: 1.2;">${prod.nombre}</h5>
+                            <p style="color: #475569; font-size: 0.7rem; height: 2.6em; overflow: hidden; margin: 0 0 10px 0; line-height: 1.3;">${datosProcesados.descripcion}</p>
+                            
+                            <div style="border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 8px;">
+                                <span style="color: #0d6efd; font-size: 1.3rem; font-weight: 900; display: block;">$${prod.precio.toFixed(2)}</span>
                             </div>
                         </div>
                     `;
+
+                    filaActual.appendChild(celda);
+                    contadorCol++;
+
+                    // Cada 3 productos, cerramos la fila y abrimos otra nueva
+                    if (contadorCol === 3) {
+                        tbody.appendChild(filaActual);
+                        filaActual = document.createElement('tr');
+                        contadorCol = 0;
+                    }
                 });
 
-                pdfContainer.appendChild(gridHtml);
+                // Si quedan productos sobrantes en la última fila, rellenamos con celdas vacías para mantener estructura
+                if (contadorCol > 0) {
+                    while (contadorCol < 3) {
+                        const celdaVacia = document.createElement('td');
+                        celdaVacia.style.width = '33.33%';
+                        filaActual.appendChild(celdaVacia);
+                        contadorCol++;
+                    }
+                    tbody.appendChild(filaActual);
+                }
 
-                // 6. PIE DE PÁGINA ELEGANTE
+                tabla.appendChild(tbody);
+                pdfContainer.appendChild(tabla);
+
+                // PIE DE PÁGINA ELEGANTE
                 const footerPDF = document.createElement('div');
                 footerPDF.innerHTML = `
-                    <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #e2e8f0; text-align: center; color: #64748b; font-size: 0.9rem; font-weight: 600;">
-                        <span style="color: #0d6efd;">Servi A/C Pro</span> • La mejor tecnología en climatización • WhatsApp: +503 1234-5678
+                    <div style="margin-top: 25px; padding-top: 15px; border-top: 2px solid #e2e8f0; text-align: center; color: #64748b; font-size: 0.75rem; font-weight: 600;">
+                        <span style="color: #0d6efd;">Servi A/C Pro</span> • La mejor tecnología en climatización • WhatsApp: +503 7158-4643
                     </div>
                 `;
                 pdfContainer.appendChild(footerPDF);
 
-                // 7. Configurar el Renderizador a Alta Calidad
+                // Configuración de Alta Definición para Impresión
                 const opcionesPDF = {
-                    margin:       [0.4, 0.4, 0.4, 0.4],
+                    margin:       [0.3, 0.3, 0.3, 0.3],
                     filename:     'Catalogo_Premium_ServiACPro.pdf',
                     image:        { type: 'jpeg', quality: 1 },
                     html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollY: 0 },
                     jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
                 };
 
-                // 8. Generar e Imprimir
                 await html2pdf().set(opcionesPDF).from(pdfContainer).save();
 
-                // 9. Devolver botón a la normalidad
                 this.innerHTML = textoOriginal;
                 this.disabled = false;
                 
-                if(window.UI) {
-                    window.UI.success('El catálogo a todo color se ha descargado con éxito.');
-                } else if (typeof Swal !== 'undefined') {
-                    Swal.fire({ icon: 'success', title: '¡Catálogo Generado!', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
-                }
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Catálogo Generado!',
+                    text: 'El documento se ha descargado con éxito.',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
 
             } catch (err) {
                 console.error('Error al generar PDF:', err);
                 this.innerHTML = textoOriginal;
                 this.disabled = false;
-                if(window.UI) window.UI.error('No se pudo generar el documento.');
+                Swal.fire('Error', 'No se pudo generar el documento.', 'error');
             }
         });
     }
 });
+
+async function cargarCategorias() {
+  try {
+    const response = await API.request('/categorias');
+    const select = document.getElementById('filtroCategoria');
+    select.innerHTML = '<option value="todas">Todas</option>';
+    if (Array.isArray(response)) {
+      response.forEach(cat => {
+        const option = document.createElement('option');
+        // Si tu backend devuelve el nombre en 'nombre' y el id en 'idCategoria'
+        option.value = cat.nombre; // o cat.idCategoria según cómo lo manejes
+        option.textContent = cat.nombre;
+        select.appendChild(option);
+      });
+    }
+  } catch (error) {
+    console.error('Error cargando categorías:', error);
+    // Fallback: opciones por defecto si falla la carga
+    const select = document.getElementById('filtroCategoria');
+    select.innerHTML = `
+      <option value="todas">Todas</option>
+      <option value="Inverter">Inverter</option>
+      <option value="Ventana">Ventana</option>
+      <option value="Portátil">Portátil</option>
+    `;
+  }
+}
 
 // ========== HISTORIAL DE PRECIOS ==========
 let historialChart = null;

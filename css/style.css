@@ -761,3 +761,18 @@ img {
 .btn-add-cart:active {
     transform: scale(0.95); /* Efecto de hundimiento al dar clic */
 }
+
+/* ===== AJUSTES FINALES CALCULADORA INTELIGENTE ===== */
+.card.border-0.shadow-sm {
+    border-radius: 20px !important;
+}
+
+#calculadoraForm input, 
+#calculadoraForm select {
+    height: 48px !important;
+    font-size: 0.95rem !important;
+}
+
+#resultado {
+    animation: fadeIn 0.3s ease-in-out;
+}
