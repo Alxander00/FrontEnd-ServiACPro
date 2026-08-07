@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btnWhatsApp')?.addEventListener('click', () => {
         if (!productoActual) return;
         
-        const numeroWhatsApp = "50370000000"; // Reemplaza por tu número
+        const numeroWhatsApp = "50371584643"; // Reemplaza por tu número
         const mensaje = `Hola Servi A/C Pro, estoy interesado en el equipo *${productoActual.nombre}* (${productoActual.capacidadBTU} BTU) que está en su catálogo a $${productoActual.precio.toFixed(2)}. ¿Me podrían dar más información?`;
         
         const url = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
@@ -99,31 +99,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// NUEVO: Función cargarProductos modificada para soportar paginación
-async function cargarProductos(page = 0) {
+async function cargarProductos(page = 0, esCambioDePagina = false) {
     try {
         container.innerHTML = '<div class="col-12 text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Cargando catálogo...</p></div>';
-        
-        // Hacemos la petición con los parámetros de paginación
+
         const response = await API.request(`/productos?page=${page}&size=${pageSize}`);
-        
-        // Spring Boot devuelve un objeto Page. Los productos están en "content"
-        if(response && response.content) {
-            productosData = response.content; 
+
+        if (response && response.content) {
+            productosData = response.content;
             currentPage = response.number;
             totalPages = response.totalPages;
         } else {
-            // Fallback por si la API aún devuelve una lista plana
             productosData = response || [];
             currentPage = 0;
             totalPages = 1;
         }
-        
+
         productosFiltrados = [...productosData];
         renderizarProductos();
         actualizarPaginacion();
 
+        // 🚀 MAGIA DE UX: El scroll suave solo ocurre si es un cambio de página real
+        if (esCambioDePagina) {
+            setTimeout(() => {
+                const elementoDestino = document.getElementById("productosContainer") || container;
+                if (elementoDestino) {
+                    const offsetTop = elementoDestino.offsetTop - 120;
+                    window.scrollTo({
+                        top: offsetTop > 0 ? offsetTop : 0,
+                        behavior: "smooth"
+                    });
+                }
+            }, 60);
+        }
+
     } catch (error) {
+        console.error("Error al cargar productos:", error);
         container.innerHTML = `
             <div class="col-12 text-center py-5 bg-white rounded-4 shadow-sm">
                 <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
@@ -134,21 +145,77 @@ async function cargarProductos(page = 0) {
     }
 }
 
-// NUEVO: Función para actualizar los botones de paginación visualmente
 function actualizarPaginacion() {
     const pagContainer = document.getElementById('paginacionContainer');
     if (!pagContainer) return;
     
-    // Mostramos el contenedor de paginación
     pagContainer.style.display = 'flex';
     
     document.getElementById('paginaActual').textContent = currentPage + 1;
     document.getElementById('totalPaginas').textContent = totalPages === 0 ? 1 : totalPages;
     
-    // Deshabilitar botones si estamos en la primera o última página
-    document.getElementById('btnAnterior').disabled = (currentPage === 0);
-    document.getElementById('btnSiguiente').disabled = (currentPage >= totalPages - 1);
+    const btnAnterior = document.getElementById('btnAnterior');
+    const btnSiguiente = document.getElementById('btnSiguiente');
+
+    if (btnAnterior) {
+        btnAnterior.disabled = (currentPage === 0);
+        // Clonamos el botón para matar cualquier evento duplicado anterior y asegurar clics infinitos
+        const nuevoBtnAnterior = btnAnterior.cloneNode(true);
+        btnAnterior.parentNode.replaceChild(nuevoBtnAnterior, btnAnterior);
+        
+        nuevoBtnAnterior.addEventListener('click', () => {
+            if (currentPage > 0) {
+                cargarProductos(currentPage - 1, true);
+            }
+        });
+    }
+
+    if (btnSiguiente) {
+        btnSiguiente.disabled = (currentPage >= totalPages - 1);
+        // Clonamos el botón para matar duplicados y garantizar fluidez total
+        const nuevoBtnSiguiente = btnSiguiente.cloneNode(true);
+        btnSiguiente.parentNode.replaceChild(nuevoBtnSiguiente, btnSiguiente);
+        
+        nuevoBtnSiguiente.addEventListener('click', () => {
+            if (currentPage < totalPages - 1) {
+                cargarProductos(currentPage + 1, true);
+            }
+        });
+    }
 }
+
+// NUEVO: Función para actualizar los botones de paginación de forma infalible
+function actualizarPaginacion() {
+    const pagContainer = document.getElementById('paginacionContainer');
+    if (!pagContainer) return;
+    
+    pagContainer.style.display = 'flex';
+    
+    const spanPaginaActual = document.getElementById('paginaActual');
+    const spanTotalPaginas = document.getElementById('totalPaginas');
+    const btnAnterior = document.getElementById('btnAnterior');
+    const btnSiguiente = document.getElementById('btnSiguiente');
+
+    if (spanPaginaActual) spanPaginaActual.textContent = currentPage + 1;
+    if (spanTotalPaginas) spanTotalPaginas.textContent = totalPages === 0 ? 1 : totalPages;
+    
+    if (btnAnterior) btnAnterior.disabled = (currentPage === 0);
+    if (btnSiguiente) btnSiguiente.disabled = (currentPage >= totalPages - 1);
+}
+
+// Delegación global de clics para la paginación (nunca pierde el clic y hace scroll perfecto)
+document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'btnSiguiente' && !e.target.disabled) {
+        if (currentPage < totalPages - 1) {
+            cargarProductos(currentPage + 1, true);
+        }
+    }
+    if (e.target && e.target.id === 'btnAnterior' && !e.target.disabled) {
+        if (currentPage > 0) {
+            cargarProductos(currentPage - 1, true);
+        }
+    }
+});
 
 async function cargarProductosPorPopularidad() {
     try {
@@ -170,14 +237,17 @@ async function cargarProductosPorPopularidad() {
 
 function renderizarProductos() {
     container.innerHTML = '';
+    
+    // Pantalla limpia si no hay resultados
     if (productosFiltrados.length === 0) {
         container.innerHTML = `
-            <div class="col-12 text-center py-5 bg-white rounded-4 shadow-sm">
-                <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                <h4 class="text-dark">No se encontraron productos</h4>
+            <div class="col-12 text-center py-5 bg-white rounded-4 shadow-sm border border-light">
+                <i class="fas fa-box-open fa-3x text-muted mb-3 opacity-50"></i>
+                <h4 class="text-dark fw-bold">No se encontraron equipos</h4>
+                <p class="text-muted">Intenta ajustando los filtros de búsqueda.</p>
             </div>
         `;
-        resultadosSpan.textContent = '0';
+        if (resultadosSpan) resultadosSpan.textContent = '0';
         return;
     }
 
@@ -185,8 +255,12 @@ function renderizarProductos() {
     const esClienteOInvitado = !user || user.rol === 'CLIENTE';
 
     productosFiltrados.forEach(prod => {
+        // Lógica inteligente para limpiar marca y extraer la descripción
+        const datosProcesados = procesarDatosProducto(prod);
+
         const col = document.createElement('div');
-        col.className = 'col-md-6 col-xl-4';
+        // Cuadrícula perfecta: 1 celular, 2 tablet, 3 PC
+        col.className = 'col-12 col-md-6 col-xl-4 mb-4 d-flex';
         
         let imgUrl = "./img/breezeless_ambiente.png";
         if (prod.imagenesUrls && prod.imagenesUrls.length > 0) {
@@ -194,31 +268,65 @@ function renderizarProductos() {
         }
 
         const badgeVendido = (prod.totalVendido && prod.totalVendido > 0) ? 
-            `<span class="position-absolute top-0 start-0 m-2 badge bg-success">⭐ Más vendido</span>` : '';
+            `<span class="badge bg-danger text-white position-absolute top-0 start-0 m-3 px-3 py-2 rounded-pill shadow-sm" style="font-size: 0.75rem; z-index: 10;">🔥 Más vendido</span>` : '';
 
-        // ✅ Card clickeable: onclick en toda la card
-        const botonCarritoHTML = esClienteOInvitado 
-            ? `<button class="btn btn-primary w-100" onclick="event.stopPropagation(); agregarAlCarrito(${prod.idProducto})"><i class="fas fa-cart-plus me-2"></i>Agregar</button>`
-            : '';
-
-        // Badge agotado en la card (pequeño)
         const badgeStock = prod.stock <= 0 
-            ? `<span class="position-absolute top-0 end-0 m-2 badge bg-danger">Agotado</span>` 
+            ? `<span class="badge bg-secondary position-absolute top-0 start-0 m-3 px-3 py-2 rounded-pill shadow-sm" style="font-size: 0.75rem; z-index: 10; ${prod.totalVendido > 0 ? 'margin-top: 3rem !important;' : ''}">Agotado</span>` 
             : '';
+
+        // Botón con tamaño ajustado
+        const botonCarritoHTML = esClienteOInvitado 
+            ? `<button class="btn ${prod.stock <= 0 ? 'btn-secondary' : 'btn-primary'} w-100 rounded-pill fw-bold shadow-sm" 
+                style="padding: 10px 0; font-size: 0.95rem; transition: transform 0.2s;" 
+                ${prod.stock <= 0 ? 'disabled' : ''} 
+                onclick="event.stopPropagation(); agregarAlCarrito(${prod.idProducto})">
+                <i class="fas ${prod.stock <= 0 ? 'fa-times-circle' : 'fa-shopping-cart'} me-2"></i> ${prod.stock <= 0 ? 'AGOTADO' : 'Agregar al carrito'}
+               </button>`
+            : '';
+
+        // Chips
+        const chipBTU = prod.capacidadBTU ? `<span class="badge rounded-pill bg-light text-dark border px-2 py-1">${prod.capacidadBTU} BTU</span>` : '';
+        const chipCategoria = prod.nombreCategoria ? `<span class="badge rounded-pill bg-light text-dark border px-2 py-1">${prod.nombreCategoria}</span>` : '';
 
         col.innerHTML = `
-            <div class="card h-100 border-0 shadow-sm product-card" style="cursor: pointer;" onclick="verDetalles(${prod.idProducto})">
-                <div class="position-relative">
+            <div class="card w-100 border-0 shadow-sm rounded-4 d-flex flex-column" 
+                 style="background: white; overflow: hidden; transition: all 0.25s ease; cursor: pointer;" 
+                 onclick="verDetalles(${prod.idProducto})" 
+                 onmouseover="this.style.transform='translateY(-8px)'; this.style.boxShadow='0 15px 40px rgba(0,0,0,0.15)';" 
+                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.05)';">
+                
+                <div class="position-relative d-flex justify-content-center align-items-center" style="height: 200px; background: #f8f9fa;">
                     ${badgeVendido}
                     ${badgeStock}
-                    <img src="${imgUrl}" class="card-img-top p-3 bg-light" alt="${prod.nombre}" style="height: 200px; object-fit: contain;">
-                    <span class="position-absolute bottom-0 end-0 m-2 badge bg-primary">${prod.capacidadBTU} BTU</span>
+                    <img src="${imgUrl}" class="img-fluid p-3" alt="${prod.nombre}" style="max-height: 100%; object-fit: contain; transition: transform 0.4s ease;" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
                 </div>
-                <div class="card-body d-flex flex-column">
-                    <span class="text-info fw-bold small text-uppercase">${prod.nombreCategoria || 'Equipo'}</span>
-                    <h5 class="card-title fw-bold text-dark mb-2">${prod.nombre}</h5>
-                    <h4 class="text-primary fw-bold mb-3">$${prod.precio.toFixed(2)}</h4>
-                    <div class="mt-auto">
+                
+                <div class="card-body d-flex flex-column p-3">
+                    <small class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.7rem; letter-spacing: 1px;">
+                        ${datosProcesados.marca}
+                    </small>
+                    
+                    <h5 class="text-dark fw-bold mb-1" 
+                        style="font-size: 1.1rem; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.6em; line-height: 1.3;">
+                        ${prod.nombre}
+                    </h5>
+
+                    <p class="text-secondary mb-2 mt-1" style="display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.85rem; line-height: 1.4;">
+                        ${datosProcesados.descripcion}
+                    </p>
+                    
+                    <div class="d-flex flex-wrap gap-2 mb-3 mt-1">
+                        ${chipBTU}
+                        ${chipCategoria}
+                    </div>
+                    
+                    <div class="mt-auto pt-1">
+                        <div class="mb-2">
+                            <span class="text-dark" style="font-size: 1.8rem; font-weight: 900; letter-spacing: -1px;">
+                                $${prod.precio.toFixed(2)}
+                            </span>
+                        </div>
+                        
                         ${botonCarritoHTML}
                     </div>
                 </div>
@@ -226,7 +334,8 @@ function renderizarProductos() {
         `;
         container.appendChild(col);
     });
-    resultadosSpan.textContent = productosFiltrados.length;
+
+    if (resultadosSpan) resultadosSpan.textContent = productosFiltrados.length;
 }
 
 window.verDetalles = async function(id) {
@@ -262,13 +371,19 @@ window.verDetalles = async function(id) {
         new bootstrap.Carousel(carouselElement);
     }
 
-    // ===== 2. DATOS BÁSICOS =====
+// ===== 2. DATOS BÁSICOS =====
+    // 🚨 LIMPIAMOS LOS DATOS ANTES DE MOSTRARLOS
+    const datosProcesados = procesarDatosProducto(prod);
+
     document.getElementById('modalCategoria').textContent = prod.nombreCategoria || 'Equipo';
     document.getElementById('modalTitulo').textContent = prod.nombre;
-    document.getElementById('modalDescripcion').textContent = prod.descripcion || "Sin descripción disponible.";
+    
+    // Aquí inyectamos la descripción y marca ya separadas
+    document.getElementById('modalDescripcion').textContent = datosProcesados.descripcion;
+    document.getElementById('modalMarca').textContent = datosProcesados.marca;
+    
     document.getElementById('modalPrecio').textContent = `$${prod.precio.toFixed(2)}`;
     document.getElementById('modalBTU').textContent = `${prod.capacidadBTU} BTU`;
-    document.getElementById('modalMarca').textContent = prod.marca || "ServiA/CPro";
     document.getElementById('modalGarantia').textContent = "1 año";
 
     // ===== 3. STOCK (EN IMAGEN + EN INFORMACIÓN) =====
@@ -586,6 +701,149 @@ function limpiarFiltros() {
         renderizarProductos();
     }
 }
+
+// ==========================================
+// FUNCIÓN PARA SEPARAR MARCA Y DESCRIPCIÓN
+// ==========================================
+function procesarDatosProducto(prod) {
+    let marca = prod.marca;
+    let descripcion = prod.descripcion || "Sin descripción disponible.";
+
+    // Si no hay marca, pero la descripción dice "Marca: [Algo] - [Algo]"
+    if (!marca && prod.descripcion && prod.descripcion.toLowerCase().includes("marca:")) {
+        // Cortamos el texto por el guion "-"
+        let partes = prod.descripcion.split("-");
+        
+        if (partes.length > 1) {
+            // Limpiamos la primera parte para quitarle la palabra "Marca:" y dejar solo "LG"
+            marca = partes[0].replace(/Marca:/i, '').trim();
+            // Juntamos el resto por si la descripción original tenía más guiones
+            descripcion = partes.slice(1).join("-").trim(); 
+        }
+    }
+
+    return {
+        marca: marca || "Genérica", // Si de plano no hay nada, dirá "Genérica"
+        descripcion: descripcion
+    };
+}
+
+// ==========================================
+// EXPORTACIÓN A PDF: MODO "REVISTA PREMIUM VIBRANTE"
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    const btnDescargarPDF = document.getElementById('btnDescargarPDF');
+    
+    if(btnDescargarPDF) {
+        btnDescargarPDF.addEventListener('click', async function() {
+            // 1. Efecto de "Cargando"
+            const textoOriginal = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Diseñando Catálogo Completo...';
+            this.disabled = true;
+
+            try {
+                // 2. FETCH EN MEMORIA: Traemos el catálogo completo (ej. max 100 productos para no saturar)
+                // Esto no afecta la vista paginada del usuario.
+                const response = await API.request('/productos?page=0&size=100');
+                const catalogoCompleto = response.content || response || [];
+
+                if (catalogoCompleto.length === 0) {
+                    Swal.fire('Catálogo vacío', 'No hay productos disponibles para exportar.', 'info');
+                    this.innerHTML = textoOriginal;
+                    this.disabled = false;
+                    return;
+                }
+
+                // 3. Crear el "Lienzo" del PDF en Memoria (No se inyecta en el DOM visible)
+                const pdfContainer = document.createElement('div');
+                pdfContainer.style.padding = '30px 40px';
+                pdfContainer.style.background = '#ffffff';
+                pdfContainer.style.fontFamily = "'Montserrat', sans-serif";
+                pdfContainer.style.setProperty('-webkit-print-color-adjust', 'exact', 'important');
+                pdfContainer.style.setProperty('print-color-adjust', 'exact', 'important');
+
+                // 4. ENCABEZADO VIBRANTE
+                const fechaActual = new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+                pdfContainer.innerHTML = `
+                    <div style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white; padding: 40px 20px; text-align: center; border-radius: 20px; margin-bottom: 40px;">
+                        <h1 style="margin: 0; font-size: 3.2rem; font-weight: 900; letter-spacing: -1px;">Servi A/C Pro</h1>
+                        <h4 style="margin: 15px 0 0 0; font-weight: 600; font-size: 1.4rem; opacity: 0.95; letter-spacing: 1px; text-transform: uppercase;">Catálogo Oficial de Equipos</h4>
+                        <div style="margin-top: 20px; display: inline-block; background: rgba(255, 255, 255, 0.2); padding: 8px 25px; border-radius: 50px; font-size: 0.9rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.3);">
+                            <i class="fas fa-calendar-alt" style="margin-right: 8px;"></i> Edición Especial: ${fechaActual}
+                        </div>
+                    </div>
+                `;
+
+                // 5. CONSTRUCCIÓN DE LA CUADRÍCULA LIGERA (Sin clones pesados)
+                const gridHtml = document.createElement('div');
+                gridHtml.style.display = 'block';
+                gridHtml.style.width = '100%';
+
+                catalogoCompleto.forEach(prod => {
+                    const datosProcesados = procesarDatosProducto(prod);
+                    let imgUrl = (prod.imagenesUrls && prod.imagenesUrls.length > 0) ? prod.imagenesUrls[0] : "./img/breezeless_ambiente.png";
+
+                    // Tarjeta diseñada con CSS Inline estricto para PDF (3 columnas, alturas fijas, sin botones)
+                    gridHtml.innerHTML += `
+                        <div style="width: 31%; margin: 0 1% 30px 1%; display: inline-block; vertical-align: top; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 16px; overflow: hidden; page-break-inside: avoid; break-inside: avoid;">
+                            <div style="height: 200px; background: radial-gradient(circle at center, #ffffff 0%, #f8fafc 100%); border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; padding: 15px;">
+                                <img src="${imgUrl}" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+                            </div>
+                            <div style="padding: 20px; text-align: left;">
+                                <small style="color: #64748b; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">${datosProcesados.marca}</small>
+                                <h5 style="color: #0f172a; font-size: 1.1rem; font-weight: 800; margin: 8px 0 10px 0; height: 2.6em; overflow: hidden; line-height: 1.3;">${prod.nombre}</h5>
+                                <p style="color: #475569; font-size: 0.85rem; height: 2.8em; overflow: hidden; margin-bottom: 15px; line-height: 1.4;">${datosProcesados.descripcion}</p>
+                                
+                                <div style="border-top: 1px dashed #cbd5e1; padding-top: 15px; margin-top: 15px;">
+                                    <span style="color: #0d6efd; font-size: 1.7rem; font-weight: 900; display: block;">$${prod.precio.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                pdfContainer.appendChild(gridHtml);
+
+                // 6. PIE DE PÁGINA ELEGANTE
+                const footerPDF = document.createElement('div');
+                footerPDF.innerHTML = `
+                    <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #e2e8f0; text-align: center; color: #64748b; font-size: 0.9rem; font-weight: 600;">
+                        <span style="color: #0d6efd;">Servi A/C Pro</span> • La mejor tecnología en climatización • WhatsApp: +503 1234-5678
+                    </div>
+                `;
+                pdfContainer.appendChild(footerPDF);
+
+                // 7. Configurar el Renderizador a Alta Calidad
+                const opcionesPDF = {
+                    margin:       [0.4, 0.4, 0.4, 0.4],
+                    filename:     'Catalogo_Premium_ServiACPro.pdf',
+                    image:        { type: 'jpeg', quality: 1 },
+                    html2canvas:  { scale: 2, useCORS: true, letterRendering: true, backgroundColor: '#ffffff', scrollY: 0 },
+                    jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+                };
+
+                // 8. Generar e Imprimir
+                await html2pdf().set(opcionesPDF).from(pdfContainer).save();
+
+                // 9. Devolver botón a la normalidad
+                this.innerHTML = textoOriginal;
+                this.disabled = false;
+                
+                if(window.UI) {
+                    window.UI.success('El catálogo a todo color se ha descargado con éxito.');
+                } else if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'success', title: '¡Catálogo Generado!', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+                }
+
+            } catch (err) {
+                console.error('Error al generar PDF:', err);
+                this.innerHTML = textoOriginal;
+                this.disabled = false;
+                if(window.UI) window.UI.error('No se pudo generar el documento.');
+            }
+        });
+    }
+});
 
 // ========== HISTORIAL DE PRECIOS ==========
 let historialChart = null;

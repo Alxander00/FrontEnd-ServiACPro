@@ -684,3 +684,80 @@ img {
     min-height: 2.8em !important;
     margin-bottom: 0.5rem;
 }
+
+/* =========================================
+   CATÁLOGO PREMIUM Y FILTROS
+   ========================================= */
+
+/* Filtros Laterales */
+.filtros-modernos {
+    transition: all 0.3s ease;
+}
+.custom-checkbox .form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+/* Tarjetas de Producto */
+.card-producto-premium {
+    border-radius: 24px !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.card-producto-premium:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 35px rgba(13, 110, 253, 0.12);
+}
+
+/* Contenedor de la Imagen con zoom suave */
+.card-producto-premium .img-container {
+    height: 200px;
+    transition: transform 0.4s ease;
+}
+.card-producto-premium:hover .img-container img {
+    transform: scale(1.08); /* Pequeño zoom al hacer hover */
+    transition: transform 0.4s ease;
+}
+
+/* Etiquetas (Badges) */
+.badge-premium {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    z-index: 2;
+}
+
+/* Tipografía controlada para evitar que las tarjetas se deformen */
+.tracking-wide {
+    letter-spacing: 1px;
+}
+.titulo-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Obliga al título a tener máximo 2 líneas */
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.8em;
+}
+.desc-clamp {
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Obliga a la descripción a tener máximo 2 líneas */
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Botón de Agregar */
+.btn-add-cart {
+    transition: all 0.2s ease;
+}
+.btn-add-cart:active {
+    transform: scale(0.95); /* Efecto de hundimiento al dar clic */
+}

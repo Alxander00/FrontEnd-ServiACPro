@@ -1,350 +1,276 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Catálogo | ServiA/CPro</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <link rel="stylesheet" href="./css/main.css">
-    <link rel="stylesheet" href="./css/responsive.css" />
-</head>
-<body class="bg-light">
 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+
+    <link rel="stylesheet" href="./css/main.css" />
+    <link rel="stylesheet" href="./css/responsive.css" />
+  </head>
+  <body class="bg-light">
+    
     <div id="navbar-container"></div>
 
     <header class="bg-primary text-white text-center py-5">
-        <div class="container">
-            <h1 class="fw-bold">Catálogo de Equipos</h1>
-            <p class="lead mb-0">Encuentra el aire acondicionado perfecto para tus necesidades</p>
-        </div>
-    </header>
-
-<div class="container py-5">
+      <div class="container">
+        <h1 class="fw-bold">Catálogo de Equipos</h1>
+        <p class="lead mb-0">Encuentra el aire acondicionado perfecto para tus necesidades</p>
         
-        <div class="d-lg-none mb-4">
-            <button class="btn btn-primary w-100 fw-bold shadow-sm py-2 rounded-pill" type="button" data-bs-toggle="offcanvas" data-bs-target="#panelFiltrosMovil">
-                <i class="fas fa-sliders-h me-2"></i> Mostrar Filtros
+        <div class="mt-4">
+            <button id="btnDescargarPDF" class="btn btn-light text-primary fw-bold rounded-pill px-4 py-2 shadow-sm" style="transition: all 0.3s;">
+                <i class="fas fa-file-pdf me-2 text-danger"></i> Descargar Catálogo PDF
             </button>
         </div>
+      </div>
+    </header>
 
-        <div class="row g-4">
-            
-            <aside class="col-lg-3">
-                <div class="offcanvas-lg offcanvas-start bg-light" tabindex="-1" id="panelFiltrosMovil">
-                    
-                    <div class="offcanvas-header border-bottom d-lg-none bg-white">
-                        <h5 class="offcanvas-title fw-bold text-primary">
-                            <i class="fas fa-sliders-h me-2"></i> Filtros
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-                    </div>
+    <div class="container my-5">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 bg-white p-3 rounded-4 shadow-sm gap-3">
+        <div class="d-flex justify-content-between align-items-center w-100">
+          <span class="text-muted fw-semibold" id="resultadosCount">
+            Mostrando <b class="text-primary fs-5"><span>0</span></b> equipos
+          </span>
 
-                    <div class="offcanvas-body p-3 p-lg-0">
-                        <div class="card border-0 shadow-sm rounded-4 sticky-lg-top w-100" style="top: 100px; z-index: 10;">
-                            <div class="card-body p-4">
-                                <h5 class="fw-bold text-primary border-bottom pb-3 mb-4 d-none d-lg-block"><i class="fas fa-sliders-h me-2"></i>Filtros</h5>
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Categoría</label>
-                            <select class="form-select bg-light border-0" id="filtroCategoria">
-                                <option value="todas">Todas</option>
-                                <option value="Residencial">Residencial</option>
-                                <option value="Industrial">Industrial</option>
-                                <option value="Portatil">Portátil</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Capacidad (BTU)</label>
-                            <div class="d-flex gap-2 align-items-center">
-                                <input type="range" id="btuMin" class="form-range" min="0" max="50000" step="1000" value="0">
-                                <span id="btuMinValue" class="badge bg-secondary">0</span>
-                            </div>
-                            <div class="d-flex gap-2 align-items-center mt-2">
-                                <input type="range" id="btuMax" class="form-range" min="0" max="50000" step="1000" value="50000">
-                                <span id="btuMaxValue" class="badge bg-secondary">50000</span>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Rango de precio ($)</label>
-                            <div class="input-group">
-                                <input type="number" class="form-control bg-light border-0" id="precioMin" placeholder="Min" value="0">
-                                <span class="input-group-text border-0">-</span>
-                                <input type="number" class="form-control bg-light border-0" id="precioMax" placeholder="Max" value="3000">
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">Marca</label>
-                            <select class="form-select bg-light border-0" id="filtroMarca">
-                                <option value="todas">Todas</option>
-                                <option value="Midea">Midea</option>
-                                <option value="LG">LG</option>
-                                <option value="Carrier">Carrier</option>
-                                <option value="Samsung">Samsung</option>
-                            </select>
-                        </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-primary fw-bold" id="aplicarFiltros">Aplicar Filtros</button>
-                            <button class="btn btn-outline-secondary" id="limpiarFiltros">Limpiar</button>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-
-            <div class="col-lg-9">
-                <div class="card border-0 shadow-sm rounded-4 mb-4">
-                    <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
-                        <div class="input-group w-auto flex-grow-1">
-                            <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
-                            <input type="text" class="form-control bg-light border-0" id="busquedaInput" placeholder="Buscar producto...">
-                        </div>
-                        <div class="d-flex align-items-center gap-3 w-100 w-md-auto">
-                            <span class="text-muted text-nowrap" id="resultadosCount">Mostrando <span class="fw-bold">0</span> productos</span>
-                            <select class="form-select bg-light border-0 w-auto" id="ordenarSelect">
-                                <option value="relevancia">Relevancia</option>
-                                <option value="precioAsc">Precio: Menor a Mayor</option>
-                                <option value="precioDesc">Precio: Mayor a Menor</option>
-                                <option value="popularidad">Más Vendidos</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row g-4" id="productosContainer"></div>
-
-                <div class="d-flex justify-content-center align-items-center mt-5 mb-3" id="paginacionContainer" style="display: none;">
-                    <button class="btn btn-outline-primary me-3 fw-bold shadow-sm" id="btnAnterior" disabled>
-                        <i class="fas fa-chevron-left me-1"></i> Anterior
-                    </button>
-                    <span class="text-muted fw-semibold">
-                        Página <span id="paginaActual" class="text-primary fw-bold fs-5 mx-1">1</span> de <span id="totalPaginas" class="fw-bold mx-1">1</span>
-                    </span>
-                    <button class="btn btn-outline-primary ms-3 fw-bold shadow-sm" id="btnSiguiente">
-                        Siguiente <i class="fas fa-chevron-right ms-1"></i>
-                    </button>
-                </div>
-
-            </div>
+          <button class="btn btn-primary d-lg-none rounded-pill shadow-sm px-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#filtrosOffcanvas">
+            <i class="fas fa-filter me-2"></i> Filtrar
+          </button>
         </div>
+
+        <select id="ordenarSelect" class="form-select border-0 bg-light w-auto fw-semibold rounded-pill px-4 shadow-none">
+          <option value="relevancia">Ordenar por: Más recientes</option>
+          <option value="precioAsc">Precio: Menor a Mayor</option>
+          <option value="precioDesc">Precio: Mayor a Menor</option>
+          <option value="popularidad">Más vendidos</option>
+        </select>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-lg-3">
+          <div class="offcanvas-lg offcanvas-start" tabindex="-1" id="filtrosOffcanvas" aria-labelledby="filtrosLabel">
+            
+            <div class="offcanvas-header border-bottom d-lg-none bg-light">
+              <h5 class="offcanvas-title fw-bold text-dark" id="filtrosLabel">
+                <i class="fas fa-filter text-primary me-2"></i> Filtros
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#filtrosOffcanvas" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="offcanvas-body p-0 p-lg-0">
+              <div class="filtros-modernos p-4 bg-white rounded-4 shadow-sm border-0 sticky-lg-top w-100" style="top: 100px; z-index: 1020">
+                <h5 class="fw-bold mb-4 d-none d-lg-flex align-items-center gap-2">
+                  <i class="fas fa-filter text-primary"></i> Filtros
+                </h5>
+
+                <div class="mb-4">
+                  <input type="text" id="busquedaInput" class="form-control form-control-lg bg-light border-0 rounded-3 shadow-none" placeholder="Buscar modelo..." />
+                </div>
+
+                <div class="mb-4">
+                  <h6 class="fw-bold text-muted text-uppercase small mb-3" style="letter-spacing: 1px">Categoría</h6>
+                  <select id="filtroCategoria" class="form-select form-select-lg bg-light border-0 rounded-3 shadow-none fw-semibold text-dark">
+                    <option value="todas">Todas</option>
+                    <option value="Inverter">Inverter</option>
+                    <option value="Ventana">Ventana</option>
+                    <option value="Portátil">Portátil</option>
+                  </select>
+                </div>
+
+                <div class="mb-4">
+                  <h6 class="fw-bold text-muted text-uppercase small mb-3" style="letter-spacing: 1px">Marca</h6>
+                  <select id="filtroMarca" class="form-select form-select-lg bg-light border-0 rounded-3 shadow-none fw-semibold text-dark">
+                    <option value="todas">Todas</option>
+                    <option value="Midea">Midea</option>
+                    <option value="Carrier">Carrier</option>
+                  </select>
+                </div>
+
+                <input type="hidden" id="precioMin" value="0" />
+                <input type="hidden" id="precioMax" value="999999" />
+
+                <div class="d-flex gap-2 mt-2">
+                  <button id="limpiarFiltros" class="btn btn-outline-secondary w-100 rounded-pill fw-bold py-3 shadow-sm" data-bs-dismiss="offcanvas" data-bs-target="#filtrosOffcanvas">
+                    Limpiar
+                  </button>
+                  <button id="aplicarFiltros" class="btn btn-primary w-100 rounded-pill fw-bold py-3 shadow-sm" data-bs-dismiss="offcanvas" data-bs-target="#filtrosOffcanvas">
+                    Aplicar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-9">
+          <div class="row g-4 align-items-stretch" id="productosContainer"></div>
+
+          <div class="col-12 mt-5 mb-4" id="paginacionContainer" style="display: none; justify-content: center;">
+              <div class="d-flex align-items-center gap-3 bg-white p-2 rounded-pill shadow-sm border border-light">
+                  
+                  <button id="btnAnterior" class="btn btn-light rounded-pill px-4 fw-bold text-primary" style="transition: all 0.2s;" disabled>
+                      <i class="fas fa-chevron-left me-2"></i> Anterior
+                  </button>
+
+                  <div class="px-3 fw-semibold text-muted" style="font-size: 0.95rem;">
+                      Página <span id="paginaActual" class="text-dark fw-black fs-5 mx-1">1</span> de <span id="totalPaginas" class="text-dark fw-bold mx-1">1</span>
+                  </div>
+
+                  <button id="btnSiguiente" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" style="transition: all 0.2s;">
+                      Siguiente <i class="fas fa-chevron-right ms-2"></i>
+                  </button>
+                  
+              </div>
+          </div>
+
+        </div>
+      </div>
     </div>
 
-    <!-- ===== MODAL DE DETALLES - DISEÑO PROFESIONAL ===== -->
     <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-xl">
-            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                
-                <!-- Botón cerrar -->
-                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-4 p-2 rounded-circle shadow-lg" 
-                        style="background-color: rgba(0,0,0,0.4); backdrop-filter: blur(8px); z-index: 50; width: 44px; height: 44px; border: 1px solid rgba(255,255,255,0.2); transition: all 0.3s;" 
-                        data-bs-dismiss="modal" aria-label="Close">
+      <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+          
+          <button type="button" class="btn-close position-absolute top-0 end-0 m-3" style="z-index: 1050;" data-bs-dismiss="modal" aria-label="Close"></button>
+
+          <div class="row g-0">
+            <div class="col-lg-6 bg-light d-flex flex-column justify-content-center position-relative" style="min-height: 400px;">
+              
+              <div class="position-absolute bottom-0 start-0 w-100 p-3 border-top bg-white d-flex justify-content-between align-items-center d-lg-none" style="z-index: 5;">
+                <span class="fw-bold text-dark" id="modalStockImagen">0 unidades</span>
+                <span id="modalStockBadgeImagen"></span>
+              </div>
+
+              <div id="productoCarousel" class="carousel slide w-100 p-4" data-bs-ride="false">
+                <div class="carousel-inner" id="modalCarouselInner" style="display: flex; align-items: center; min-height: 350px;">
+                  </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#productoCarousel" data-bs-slide="prev">
+                  <span class="carousel-control-prev-icon bg-dark rounded-circle p-2" aria-hidden="true" style="opacity: 0.5;"></span>
+                  <span class="visually-hidden">Anterior</span>
                 </button>
-
-                <div class="row g-0">
-                    
-                    <!-- ===== COLUMNA IZQUIERDA: IMAGEN (60%) ===== -->
-                    <div class="col-lg-7 position-relative" style="min-height: 500px; background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);">
-                        
-                        <!-- Carrusel -->
-                        <div id="productoCarousel" class="carousel slide w-100 h-100" data-bs-ride="false" style="min-height: 500px;">
-                            <div class="carousel-inner h-100" id="modalCarouselInner" style="min-height: 500px; display: flex; align-items: center;">
-                                <!-- Se llena con JS -->
-                            </div>
-                            
-                            <!-- Controles -->
-                            <button class="carousel-control-prev" type="button" data-bs-target="#productoCarousel" data-bs-slide="prev" 
-                                    style="width: 48px; height: 48px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.4); backdrop-filter: blur(12px); border-radius: 50%; margin-left: 20px; border: 1px solid rgba(255,255,255,0.5); transition: all 0.3s;">
-                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Anterior</span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#productoCarousel" data-bs-slide="next" 
-                                    style="width: 48px; height: 48px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.4); backdrop-filter: blur(12px); border-radius: 50%; margin-right: 20px; border: 1px solid rgba(255,255,255,0.5); transition: all 0.3s;">
-                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Siguiente</span>
-                            </button>
-                        </div>
-
-                        <!-- Barra de stock en la parte inferior (único lugar en la imagen) -->
-                        <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(transparent, rgba(0,0,0,0.6)); backdrop-filter: blur(4px);">
-                            <div class="d-flex justify-content-between align-items-center text-white">
-                                <div class="d-flex align-items-center gap-3">
-                                    <i class="fas fa-boxes fs-4 opacity-75"></i>
-                                    <div>
-                                        <small class="opacity-75 d-block" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;">Disponibilidad</small>
-                                        <span class="fw-bold" id="modalStockImagen">0 unidades</span>
-                                    </div>
-                                </div>
-                                <span id="modalStockBadgeImagen" class="badge bg-success px-4 py-2 rounded-pill fs-6">
-                                    <i class="fas fa-check-circle me-1"></i> En stock
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ===== COLUMNA DERECHA: INFORMACIÓN (40%) ===== -->
-                    <div class="col-lg-5 p-4 p-lg-5 d-flex flex-column" style="background: #ffffff;">
-                        
-                        <!-- Categoría -->
-                        <div class="mb-3">
-                            <span class="badge px-3 py-2 rounded-pill" style="background: #e8f0fe; color: #0d6efd; font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                                <i class="fas fa-tag me-1"></i> <span id="modalCategoria">Categoría</span>
-                            </span>
-                        </div>
-
-                        <!-- Título -->
-                        <h2 class="fw-bold text-dark mb-2" id="modalTitulo" style="font-size: 2rem; line-height: 1.2; letter-spacing: -0.5px;">
-                            Nombre del Producto
-                        </h2>
-
-                        <!-- Marca -->
-                        <div class="d-flex align-items-center gap-2 mb-3">
-                            <i class="fas fa-building text-primary opacity-75"></i>
-                            <span class="text-muted" style="font-size: 0.95rem;" id="modalMarca">Marca</span>
-                        </div>
-
-                        <!-- Calificación -->
-                        <div class="mb-3" id="promedioResenas" style="font-size: 1.1rem;">
-                            <!-- Se llena con JS -->
-                        </div>
-
-                        <!-- Precio -->
-                        <div class="mb-2">
-                            <span class="display-4 fw-bold" style="color: #0d6efd; letter-spacing: -1px;" id="modalPrecio">
-                                $0.00
-                            </span>
-                        </div>
-
-                        <!-- 🆕 Badge de stock en la sección de información (justo debajo del precio) -->
-                        <div class="mb-4">
-                            <span id="modalStockBadgeInfo" class="badge bg-success px-4 py-2 rounded-pill fs-6">
-                                <i class="fas fa-check-circle me-1"></i> En stock
-                            </span>
-                            <small class="text-muted ms-2" id="modalStockCantidadInfo">(0 unidades)</small>
-                        </div>
-
-                        <!-- Descripción -->
-                        <p class="text-muted mb-4" id="modalDescripcion" style="font-size: 1rem; line-height: 1.7; max-width: 95%;">
-                            Descripción del producto...
-                        </p>
-
-                        <!-- Especificaciones -->
-                        <div class="row g-3 mb-4">
-                            <div class="col-6">
-                                <div class="p-3 rounded-4 text-center" style="background: #f8faff; border: 1px solid #e9edf4;">
-                                    <div class="text-primary fs-4 mb-1"><i class="fas fa-wind"></i></div>
-                                    <small class="text-muted d-block" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px;">Capacidad</small>
-                                    <strong class="fs-6 text-dark" id="modalBTU">-- BTU</strong>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="p-3 rounded-4 text-center" style="background: #f8faff; border: 1px solid #e9edf4;">
-                                    <div class="text-primary fs-4 mb-1"><i class="fas fa-shield-alt"></i></div>
-                                    <small class="text-muted d-block" style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px;">Garantía</small>
-                                    <strong class="fs-6 text-dark" id="modalGarantia">1 año</strong>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Instalación -->
-                        <div class="form-check p-3 mb-4 rounded-4" style="background: #f0f7ff; border: 1px solid rgba(13,110,253,0.15);">
-                            <input class="form-check-input" type="checkbox" id="checkboxInstalacion" style="cursor: pointer; width: 1.2rem; height: 1.2rem; border-color: #0d6efd; border-radius: 4px;">
-                            <label class="form-check-label fw-semibold" for="checkboxInstalacion" style="cursor: pointer; color: #1e293b; font-size: 0.95rem;">
-                                <i class="fas fa-tools text-primary me-2"></i>
-                                Incluir instalación profesional 
-                                <span class="text-primary fw-bold">(+$80.00)</span>
-                            </label>
-                        </div>
-
-                        <!-- Botones -->
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-primary fw-bold py-3 rounded-pill shadow-sm" id="modalAddCart" 
-                                    style="background: linear-gradient(145deg, #0d6efd, #0a58ca); border: none; font-size: 1.1rem; transition: all 0.3s;">
-                                <i class="fas fa-cart-plus me-2"></i>Añadir al Carrito
-                            </button>
-                            
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-success fw-bold py-2 rounded-pill flex-grow-1" id="btnWhatsApp" 
-                                        style="background: linear-gradient(145deg, #25d366, #128C7E); border: none; font-size: 0.95rem;">
-                                    <i class="fab fa-whatsapp me-2"></i> Consultar
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary fw-bold py-2 rounded-pill" 
-                                        id="btnVerHistorialPrecios" 
-                                        style="border: 1px solid #dee2e6; color: #6c757d; font-size: 0.95rem;">
-                                    <i class="fas fa-chart-line"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Reseñas -->
-                        <hr class="my-4">
-                        <div>
-                            <h6 class="fw-bold text-dark mb-3" style="font-size: 1rem;">
-                                <i class="fas fa-star text-warning me-2"></i>Valoraciones
-                                <span id="promedioResenasDetalle" class="ms-2 small fw-normal"></span>
-                            </h6>
-                            <div id="resenasContainer" class="mb-3" style="max-height: 130px; overflow-y: auto; padding-right: 8px;">
-                                <!-- Se llena con JS -->
-                            </div>
-
-                            <!-- Formulario reseña -->
-                            <div id="formResenaSection" class="mt-3 p-3 rounded-4" style="background: #f8faff; border: 1px solid #e9edf4; display: none;">
-                                <h6 class="fw-bold text-dark mb-2" style="font-size: 0.95rem;">Deja tu opinión</h6>
-                                <div class="mb-2">
-                                    <label class="form-label small fw-semibold text-muted">Calificación</label>
-                                    <div id="ratingStars" class="mb-2"></div>
-                                </div>
-                                <textarea id="comentarioResena" class="form-control mb-2" rows="2" placeholder="Escribe tu comentario..." 
-                                        style="border-radius: 12px; border: 1px solid #e9edf4; font-size: 0.9rem;"></textarea>
-                                <button id="btnEnviarResena" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">
-                                    <i class="fas fa-paper-plane me-2"></i>Enviar
-                                </button>
-                            </div>
-                            <div id="avisoResena" class="small text-muted mt-2"></div>
-                        </div>
-                    </div>
-                </div>
+                <button class="carousel-control-next" type="button" data-bs-target="#productoCarousel" data-bs-slide="next">
+                  <span class="carousel-control-next-icon bg-dark rounded-circle p-2" aria-hidden="true" style="opacity: 0.5;"></span>
+                  <span class="visually-hidden">Siguiente</span>
+                </button>
+              </div>
             </div>
+
+            <div class="col-lg-6 p-4 p-md-5 bg-white">
+              
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-primary fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 0.8rem;" id="modalCategoria">Categoría</span>
+                <div id="promedioResenas" class="text-warning small">
+                  </div>
+              </div>
+
+              <h2 class="fw-bold text-dark mb-1" id="modalTitulo">Nombre del Producto</h2>
+              <p class="text-muted mb-4"><i class="fas fa-tag me-1"></i> Marca: <span id="modalMarca" class="fw-semibold text-dark">Marca</span></p>
+
+              <div class="d-flex align-items-center gap-4 mb-4">
+                <h1 class="fw-bold text-dark mb-0" id="modalPrecio" style="font-size: 2.8rem;">$0.00</h1>
+                <div class="border-start ps-4">
+                  <span id="modalStockBadgeInfo" class="badge bg-success mb-1 fs-6 px-3 py-2">En stock</span><br>
+                  <small class="text-muted" id="modalStockCantidadInfo">(0 unidades)</small>
+                </div>
+              </div>
+
+              <p class="text-secondary mb-4" id="modalDescripcion" style="line-height: 1.6;">
+                Descripción del producto...
+              </p>
+
+              <div class="row g-3 mb-4">
+                <div class="col-6">
+                  <div class="border rounded-3 p-3 text-center bg-light">
+                    <i class="fas fa-wind text-primary mb-2 fs-5"></i>
+                    <small class="text-muted d-block text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Capacidad</small>
+                    <strong class="text-dark fs-5" id="modalBTU">-- BTU</strong>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="border rounded-3 p-3 text-center bg-light">
+                    <i class="fas fa-shield-alt text-primary mb-2 fs-5"></i>
+                    <small class="text-muted d-block text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Garantía</small>
+                    <strong class="text-dark fs-5" id="modalGarantia">1 año</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="border rounded-3 p-3 mb-4">
+                <div class="form-check d-flex align-items-center mb-0">
+                  <input class="form-check-input mt-0 me-3" type="checkbox" id="checkboxInstalacion" style="width: 1.3rem; height: 1.3rem; cursor: pointer;">
+                  <label class="form-check-label d-flex justify-content-between w-100 align-items-center" for="checkboxInstalacion" style="cursor: pointer;">
+                    <span class="fw-semibold text-dark">Incluir instalación profesional</span>
+                    <span class="text-primary fw-bold">+$80.00</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="d-grid gap-2 mb-4">
+                <button class="btn btn-primary btn-lg fw-bold rounded-3 py-3" id="modalAddCart">
+                  <i class="fas fa-shopping-cart me-2"></i> Añadir al Carrito
+                </button>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-success fw-bold rounded-3 flex-grow-1 py-2" id="btnWhatsApp">
+                    <i class="fab fa-whatsapp me-2 fs-5 align-middle"></i> WhatsApp
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary rounded-3 px-4" id="btnVerHistorialPrecios" title="Historial de precios">
+                    <i class="fas fa-chart-line fs-5 align-middle"></i>
+                  </button>
+                </div>
+              </div>
+
+              <hr class="my-4 border-secondary opacity-25">
+              <div>
+                <h6 class="fw-bold text-dark mb-3"><i class="far fa-comments text-muted me-2"></i>Opiniones de Clientes <span id="promedioResenasDetalle" class="fw-normal text-muted ms-1"></span></h6>
+                
+                <div id="resenasContainer" class="mb-3" style="max-height: 200px; overflow-y: auto;"></div>
+                
+                <div id="formResenaSection" class="bg-light p-4 rounded-3 border mt-3" style="display: none;">
+                  <h6 class="fw-semibold text-dark mb-2">Tu calificación</h6>
+                  <div id="ratingStars" class="mb-3 fs-5"></div>
+                  <textarea id="comentarioResena" class="form-control mb-3" rows="2" placeholder="Escribe tu opinión..."></textarea>
+                  <button id="btnEnviarResena" class="btn btn-dark btn-sm px-4 fw-bold rounded-pill">Enviar Opinión</button>
+                </div>
+                <div id="avisoResena" class="small text-muted mt-2"></div>
+              </div>
+              
+            </div>
+          </div>
         </div>
+      </div>
     </div>
 
     <div class="modal fade" id="modalHistorialPrecios" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-0 shadow rounded-4">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="fas fa-chart-line me-2"></i>Historial de precios</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <canvas id="historialChart" height="300" style="max-height: 300px;"></canvas>
-                    <div id="historialEmptyMsg" class="text-center text-muted d-none">No hay registros de cambios de precio.</div>
-                </div>
-            </div>
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow rounded-4">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title"><i class="fas fa-chart-line me-2"></i>Historial de precios</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <canvas id="historialChart" height="300" style="max-height: 300px"></canvas>
+            <div id="historialEmptyMsg" class="text-center text-muted d-none">No hay registros de cambios de precio.</div>
+          </div>
         </div>
+      </div>
     </div>
 
-    <!-- FOOTER -->
     <div id="footer-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <script src="./js/auth.js"></script>
-
     <script src="./js/api.js"></script>
-
     <script src="./js/carrito.js"></script>
     <script src="./js/notificaciones.js"></script>
-
     <script src="./js/main.js"></script>
     <script src="./js/catalogo.js"></script>
-
     <script src="./js/componentes.js"></script>
-</body>
+  </body>
 </html>
