@@ -498,6 +498,23 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             document.querySelectorAll('.nav-pills-custom .nav-link').forEach((el) => el.classList.remove('active'));
             btn.classList.add('active');
+
+            // --- MAGIA MÓVIL: Actualizar texto y cerrar menú ---
+            const textoMovil = document.getElementById('textoMenuMovil');
+            if (textoMovil) {
+                // Obtenemos el texto del botón clickeado
+                const text = btn.querySelector('span.ms-2').innerText;
+                textoMovil.innerHTML = text;
+
+                // Cerrar el menú Offcanvas (Bottom Sheet) automáticamente
+                const offcanvasMenu = document.getElementById('offcanvasMenuPerfil');
+                if (offcanvasMenu && offcanvasMenu.classList.contains('show')) {
+                    const bsOffcanvas = bootstrap.Offcanvas.getInstance(offcanvasMenu);
+                    if (bsOffcanvas) bsOffcanvas.hide();
+                }
+            }
+            // ---------------------------------------------------
+
             const seccion = btn.dataset.seccion;
             if (paginas[seccion] !== undefined) {
                 paginas[seccion] = 0;
@@ -696,68 +713,69 @@ async function mostrarSeccion(seccion) {
     if (seccion === 'dashboard') {
         const iniciales = user.nombre.charAt(0) + (user.apellido ? user.apellido.charAt(0) : '');
         content.innerHTML = `
-            <div class="d-flex align-items-center mb-5 pb-4 border-bottom">
-                <div class="avatar-lg me-4">${iniciales}</div>
-                <div>
-                    <h2 class="fw-bold text-dark mb-1">¡Hola, ${user.nombre}!</h2>
-                    <p class="text-muted mb-0"><i class="fas fa-envelope me-2 text-primary"></i>${user.email}</p>
+            <div class="d-flex flex-column flex-md-row align-items-center align-items-md-start mb-5 pb-4 border-bottom text-center text-md-start">
+                <div class="shadow-sm text-primary bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mb-3 mb-md-0 me-md-4" style="width: 80px; height: 80px; font-size: 2.5rem; font-weight: 800;">
+                    ${iniciales}
+                </div>
+                <div class="mt-2">
+                    <h2 class="fw-bold text-dark mb-1">¡Qué gusto verte, ${user.nombre}! 👋</h2>
+                    <p class="text-secondary mb-0"><i class="fas fa-envelope me-2 text-primary"></i>${user.email}</p>
                 </div>
             </div>
 
-            <!-- Estadísticas rápidas -->
-            <div class="row g-4 mb-4">
-                <div class="col-md-4">
-                    <div class="stat-card d-flex align-items-center gap-3">
-                        <div class="stat-icon bg-primary bg-opacity-10 text-primary">
-                            <i class="fas fa-shopping-bag"></i>
+            <div class="row g-4 mb-5">
+                <div class="col-12 col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 p-3 d-flex flex-row align-items-center gap-3 transition-hover">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-4 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 54px; height: 54px;">
+                            <i class="fas fa-box-open fa-xl"></i>
                         </div>
                         <div>
-                            <div class="stat-number" id="totalPedidosCliente">0</div>
-                            <div class="stat-label">Pedidos completados</div>
+                            <h6 class="text-muted fw-bold mb-1 text-uppercase" style="font-size: 0.70rem; letter-spacing: 0.5px;">Pedidos</h6>
+                            <h3 class="fw-bold text-dark mb-0" id="totalPedidosCliente">0</h3>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="stat-card d-flex align-items-center gap-3">
-                        <div class="stat-icon bg-success bg-opacity-10 text-success">
-                            <i class="fas fa-dollar-sign"></i>
+                <div class="col-12 col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 p-3 d-flex flex-row align-items-center gap-3 transition-hover">
+                        <div class="bg-success bg-opacity-10 text-success rounded-4 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 54px; height: 54px;">
+                            <i class="fas fa-wallet fa-xl"></i>
                         </div>
                         <div>
-                            <div class="stat-number" id="totalGastadoCliente">$0.00</div>
-                            <div class="stat-label">Total gastado</div>
+                            <h6 class="text-muted fw-bold mb-1 text-uppercase" style="font-size: 0.70rem; letter-spacing: 0.5px;">Inversión</h6>
+                            <h3 class="fw-bold text-dark mb-0" id="totalGastadoCliente">$0</h3>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="stat-card d-flex align-items-center gap-3">
-                        <div class="stat-icon bg-warning bg-opacity-10 text-warning">
-                            <i class="fas fa-tag"></i>
+                <div class="col-12 col-md-4">
+                    <div class="card border-0 shadow-sm rounded-4 h-100 p-3 d-flex flex-row align-items-center gap-3 transition-hover">
+                        <div class="bg-info bg-opacity-10 text-info rounded-4 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 54px; height: 54px;">
+                            <i class="fas fa-snowflake fa-xl"></i>
                         </div>
                         <div>
-                            <div class="stat-number" id="totalProductosComprados">0</div>
-                            <div class="stat-label">Productos comprados</div>
+                            <h6 class="text-muted fw-bold mb-1 text-uppercase" style="font-size: 0.70rem; letter-spacing: 0.5px;">Equipos</h6>
+                            <h3 class="fw-bold text-dark mb-0" id="totalProductosComprados">0</h3>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Productos más comprados -->
-            <h5 class="fw-bold text-dark mb-3"><i class="fas fa-star text-warning me-2"></i>Productos más comprados</h5>
-            <ul class="list-group list-group-flush" id="productosMasComprados">
-                <li class="list-group-item text-muted">Cargando...</li>
-            </ul>
+            <div class="d-flex justify-content-between align-items-end mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="fas fa-star text-warning me-2"></i>Tus productos favoritos</h5>
+            </div>
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-3 mb-4">
+                <ul class="list-group list-group-flush bg-transparent" id="productosMasComprados">
+                    <li class="list-group-item bg-transparent text-muted border-0 px-0">Cargando tus favoritos...</li>
+                </ul>
+            </div>
 
-            <!-- Botón de acción -->
-            <div class="mt-4">
-                <a href="catalogo.html" class="btn btn-primary rounded-pill px-4 fw-bold">
-                    <i class="fas fa-store me-2"></i>Seguir comprando
+            <div class="mt-4 text-center text-md-end">
+                <a href="catalogo.html" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">
+                    Explorar Catálogo <i class="fas fa-arrow-right ms-2"></i>
                 </a>
             </div>
         `;
 
-        setTimeout(() => {
-            cargarEstadisticasCliente();
-        }, 100);
+        setTimeout(() => { cargarEstadisticasCliente(); }, 100);
     }
 
     // ============================
@@ -822,35 +840,48 @@ async function mostrarSeccion(seccion) {
                     const badgeClass = 
                         pedido.estado === 'Completado' ? 'success' :
                         pedido.estado === 'Cancelado' ? 'danger' : 'warning';
+                    
                     const btnArchivar = esFinalizado
-                        ? `<button class="btn-archive-individual" onclick="ocultarItem('pedidos', ${pedido.idPedido})" title="Archivar individual"><i class="fas fa-archive"></i></button>`
+                        ? `<button class="btn btn-light btn-sm text-secondary rounded-circle shadow-sm" onclick="ocultarItem('pedidos', ${pedido.idPedido})" title="Archivar"><i class="fas fa-archive"></i></button>`
                         : '';
 
                     html += `
-                        <div class="list-card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input select-item" type="checkbox" value="${pedido.idPedido}" data-tipo="pedidos" id="pedido_${pedido.idPedido}" ${!esFinalizado ? 'disabled' : ''}>
-                                        <label class="form-check-label" for="pedido_${pedido.idPedido}">Pedido #${pedido.idPedido}</label>
+                        <div class="card w-100 bg-white border border-light shadow-sm rounded-4 overflow-hidden position-relative mb-3 transition-hover">
+                            <div class="card-body p-3 d-flex flex-column">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-box"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="fw-bold text-dark mb-0">Pedido #${pedido.idPedido}</h6>
+                                            <small class="text-muted" style="font-size: 0.75rem;">${formatearFecha(pedido.fechaPedido)}</small>
+                                        </div>
                                     </div>
-                                    <span class="badge-status bg-${badgeClass}">${pedido.estado}</span>
+                                    <span class="badge bg-${badgeClass} bg-opacity-10 text-${badgeClass} border border-${badgeClass} border-opacity-25 rounded-pill px-2 py-1" style="font-size: 0.7rem;">
+                                        ${pedido.estado}
+                                    </span>
                                 </div>
-                                <div class="card-info-line">
-                                    <i class="fas fa-calendar-alt text-primary"></i>
-                                    <span>${formatearFecha(pedido.fechaPedido)}</span>
+                                
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="fas fa-map-marker-alt text-danger" style="width: 16px;"></i>
+                                    <span class="text-secondary small text-truncate">${pedido.direccion_instalacion || 'Solo entrega'}</span>
                                 </div>
-                                <div class="card-info-line">
-                                    <i class="fas fa-dollar-sign text-success"></i>
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <i class="fas fa-dollar-sign text-success" style="width: 16px;"></i>
                                     <strong class="text-success">$${pedido.total.toFixed(2)}</strong>
                                 </div>
-                                <div class="card-info-line">
-                                    <i class="fas fa-map-marker-alt text-danger"></i>
-                                    <span>${pedido.direccion_instalacion || 'Solo entrega'}</span>
-                                </div>
-                                <div class="d-flex justify-content-end mt-2 gap-1">
-                                    <button class="btn-detalle" onclick="verDetalle('pedidos', ${pedido.idPedido})" title="Ver detalles"><i class="fas fa-eye"></i></button>
-                                    ${btnArchivar}
+
+                                <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top border-light">
+                                    <div class="form-check m-0">
+                                        <input class="form-check-input select-item" type="checkbox" value="${pedido.idPedido}" data-tipo="pedidos" id="pedido_${pedido.idPedido}" ${!esFinalizado ? 'disabled' : ''}>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold shadow-sm" onclick="verDetalle('pedidos', ${pedido.idPedido})">
+                                            <i class="fas fa-eye me-1"></i> Detalles
+                                        </button>
+                                        ${btnArchivar}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -945,11 +976,11 @@ async function mostrarSeccion(seccion) {
                     else badgeClass = 'danger';
 
                     const btnArchivar = esFinalizado
-                        ? `<button class="btn-archive-individual" onclick="ocultarItem('citas', ${cita.idCita})" title="Archivar individual"><i class="fas fa-archive"></i></button>`
+                        ? `<button class="btn btn-light btn-sm text-secondary rounded-circle shadow-sm" onclick="ocultarItem('citas', ${cita.idCita})" title="Archivar"><i class="fas fa-archive"></i></button>`
                         : '';
 
                     const btnChat = (!esFinalizado && cita.idTecnico)
-                        ? `<button class="btn btn-outline-primary btn-sm position-relative fw-bold rounded-pill px-3" 
+                        ? `<button class="btn btn-outline-primary btn-sm position-relative fw-bold rounded-pill px-3 shadow-sm" 
                                 onclick="abrirChatConTecnico(${cita.idTecnico}, '${cita.nombreTecnico}', ${cita.idCita})">
                             <i class="fas fa-comment-dots me-1"></i> Chat
                             <span class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle" 
@@ -960,55 +991,43 @@ async function mostrarSeccion(seccion) {
                         : '';
 
                     html += `
-                        <div class="card border-0 shadow-sm mb-3 cita-card-premium transition-hover">
-                            <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="bg-light rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                        <i class="fas fa-tools text-primary"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0 fw-bold text-dark">Cita #${cita.idCita}</h6>
-                                        <small class="text-muted">${formatearFecha(cita.fechaInicio)}</small>
-                                    </div>
-                                </div>
-                                <span class="badge bg-${badgeClass} bg-opacity-10 text-${badgeClass} px-3 py-2 rounded-pill fw-bold border border-${badgeClass} border-opacity-25">
-                                    ${cita.estado}
-                                </span>
-                            </div>
-                            
-                            <div class="card-body">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <div class="d-flex align-items-start gap-2">
-                                            <i class="fas fa-user-cog text-info mt-1"></i>
-                                            <div>
-                                                <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Técnico Asignado</small>
-                                                <span class="fw-semibold text-dark">${cita.nombreTecnico || 'Pendiente de asignación'}</span>
-                                            </div>
+                        <div class="card w-100 bg-white border border-light shadow-sm rounded-4 overflow-hidden position-relative mb-3 transition-hover">
+                            <div class="card-body p-3 d-flex flex-column">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-tools"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="fw-bold text-dark mb-0">Cita #${cita.idCita}</h6>
+                                            <small class="text-muted" style="font-size: 0.75rem;">${formatearFecha(cita.fechaInicio).split(',')[0]}</small>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="d-flex align-items-start gap-2">
-                                            <i class="fas fa-map-marker-alt text-danger mt-1"></i>
-                                            <div>
-                                                <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Ubicación</small>
-                                                <span class="text-dark small">${cita.direccionCliente || 'No especificada'}</span>
-                                            </div>
-                                        </div>
+                                    <span class="badge bg-${badgeClass} bg-opacity-10 text-${badgeClass} border border-${badgeClass} border-opacity-25 rounded-pill px-2 py-1" style="font-size: 0.7rem;">
+                                        ${cita.estado}
+                                    </span>
+                                </div>
+                                
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="fas fa-user-cog text-info" style="width: 16px;"></i>
+                                    <span class="text-secondary small fw-semibold text-truncate">${cita.nombreTecnico || 'Pendiente de asignación'}</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <i class="fas fa-map-marker-alt text-danger" style="width: 16px;"></i>
+                                    <span class="text-secondary small text-truncate">${cita.direccionCliente || 'No especificada'}</span>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top border-light">
+                                    <div class="form-check m-0">
+                                        <input class="form-check-input select-item" type="checkbox" value="${cita.idCita}" data-tipo="citas" id="cita_${cita.idCita}" ${!esFinalizado ? 'disabled' : ''}>
                                     </div>
-                                </div>
-                            </div>
-                            
-                            <div class="card-footer bg-white border-top-0 pb-3 pt-0 d-flex justify-content-between align-items-center">
-                                <div class="form-check">
-                                    <input class="form-check-input select-item" type="checkbox" value="${cita.idCita}" data-tipo="citas" id="cita_${cita.idCita}" ${!esFinalizado ? 'disabled' : ''}>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-light btn-sm text-secondary rounded-pill px-3 fw-bold border" onclick="verDetalle('citas', ${cita.idCita})" title="Ver detalles completos">
-                                        <i class="fas fa-eye me-1"></i> Detalles
-                                    </button>
-                                    ${btnChat}
-                                    ${btnArchivar}
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold shadow-sm" onclick="verDetalle('citas', ${cita.idCita})">
+                                            <i class="fas fa-eye me-1"></i> Detalles
+                                        </button>
+                                        ${btnChat}
+                                        ${btnArchivar}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1095,41 +1114,54 @@ async function mostrarSeccion(seccion) {
             } else {
                 html += `<div class="grid-cards" id="grid-solicitudes">`;
                 solicitudes.forEach((sol) => {
-                    // ✅ Ahora se puede archivar si es ASIGNADA o RECHAZADA
+                    // ✅ Archivar si es ASIGNADA o RECHAZADA
                     const puedeArchivar = (sol.estado === 'ASIGNADA' || sol.estado === 'RECHAZADA');
                     const badgeClass =
                         sol.estado === 'PENDIENTE' ? 'warning' :
                         sol.estado === 'ASIGNADA' ? 'success' : 'danger';
 
                     const btnArchivar = puedeArchivar
-                        ? `<button class="btn-archive-individual" onclick="ocultarItem('solicitudes', ${sol.idSolicitud})" title="Archivar individual"><i class="fas fa-archive"></i></button>`
+                        ? `<button class="btn btn-light btn-sm text-secondary rounded-circle shadow-sm" onclick="ocultarItem('solicitudes', ${sol.idSolicitud})" title="Archivar"><i class="fas fa-archive"></i></button>`
                         : '';
 
                     html += `
-                        <div class="list-card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input select-item" type="checkbox" value="${sol.idSolicitud}" data-tipo="solicitudes" id="sol_${sol.idSolicitud}" ${!puedeArchivar ? 'disabled' : ''}>
-                                        <label class="form-check-label" for="sol_${sol.idSolicitud}">Ticket #${sol.idSolicitud}</label>
+                        <div class="card w-100 bg-white border border-light shadow-sm rounded-4 overflow-hidden position-relative mb-3 transition-hover">
+                            <div class="card-body p-3 d-flex flex-column">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-headset"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="fw-bold text-dark mb-0">Ticket #${sol.idSolicitud}</h6>
+                                            <small class="text-muted" style="font-size: 0.75rem;">Pref: ${sol.fechaPreferida ? new Date(sol.fechaPreferida).toLocaleDateString() : 'Cualquiera'}</small>
+                                        </div>
                                     </div>
-                                    <span class="badge-status bg-${badgeClass}">${sol.estado}</span>
+                                    <span class="badge bg-${badgeClass} bg-opacity-10 text-${badgeClass} border border-${badgeClass} border-opacity-25 rounded-pill px-2 py-1" style="font-size: 0.7rem;">
+                                        ${sol.estado}
+                                    </span>
                                 </div>
-                                <div class="card-info-line">
-                                    <i class="fas fa-tag text-primary"></i>
-                                    <span><strong>${sol.tipoServicio.replace('_', ' ')}</strong></span>
+                                
+                                <div class="mb-2">
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2 py-1" style="font-size: 0.65rem;">
+                                        ${sol.tipoServicio.replace('_', ' ')}
+                                    </span>
                                 </div>
-                                <div class="card-info-line">
-                                    <i class="fas fa-comment text-muted"></i>
-                                    <span>${sol.mensaje || 'Sin mensaje'}</span>
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <i class="fas fa-comment-alt text-muted" style="width: 16px;"></i>
+                                    <span class="text-secondary small text-truncate" style="max-width: 90%;">${sol.mensaje || 'Sin mensaje adicional'}</span>
                                 </div>
-                                <div class="card-info-line">
-                                    <i class="fas fa-calendar-alt text-muted"></i>
-                                    <span>Preferencia: ${sol.fechaPreferida ? new Date(sol.fechaPreferida).toLocaleDateString() : 'Cualquier fecha'}</span>
-                                </div>
-                                <div class="d-flex justify-content-end mt-2 gap-1">
-                                    <button class="btn-detalle" onclick="verDetalle('solicitudes', ${sol.idSolicitud})" title="Ver detalles"><i class="fas fa-eye"></i></button>
-                                    ${btnArchivar}
+
+                                <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top border-light">
+                                    <div class="form-check m-0">
+                                        <input class="form-check-input select-item" type="checkbox" value="${sol.idSolicitud}" data-tipo="solicitudes" id="sol_${sol.idSolicitud}" ${!puedeArchivar ? 'disabled' : ''}>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold shadow-sm" onclick="verDetalle('solicitudes', ${sol.idSolicitud})">
+                                            <i class="fas fa-eye me-1"></i> Detalles
+                                        </button>
+                                        ${btnArchivar}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1332,66 +1364,65 @@ async function mostrarSeccion(seccion) {
             let equiposNecesitanMantenimiento = 0;
 
             equipos.forEach((equipo) => {
-                let fechaBase = equipo.fechaUltimoMantenimiento
-                    ? new Date(equipo.fechaUltimoMantenimiento)
-                    : new Date(equipo.fechaInstalacion);
-                let proximaFecha = new Date(fechaBase);
-                proximaFecha.setMonth(proximaFecha.getMonth() + 6);
-
-                const diffTime = proximaFecha - hoy;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
                 let alertaHtml = '';
-                let borderClass = 'equipo-ok';
+                let borderClass = 'border-light';
                 let btnAgenda = '';
 
                 if (diffDays <= 0) {
                     equiposNecesitanMantenimiento++;
-                    borderClass = 'equipo-urgente';
+                    borderClass = 'border-danger';
                     alertaHtml = `
-                        <div class="alert alert-danger p-2 small fw-bold mb-2">
-                            <i class="fas fa-exclamation-triangle me-2"></i>¡Urgente! (Venció el ${proximaFecha.toLocaleDateString()})
+                        <div class="bg-danger bg-opacity-10 text-danger p-2 small fw-bold text-center mb-3 rounded-3">
+                            <i class="fas fa-exclamation-triangle me-1"></i> Mantenimiento vencido
                         </div>
                     `;
-                    btnAgenda = `<a href="contacto.html" class="btn btn-danger btn-sm w-100 fw-bold mt-2"><i class="fas fa-calendar-plus me-1"></i> Agendar</a>`;
+                    btnAgenda = `<a href="contacto.html" class="btn btn-danger btn-sm rounded-pill fw-bold px-3 shadow-sm"><i class="fas fa-calendar-plus me-1"></i> Agendar Urgente</a>`;
                 } else if (diffDays <= 30) {
                     equiposNecesitanMantenimiento++;
-                    borderClass = 'equipo-alerta';
+                    borderClass = 'border-warning';
                     alertaHtml = `
-                        <div class="alert alert-warning p-2 small fw-bold mb-2">
-                            <i class="fas fa-bell me-2"></i>Próximo en ${diffDays} días.
+                        <div class="bg-warning bg-opacity-10 text-dark p-2 small fw-bold text-center mb-3 rounded-3">
+                            <i class="fas fa-bell me-1"></i> Mantenimiento en ${diffDays} días
                         </div>
                     `;
-                    btnAgenda = `<a href="contacto.html" class="btn btn-warning btn-sm w-100 fw-bold mt-2 text-dark"><i class="fas fa-calendar-plus me-1"></i> Prevenir</a>`;
+                    btnAgenda = `<a href="contacto.html" class="btn btn-warning btn-sm rounded-pill fw-bold px-3 shadow-sm text-dark"><i class="fas fa-calendar-plus me-1"></i> Prevenir</a>`;
                 } else {
                     alertaHtml = `
-                        <div class="alert alert-success p-2 small fw-bold mb-2">
-                            <i class="fas fa-check-circle me-2"></i>Óptimo. Servicio en ${diffDays} días.
+                        <div class="bg-success bg-opacity-10 text-success p-2 small fw-bold text-center mb-3 rounded-3">
+                            <i class="fas fa-check-circle me-1"></i> Óptimo (${diffDays} días)
                         </div>
                     `;
                 }
 
                 html += `
-                    <div class="list-card ${borderClass}">
-                        <div class="card-body">
+                    <div class="card w-100 bg-white border ${borderClass} shadow-sm rounded-4 overflow-hidden mb-3 transition-hover">
+                        <div class="card-body p-3 d-flex flex-column">
                             ${alertaHtml}
-                            <div class="d-flex justify-content-between align-items-start mb-1">
-                                <h5 class="fw-bold text-dark mb-0">${equipo.marca} ${equipo.modelo || ''}</h5>
-                                <span class="badge bg-primary rounded-pill">${equipo.capacidadBtu} BTU</span>
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <small class="text-muted fw-bold text-uppercase" style="font-size: 0.65rem;">${equipo.marca}</small>
+                                    <h6 class="fw-bold text-dark mb-0">${equipo.modelo || 'Equipo Instalado'}</h6>
+                                </div>
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-2 py-1" style="font-size: 0.7rem;">
+                                    ${equipo.capacidadBtu} BTU
+                                </span>
                             </div>
-                            <div class="card-info-line">
-                                <i class="fas fa-map-marker-alt text-primary"></i>
-                                <span>${equipo.ubicacionEnCasa || 'No especificada'}</span>
+                            
+                            <div class="d-flex align-items-center gap-2 mb-1 mt-2">
+                                <i class="fas fa-map-marker-alt text-primary" style="width: 16px;"></i>
+                                <span class="text-secondary small">${equipo.ubicacionEnCasa || 'No especificada'}</span>
                             </div>
-                            <div class="card-info-line">
-                                <i class="fas fa-calendar-alt text-primary"></i>
-                                <span>Instalación: ${formatearFecha(equipo.fechaInstalacion)}</span>
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <i class="fas fa-tools text-secondary" style="width: 16px;"></i>
+                                <span class="text-secondary small">Últ. servicio: ${equipo.fechaUltimoMantenimiento ? formatearFecha(equipo.fechaUltimoMantenimiento).split(',')[0] : 'Ninguno'}</span>
                             </div>
-                            <div class="card-info-line">
-                                <i class="fas fa-tools text-info"></i>
-                                <span>Último servicio: ${equipo.fechaUltimoMantenimiento ? formatearFecha(equipo.fechaUltimoMantenimiento) : 'Ninguno'}</span>
+
+                            <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top border-light">
+                                <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold" onclick="verDetalle('equipos', ${equipo.idEquipo})">
+                                    <i class="fas fa-info-circle me-1"></i> Ficha
+                                </button>
+                                ${btnAgenda}
                             </div>
-                            ${btnAgenda}
                         </div>
                     </div>
                 `;

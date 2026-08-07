@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="offcanvas-lg offcanvas-start flex-grow-1" tabindex="-1" id="menuLateral">
                         <div class="offcanvas-header border-bottom d-lg-none">
                             <h5 class="offcanvas-title fw-bold text-uppercase text-primary" style="letter-spacing: 1px;">Opciones</h5>
-                            <!-- 🚨 AQUÍ REPARAMOS LA X (agregamos data-bs-target) -->
                             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#menuLateral" aria-label="Cerrar"></button>
                         </div>
                         
@@ -33,6 +32,20 @@ document.addEventListener('DOMContentLoaded', () => {
                             </ul>
 
                             <div class="d-lg-none w-100">
+                                <div class="p-3 bg-light border-bottom text-muted fw-bold small text-uppercase" style="letter-spacing: 1px;">
+                                    Nuestra Empresa
+                                </div>
+                                <ul class="list-group list-group-flush border-bottom">
+                                    <a href="nosotros.html" class="list-group-item list-group-item-action border-0 py-3 d-flex justify-content-between align-items-center">
+                                        <span><i class="fas fa-users text-primary me-3"></i>Sobre Nosotros</span>
+                                        <i class="fas fa-chevron-right text-muted small"></i>
+                                    </a>
+                                    <a href="contacto.html" class="list-group-item list-group-item-action border-0 py-3 d-flex justify-content-between align-items-center">
+                                        <span><i class="fas fa-envelope text-primary me-3"></i>Contáctanos</span>
+                                        <i class="fas fa-chevron-right text-muted small"></i>
+                                    </a>
+                                </ul>
+
                                 <div class="p-3 bg-light border-bottom text-muted fw-bold small text-uppercase" style="letter-spacing: 1px;">
                                     Soporte
                                 </div>
@@ -49,10 +62,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             
                             <div class="mt-auto mt-lg-0 p-4 p-lg-0 border-top border-lg-0 d-flex flex-column flex-lg-row align-items-lg-center gap-2 gap-lg-3" id="authButtons" style="background-color: transparent;">
-                                <!-- El JS inyecta botones aquí -->
-                            </div>
+                                </div>
                             
-                            <!-- Carrito PC -->
                             <a href="carrito.html" class="position-relative ms-lg-3 mt-3 mt-lg-0 text-dark text-decoration-none fs-5 d-none d-lg-inline-block" id="cartIconDesktop" style="display: none;">
                                 <i class="fas fa-shopping-cart"></i>
                                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count" style="display: none; font-size: 0.65rem;">0</span>
