@@ -1988,12 +1988,23 @@ window.abrirVisorEvidencia = function(idCita) {
 
 window.descargarReportePDF = async function() {
     const cita = window.citaActualParaPDF;
-    if (!cita) { Swal.fire('Error', 'No hay datos de reporte seleccionados.', 'error'); return; }
-    Swal.fire({ title: 'Generando Documento...', text: 'Por favor espera.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+    if (!cita) { 
+        Swal.fire('Error', 'No hay datos de reporte seleccionados.', 'error'); 
+        return; 
+    }
+    
+    Swal.fire({ 
+        title: 'Generando Documento...', 
+        text: 'Por favor espera.', 
+        allowOutsideClick: false, 
+        didOpen: () => { Swal.showLoading(); } 
+    });
+    
     const fotosAntes = cita.urlsFotosAntes ? cita.urlsFotosAntes.split(',') : [];
     const fotosDespues = cita.urlsFotosDespues ? cita.urlsFotosDespues.split(',') : [];
+    
     const divTemporal = document.createElement('div');
-    divTemporal.style.padding = '40px';
+    // ELIMINAMOS el padding de 40px para evitar el choque de espacios y dejamos que el PDF maneje los márgenes
     divTemporal.style.backgroundColor = '#ffffff';
     divTemporal.style.color = '#333333';
     divTemporal.style.fontFamily = "'Helvetica Neue', Helvetica, Arial, sans-serif";
@@ -2021,11 +2032,28 @@ window.descargarReportePDF = async function() {
         </div>
         <div style="margin-top: 40px; text-align: center; font-size: 11px; color: #adb5bd; border-top: 1px solid #e9ecef; padding-top: 15px;">Este documento certifica la realización del servicio técnico detallado. Servi A/C Pro garantiza la calidad de la mano de obra. <br> Para dudas o reclamaciones, consérvese este comprobante.</div>
     `;
-    const opciones = { margin: 0.3, filename: `Reporte_Tecnico_Ticket_${cita.idCita}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
+    
+    // Configuración exacta para alinear perfectamente el contenido
+    const opciones = { 
+        margin: [0.4, 0.4, 0.4, 0.4], // Ajuste uniforme de márgenes [Arriba, Derecha, Abajo, Izquierda]
+        filename: `Reporte_Tecnico_Ticket_${cita.idCita}.pdf`, 
+        image: { type: 'jpeg', quality: 0.98 }, 
+        html2canvas: { scale: 2, useCORS: true }, 
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } 
+    };
+    
     try {
         await html2pdf().set(opciones).from(divTemporal).save();
         Swal.close();
-        Swal.fire({ icon: 'success', title: '¡Documento Generado!', text: 'El reporte profesional se descargó.', toast: true, position: 'top-end', timer: 3000, showConfirmButton: false });
+        Swal.fire({ 
+            icon: 'success', 
+            title: '¡Documento Generado!', 
+            text: 'El reporte profesional se descargó.', 
+            toast: true, 
+            position: 'top-end', 
+            timer: 3000, 
+            showConfirmButton: false 
+        });
     } catch (error) {
         Swal.close();
         Swal.fire('Error', 'No se pudo generar el documento PDF.', 'error');
