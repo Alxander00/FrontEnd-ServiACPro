@@ -51,47 +51,58 @@ const Chat = (() => {
     };
 
     const connectWebSocket = () => {
-        if (stompClient && stompClient.connected) {
-            stompClient.disconnect();
-        }
+    if (stompClient && stompClient.connected) {
+        stompClient.disconnect();
+    }
 
-        const token = Auth.getToken();
-        console.log('🔑 Token para WebSocket:', token ? 'Sí' : 'No');
-        const socket = new SockJS(`${API_URL}/ws-chat?token=${token}`);
-        stompClient = Stomp.over(socket);
+    const token = Auth.getToken();
+    console.log('🔑 Token para WebSocket:', token ? 'Sí' : 'No');
+    const socket = new SockJS(`${API_URL}/ws-chat?token=${token}`);
+    stompClient = Stomp.over(socket);
 
-        stompClient.connect({ 'Authorization': `Bearer ${token}` }, (frame) => {
-            console.log('🔗 Conectado al WebSocket de chat');
-
-            // Suscripción genérica para recibir los mensajes enrutados por Spring Boot
-            stompClient.subscribe(`/user/queue/messages`, (message) => {
-                console.log('📩 Mensaje recibido:', message.body);
-                const msg = JSON.parse(message.body);
-                if (msg.conversacionId == conversacionId) {
-                    agregarMensajeDOM(msg, false);
-                }
-            });
-
-            // Suscripción a las notificaciones y encendido del "Puntito Rojo"
-            stompClient.subscribe(`/user/queue/notifications`, (notification) => {
-                const notif = JSON.parse(notification.body);
-                
-                // 1. Mostrar la alerta flotante (Toast)
-                mostrarNotificacion(notif);
-
-                // 2. Encender la burbuja roja en el botón de chat correspondiente
-                if (notif.idCita) {
-                    const badge = document.getElementById(`badge-chat-${notif.idCita}`);
-                    if (badge) {
-                        badge.style.display = 'inline-block';
-                    }
-                }
-            });
-        }, (error) => {
-            console.error('❌ Error en WebSocket:', error);
-            Swal.fire('Error', 'No se pudo conectar al chat. Verifica tu conexión.', 'error');
-        });
+    // ✅ Manejo de reconexión automática
+    socket.onclose = function() {
+        console.warn('⚠️ Conexión WebSocket cerrada, intentando reconectar en 5 segundos...');
+        setTimeout(() => {
+            if (!stompClient.connected) {
+                connectWebSocket();
+            }
+        }, 5000);
     };
+
+    stompClient.connect({ 'Authorization': `Bearer ${token}` }, (frame) => {
+        console.log('🔗 Conectado al WebSocket de chat');
+
+        // Suscripción genérica para recibir los mensajes enrutados por Spring Boot
+        stompClient.subscribe(`/user/queue/messages`, (message) => {
+            console.log('📩 Mensaje recibido:', message.body);
+            const msg = JSON.parse(message.body);
+            if (msg.conversacionId == conversacionId) {
+                agregarMensajeDOM(msg, false);
+            }
+        });
+
+        // Suscripción a las notificaciones
+        stompClient.subscribe(`/user/queue/notifications`, (notification) => {
+            const notif = JSON.parse(notification.body);
+            mostrarNotificacion(notif);
+            if (notif.idCita) {
+                const badge = document.getElementById(`badge-chat-${notif.idCita}`);
+                if (badge) {
+                    badge.style.display = 'inline-block';
+                }
+            }
+        });
+    }, (error) => {
+        console.error('❌ Error en WebSocket:', error);
+        if (!stompClient.connected) {
+            console.log('🔄 Intentando reconectar en 5 segundos...');
+            setTimeout(() => {
+                connectWebSocket();
+            }, 5000);
+        }
+    });
+};
 
     const cargarHistorial = async () => {
         try {

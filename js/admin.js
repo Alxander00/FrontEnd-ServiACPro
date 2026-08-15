@@ -19,6 +19,7 @@ let bsModalRepuesto = null;
 let categoriasCargadas = false;
 let currentImageUrls = [];
 let usuariosCache = [];
+let categoriasCache = [];
 
 // ==========================================
 // VARIABLES GLOBALES EXTRA Y FILAS (UI PREMIUM)
@@ -997,14 +998,28 @@ function mostrarImagenesActuales(imagenes) {
 
 async function cargarCategoriasEnSelect() {
     const select = document.getElementById('prodCategoria');
+    
+    // Si ya tenemos caché, usarla
+    if (categoriasCache.length > 0) {
+        select.innerHTML = '<option value="" disabled selected>Seleccione una categoría</option>';
+        categoriasCache.forEach(cat => {
+            select.innerHTML += `<option value="${cat.idCategoria}">${cat.nombre}</option>`;
+        });
+        return;
+    }
+
     select.innerHTML = '<option value="">Cargando...</option>';
     try {
         const categorias = await API.request('/categorias');
+        categoriasCache = categorias; // guardamos en caché
         select.innerHTML = '<option value="" disabled selected>Seleccione una categoría</option>';
-        categorias.forEach(cat => select.innerHTML += `<option value="${cat.idCategoria}">${cat.nombre}</option>`);
+        categorias.forEach(cat => {
+            select.innerHTML += `<option value="${cat.idCategoria}">${cat.nombre}</option>`;
+        });
         categoriasCargadas = true;
     } catch (error) {
         select.innerHTML = '<option value="">Error al cargar</option>';
+        console.error('Error cargando categorías:', error);
     }
 }
 
