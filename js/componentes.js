@@ -129,7 +129,7 @@ function inyectarBottomNav() {
 // ==========================================
 function inyectarWhatsApp() {
     // Aquí puedes cambiar el número al tuyo real. Usa el código de país (503) sin el símbolo +
-    const numeroWhatsApp = "50370000000"; 
+    const numeroWhatsApp = "50371584643"; 
     const mensajeAmigable = "¡Hola! Estoy interesado en los servicios de Servi A/C Pro. ¿Me pueden ayudar?";
     const urlWa = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensajeAmigable)}`;
 

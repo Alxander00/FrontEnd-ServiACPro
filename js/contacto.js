@@ -71,7 +71,7 @@ async function enviarSolicitud(e) {
         await API.request('/api/solicitudes', { method: 'POST', body: JSON.stringify(payload) });
         
         if (window.UI) {
-            window.UI.success('El administrador revisará tu solicitud y se pondrá en contacto.');
+            window.UI.exito('El administrador revisará tu solicitud y se pondrá en contacto.');
         } else {
             Swal.fire('Solicitud enviada', 'El administrador revisará tu solicitud y se pondrá en contacto.', 'success');
         }
