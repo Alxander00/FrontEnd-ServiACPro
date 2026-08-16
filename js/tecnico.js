@@ -613,7 +613,15 @@ window.abrirChatConCliente = async function(idCliente, nombreCliente, idCita) {
 // ABRIR MODAL ESTADO
 // ==========================================
 window.abrirModalEstado = function(idCita, estadoActual) {
-    document.getElementById('citaIdActual').value = idCita;
+    // Validar y convertir a número
+    const id = parseInt(idCita);
+    if (isNaN(id) || id <= 0) {
+        Swal.fire('Error', 'ID de cita inválido', 'error');
+        return;
+    }
+
+    // Guardar el número en el input oculto
+    document.getElementById('citaIdActual').value = id;
 
     let valorSelect = 'En Proceso';
     if (estadoActual === 'PROGRAMADA') valorSelect = 'En Camino';
@@ -637,12 +645,20 @@ window.abrirModalEstado = function(idCita, estadoActual) {
 // ==========================================
 async function guardarEstadoCita(event) {
     event.preventDefault();
+
+    // Obtener y validar el ID del campo oculto
+    const idInput = document.getElementById('citaIdActual');
+    const idCita = parseInt(idInput.value);
+    if (isNaN(idCita) || idCita <= 0) {
+        Swal.fire('Error', 'ID de cita no válido', 'error');
+        return;
+    }
+
     const btn = document.getElementById('btnGuardarReporte');
     const txtOriginal = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Subiendo...';
 
-    const idCita = parseInt(document.getElementById('citaIdActual').value);
     let nuevoEstadoSelect = document.getElementById('nuevoEstado').value;
     let nuevoEstado = '';
 
@@ -734,6 +750,7 @@ async function guardarEstadoCita(event) {
 
         const token = Auth.getToken();
 
+        // Usar idCita (que ya es número) en la URL
         const response = await fetch(`${BASE_URL}/api/citas/${idCita}/reporte`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
