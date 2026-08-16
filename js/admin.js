@@ -22,6 +22,42 @@ let usuariosCache = [];
 let categoriasCache = [];
 
 // ==========================================
+// UTILIDADES UI (SweetAlert2)
+// ==========================================
+const UI = {
+    confirmar: (title, text, confirmText = 'Aceptar', confirmColor = '#0d6efd') => {
+        return Swal.fire({
+            title: title,
+            text: text,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: confirmColor,
+            confirmButtonText: confirmText,
+            cancelButtonText: 'Cancelar'
+        }).then(result => result.isConfirmed);
+    },
+    error: (message) => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: message,
+            confirmButtonColor: '#d33'
+        });
+    },
+    success: (message) => {
+        Swal.fire({
+            icon: 'success',
+            title: 'Éxito',
+            text: message,
+            toast: true,
+            position: 'top-end',
+            timer: 3000,
+            showConfirmButton: false
+        });
+    }
+};
+
+// ==========================================
 // VARIABLES GLOBALES EXTRA Y FILAS (UI PREMIUM)
 // ==========================================
 let tecnicosGlobal = []; // Caché para no recargar técnicos al buscar solicitudes
