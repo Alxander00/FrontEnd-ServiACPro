@@ -25,6 +25,9 @@ let canvas = null;
 let ctx = null;
 let isDrawing = false;
 
+// ✅ NUEVA: control de vista de archivadas
+let mostrarArchivadas = false;
+
 // ==========================================
 // INICIALIZACIÓN
 // ==========================================
@@ -87,6 +90,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderizarCalendario(citasFiltradas);
     });
 
+    // ✅ NUEVO: Botón para mostrar/ocultar archivadas
+    const btnArchivadas = document.getElementById('btnVerArchivadas');
+    if (btnArchivadas) {
+        btnArchivadas.addEventListener('click', function() {
+            mostrarArchivadas = !mostrarArchivadas;
+            this.classList.toggle('active');
+            this.innerHTML = mostrarArchivadas 
+                ? '<i class="fas fa-archive me-1"></i> Ocultar Archivadas' 
+                : '<i class="fas fa-archive me-1"></i> Archivadas';
+            cargarCitas(0);
+        });
+    }
+
     // FILTROS EN TIEMPO REAL
     document.getElementById('buscarCita').addEventListener('input', aplicarFiltros);
     document.getElementById('filtroEstado').addEventListener('change', aplicarFiltros);
@@ -112,7 +128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ==========================================
-// CARGAR CITAS (CON PAGINACIÓN)
+// CARGAR CITAS (CON PAGINACIÓN Y FILTRO DE ARCHIVADAS)
 // ==========================================
 async function cargarCitas(page = 0) {
     const user = Auth.getUser();
@@ -133,7 +149,13 @@ async function cargarCitas(page = 0) {
         totalElements = response.totalElements || 0;
         currentPage = response.number || 0;
 
-        citasFiltradas = [...todasLasCitas];
+        // ✅ Filtrar según si mostramos archivadas o no
+        let citasParaMostrar = [...todasLasCitas];
+        if (!mostrarArchivadas) {
+            citasParaMostrar = citasParaMostrar.filter(c => !c.archivada);
+        }
+
+        citasFiltradas = citasParaMostrar;
         actualizarEstadisticas(citasFiltradas);
         renderizarTarjetas(citasFiltradas);
         renderizarCalendario(citasFiltradas);
@@ -149,6 +171,60 @@ async function cargarCitas(page = 0) {
     }
 }
 
+// ==========================================
+// ARCHIVAR CITA (soft delete) - CORREGIDO
+// ==========================================
+async function cargarCitas(page = 0) {
+    const user = Auth.getUser();
+    if (!user) return;
+
+    try {
+        document.getElementById('agendaContainer').innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Cargando citas...</p>
+            </div>
+        `;
+
+        if (mostrarArchivadas) {
+            // 🚀 Llamamos al endpoint especial del Backend para ver TODAS las Archivadas
+            const token = Auth.getToken();
+            const BASE_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                ? 'http://localhost:8080'
+                : 'https://servi-a-c-pro.onrender.com';
+            
+            const res = await fetch(`${BASE_URL}/api/citas/tecnico/${user.idUsuario}/archivadas`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (!res.ok) throw new Error('Error al cargar archivadas');
+            
+            todasLasCitas = await res.json();
+            totalPages = 1;
+            totalElements = todasLasCitas.length;
+            currentPage = 0;
+        } else {
+            // 🚀 Carga normal paginada (citas activas)
+            const response = await API.Citas.listarPorTecnico(user.idUsuario, page, pageSize);
+            todasLasCitas = response.content || [];
+            totalPages = response.totalPages || 1;
+            totalElements = response.totalElements || 0;
+            currentPage = response.number || 0;
+        }
+
+        // Delegamos TODA la magia de ocultar/mostrar a nuestra función de filtros
+        aplicarFiltros();
+        actualizarPaginacion();
+
+    } catch (error) {
+        console.error(error);
+        document.getElementById('agendaContainer').innerHTML = `
+            <div class="col-12">
+                <div class="alert alert-danger">Error al cargar citas: ${error.message}</div>
+            </div>
+        `;
+    }
+}
 // ==========================================
 // ACTUALIZAR PAGINACIÓN (UI)
 // ==========================================
@@ -197,21 +273,34 @@ function actualizarEstadisticas(citas) {
 // ==========================================
 // APLICAR FILTROS (EN TIEMPO REAL)
 // ==========================================
-function aplicarFiltros() {
+window.aplicarFiltros = function() {
     const estado = document.getElementById('filtroEstado').value;
     const busqueda = document.getElementById('buscarCita').value.toLowerCase().trim();
     const orden = document.getElementById('filtroOrden').value;
 
     citasFiltradas = todasLasCitas.filter(cita => {
-        if (estado !== 'todos' && cita.estado !== estado) return false;
+        
+        // 🚨 REGLA 1: ESTADOS Y CANCELADAS
+        // Si el usuario eligió "Todos los estados", ocultamos las CANCELADA
+        if (estado === 'todos' && cita.estado === 'CANCELADA') {
+            return false;
+        }
+        // Si el usuario eligió un estado específico (ej. "CANCELADA"), mostramos solo ese
+        if (estado !== 'todos' && cita.estado !== estado) {
+            return false;
+        }
+
+        // 🚨 REGLA 2: BÚSQUEDA POR TEXTO
         if (busqueda) {
             const nombre = (cita.nombreCliente || '').toLowerCase();
             const direccion = (cita.direccionCliente || '').toLowerCase();
             if (!nombre.includes(busqueda) && !direccion.includes(busqueda)) return false;
         }
+        
         return true;
     });
 
+    // 🚨 REGLA 3: ORDENAMIENTO
     if (orden === 'fecha') {
         citasFiltradas.sort((a, b) => new Date(a.fechaInicio) - new Date(b.fechaInicio));
     } else if (orden === 'cliente') {
@@ -221,10 +310,10 @@ function aplicarFiltros() {
     actualizarEstadisticas(citasFiltradas);
     renderizarTarjetas(citasFiltradas);
     renderizarCalendario(citasFiltradas);
-}
+};
 
 // ==========================================
-// RENDERIZAR TARJETAS (con WhatsApp y teléfono)
+// RENDERIZAR TARJETAS (con WhatsApp y teléfono) - VERSIÓN CON ARCHIVADO
 // ==========================================
 function renderizarTarjetas(citas) {
     const container = document.getElementById('agendaContainer');
@@ -268,21 +357,30 @@ function renderizarTarjetas(citas) {
             : '';
 
         const esCompletada = cita.estado === 'COMPLETADA';
-        const btnEliminar = esCompletada ? `
-            <button class="btn btn-outline-danger btn-sm rounded-pill fw-bold" onclick="event.stopPropagation(); eliminarCita(${cita.idCita})" title="Eliminar cita completada">
-                <i class="fas fa-trash-alt"></i>
+        const esCancelada = cita.estado === 'CANCELADA';
+
+        // ✅ Badge de "Archivada" si está archivada
+        const badgeArchivada = cita.archivada ? `
+            <span class="badge bg-secondary ms-1">Archivada</span>
+        ` : '';
+
+        // ✅ Botón de archivar solo si NO está archivada y es completada o cancelada
+        const btnArchivar = (!cita.archivada && (esCompletada || esCancelada)) ? `
+            <button class="btn btn-outline-warning btn-sm rounded-pill fw-bold" 
+                    onclick="event.stopPropagation(); archivarCita(${cita.idCita})" 
+                    title="Archivar (ocultar de mi lista)">
+                <i class="fas fa-archive"></i>
             </button>
         ` : '';
 
         const tipoServicio = cita.tipoServicio || 'No especificado';
         const mensajeCliente = cita.mensajeCliente || 'Sin mensaje adicional';
 
-        // ✅ Obtener teléfono del cliente (limpiar formato para WhatsApp)
+        // Teléfono para WhatsApp
         const telefono = cita.telefonoCliente || '';
-        const telefonoLimpio = telefono.replace(/\D/g, ''); // solo dígitos
-        const numeroWhatsApp = telefonoLimpio ? `503${telefonoLimpio}` : ''; // prefijo El Salvador
+        const telefonoLimpio = telefono.replace(/\D/g, '');
+        const numeroWhatsApp = telefonoLimpio ? `503${telefonoLimpio}` : '';
 
-        // Botón de chat con enlace a WhatsApp
         const btnWhatsApp = telefonoLimpio ? `
             <a href="https://wa.me/${numeroWhatsApp}?text=Hola%20${encodeURIComponent(cita.nombreCliente || '')}%2C%20soy%20el%20t%C3%A9cnico%20de%20ServiA%2FC%20Pro%20para%20la%20cita%20%23${cita.idCita}" 
                target="_blank" 
@@ -293,7 +391,6 @@ function renderizarTarjetas(citas) {
             </a>
         ` : '';
 
-        // Botón de chat interno (el que ya existía)
         const btnChat = `
             <button class="btn btn-outline-primary btn-sm rounded-pill fw-bold" 
                     onclick="event.stopPropagation(); abrirChatConCliente(${cita.idCliente}, '${cita.nombreCliente}', ${cita.idCita})">
@@ -311,6 +408,7 @@ function renderizarTarjetas(citas) {
                             ${estadoLabel}
                         </span>
                         ${badgeUrgencia}
+                        ${badgeArchivada}
                     </div>
                     <span class="cita-hora">${horaFormateada}</span>
                 </div>
@@ -319,7 +417,6 @@ function renderizarTarjetas(citas) {
                     <i class="fas fa-user-circle me-1"></i><strong>${cita.nombreCliente}</strong>
                 </h6>
 
-                <!-- 📞 Teléfono con enlace a WhatsApp -->
                 ${telefonoLimpio ? `
                     <p class="cita-telefono mb-1">
                         <i class="fas fa-phone text-success me-1"></i>
@@ -357,12 +454,11 @@ function renderizarTarjetas(citas) {
                         ${btnChat}
                         ${btnWhatsApp}
                     </div>
-                    ${btnEliminar}
+                    ${btnArchivar}
                 </div>
             </div>
         `;
 
-        // Evento click para abrir modal de detalles (evita que se dispare al hacer clic en enlaces o botones)
         col.addEventListener('click', function(e) {
             if (e.target.closest('a') || e.target.closest('button')) return;
             abrirDetallesCita(cita);
@@ -404,14 +500,12 @@ function renderizarCalendario(citas) {
     const esMovil = window.innerWidth < 768;
     calendar = new FullCalendar.Calendar(calendarEl, {
         locale: 'es',
-        // Si es celular muestra una lista, si es PC muestra la semana
         initialView: esMovil ? 'listWeek' : 'timeGridWeek',
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
             right: esMovil ? 'listWeek,timeGridDay' : 'dayGridMonth,timeGridWeek,timeGridDay'
         },
-        // Escucha si el usuario voltea el celular o achica la ventana
         windowResize: function(arg) {
             if (window.innerWidth < 768) {
                 calendar.changeView('listWeek');
@@ -452,7 +546,6 @@ function abrirDetallesCita(cita) {
                         cita.estado === 'EN_PROCESO' ? 'en-proceso' :
                         cita.estado === 'COMPLETADA' ? 'completada' : 'cancelada';
 
-    // ✅ Teléfono para WhatsApp
     const telefono = cita.telefonoCliente || '';
     const telefonoLimpio = telefono.replace(/\D/g, '');
     const numeroWhatsApp = telefonoLimpio ? `503${telefonoLimpio}` : '';
@@ -519,7 +612,6 @@ function abrirDetallesCita(cita) {
         </div>
     `;
 
-    // Botones del footer
     document.getElementById('btnReportarDesdeDetalles').onclick = function() {
         bsModalDetalles.hide();
         abrirModalEstado(cita.idCita, cita.estado);
@@ -529,9 +621,8 @@ function abrirDetallesCita(cita) {
         mostrarMapa(cita.direccionCliente, cita.idCliente);
     };
 
-    // Botón de chat en el footer (CON idCita)
     const btnChatFooter = document.createElement('button');
-    btnChatFooter.className = 'btn btn-outline-primary fw-bold rounded-pill';
+    btnChatFooter.className = 'btn btn-outline-primary fw-bold rounded-pill btn-chat-detalle';
     btnChatFooter.innerHTML = '<i class="fas fa-comment-dots me-1"></i> Chat';
     btnChatFooter.onclick = function() {
         bsModalDetalles.hide();
@@ -541,7 +632,6 @@ function abrirDetallesCita(cita) {
     const footer = document.querySelector('#modalDetallesCita .modal-footer');
     const existingBtn = footer.querySelector('.btn-chat-detalle');
     if (existingBtn) existingBtn.remove();
-    btnChatFooter.classList.add('btn-chat-detalle');
     footer.insertBefore(btnChatFooter, footer.querySelector('.btn-secondary'));
 
     bsModalDetalles.show();
@@ -613,14 +703,12 @@ window.abrirChatConCliente = async function(idCliente, nombreCliente, idCita) {
 // ABRIR MODAL ESTADO
 // ==========================================
 window.abrirModalEstado = function(idCita, estadoActual) {
-    // Validar y convertir a número
     const id = parseInt(idCita);
     if (isNaN(id) || id <= 0) {
         Swal.fire('Error', 'ID de cita inválido', 'error');
         return;
     }
 
-    // Guardar el número en el input oculto
     document.getElementById('citaIdActual').value = id;
 
     let valorSelect = 'En Proceso';
@@ -646,7 +734,6 @@ window.abrirModalEstado = function(idCita, estadoActual) {
 async function guardarEstadoCita(event) {
     event.preventDefault();
 
-    // Obtener y validar el ID del campo oculto
     const idInput = document.getElementById('citaIdActual');
     const idCita = parseInt(idInput.value);
     if (isNaN(idCita) || idCita <= 0) {
@@ -750,7 +837,6 @@ async function guardarEstadoCita(event) {
 
         const token = Auth.getToken();
 
-        // Usar idCita (que ya es número) en la URL
         const response = await fetch(`${BASE_URL}/api/citas/${idCita}/reporte`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
@@ -959,8 +1045,19 @@ function agregarFilaRepuesto() {
     contenedor.insertAdjacentHTML('beforeend', html);
 }
 
+function actualizarUnidad(idFila) {
+    const fila = document.getElementById(idFila);
+    const select = fila.querySelector('.select-repuesto');
+    const unidadSpan = fila.querySelector('.span-unidad');
+    const optionSeleccionada = select.options[select.selectedIndex];
+
+    if (optionSeleccionada && optionSeleccionada.dataset.unidad) {
+        unidadSpan.textContent = optionSeleccionada.dataset.unidad.substring(0, 3).toUpperCase();
+    }
+}
+
 // ==========================================
-// ELIMINAR CITA (completada)
+// ELIMINAR CITA (borrado físico - solo si es necesario)
 // ==========================================
 window.eliminarCita = async function(idCita) {
     const confirmado = await UI.confirmar('¿Eliminar esta cita?', 'Esta acción no se puede deshacer.', 'Sí, eliminar', '#dc3545');
@@ -987,14 +1084,3 @@ window.eliminarCita = async function(idCita) {
         UI.error(error.message);
     }
 };
-
-function actualizarUnidad(idFila) {
-    const fila = document.getElementById(idFila);
-    const select = fila.querySelector('.select-repuesto');
-    const unidadSpan = fila.querySelector('.span-unidad');
-    const optionSeleccionada = select.options[select.selectedIndex];
-
-    if (optionSeleccionada && optionSeleccionada.dataset.unidad) {
-        unidadSpan.textContent = optionSeleccionada.dataset.unidad.substring(0, 3).toUpperCase();
-    }
-}

@@ -15,9 +15,18 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Ingresando...';
 
             try {
-                await Auth.login(email, password);
-                // Redirigir según el rol (esto ya lo maneja main.js al recargar)
-                window.location.href = 'index.html';
+                // Ahora capturamos los datos del usuario al iniciar sesión
+                const user = await Auth.login(email, password);
+                
+                // 🚀 MAGIA DE REDIRECCIÓN: Según el rol, lo mandamos a su área
+                if (user.rol === 'TECNICO') {
+                    window.location.replace('tecnico.html');
+                } else if (user.rol === 'ADMIN') {
+                    window.location.replace('admin.html');
+                } else {
+                    window.location.replace('index.html'); // Cliente normal
+                }
+                
             } catch (error) {
                 UI.error(error.message || 'Error al iniciar sesión.', 'Acceso Denegado');
                 

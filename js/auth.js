@@ -131,6 +131,26 @@ const Auth = (() => {
             throw error;
         }
     };
+    
+    // ==========================================
+    // 🛡️ GUARDIA GLOBAL PARA TÉCNICOS
+    // ==========================================
+    const guardiaDeSeguridadGlobal = () => {
+        const user = getUser();
+        // Si hay un usuario logueado y su rol es TECNICO
+        if (user && user.rol === 'TECNICO') {
+            const paginaActual = window.location.pathname.toLowerCase();
+            
+            // Si intenta entrar a cualquier página que NO sea tecnico.html ni el login
+            if (!paginaActual.includes('tecnico.html') && !paginaActual.includes('login.html')) {
+                console.warn('Acceso denegado: Los técnicos solo pueden ver su panel.');
+                window.location.replace('tecnico.html');
+            }
+        }
+    };
+
+    // Auto-ejecutar el guardia apenas cargue cualquier página
+    guardiaDeSeguridadGlobal();
 
     return {
         login,
